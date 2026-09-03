@@ -65,43 +65,61 @@ async function getPlaces(request, env, ctx) {
   if (cache) {
     const cached = await cache.match(freshKey);
     if (cached) return labelledResponse(cached, "HIT");
+
+    const stale = await cache.match(staleKey);
+    if (stale) {
+      ctx.waitUntil(
+        refreshPlacesCache(env.GOOGLE_SHEET_API_URL, cacheSeconds, cache, freshKey, staleKey)
+          .catch(() => undefined),
+      );
+      const immediate = new Response(stale.body, {
+        status: 200,
+        headers: dataHeaders(cacheSeconds),
+      });
+      return labelledResponse(immediate, "STALE-REFRESHING");
+    }
   }
 
   try {
-    if (!inFlightDataRequest) {
-      inFlightDataRequest = fetchAndValidatePlaces(env.GOOGLE_SHEET_API_URL, cacheSeconds)
-        .finally(() => { inFlightDataRequest = null; });
-    }
-
-    const body = await inFlightDataRequest;
-    const freshResponse = new Response(body, {
+    const body = await refreshPlacesCache(
+      env.GOOGLE_SHEET_API_URL,
+      cacheSeconds,
+      cache,
+      freshKey,
+      staleKey,
+    );
+    return labelledResponse(new Response(body, {
       status: 200,
       headers: dataHeaders(cacheSeconds),
-    });
-
-    if (cache) {
-      const staleResponse = new Response(body, {
-        status: 200,
-        headers: dataHeaders(STALE_CACHE_SECONDS),
-      });
-      ctx.waitUntil(Promise.all([
-        cache.put(freshKey, freshResponse.clone()),
-        cache.put(staleKey, staleResponse),
-      ]));
-    }
-
-    return labelledResponse(freshResponse, "MISS");
+    }), "MISS");
   } catch (error) {
-    if (cache) {
-      const stale = await cache.match(staleKey);
-      if (stale) return labelledResponse(stale, "STALE");
-    }
-
     return jsonResponse({
       ok: false,
       error: error instanceof Error ? error.message : "Place data could not be loaded",
     }, 502, { "Cache-Control": "no-store" });
   }
+}
+
+async function refreshPlacesCache(sourceUrl, cacheSeconds, cache, freshKey, staleKey) {
+  if (!inFlightDataRequest) {
+    inFlightDataRequest = fetchAndValidatePlaces(sourceUrl, cacheSeconds)
+      .finally(() => { inFlightDataRequest = null; });
+  }
+
+  const body = await inFlightDataRequest;
+  if (cache) {
+    await Promise.all([
+      cache.put(freshKey, new Response(body, {
+        status: 200,
+        headers: dataHeaders(cacheSeconds),
+      })),
+      cache.put(staleKey, new Response(body, {
+        status: 200,
+        headers: dataHeaders(STALE_CACHE_SECONDS),
+      })),
+    ]);
+  }
+  return body;
 }
 
 async function geocodeAddress(request, env, ctx) {
@@ -229,7 +247,7 @@ async function fetchAndValidatePlaces(sourceUrl, cacheSeconds) {
 function dataHeaders(maxAge) {
   return {
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": `public, max-age=60, s-maxage=${maxAge}`,
+    "Cache-Control": `public, max-age=60, s-maxage=${maxAge}, stale-while-revalidate=${STALE_CACHE_SECONDS}, stale-if-error=${STALE_CACHE_SECONDS}`,
     "Access-Control-Allow-Origin": "*",
     "X-Content-Type-Options": "nosniff",
   };

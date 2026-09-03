@@ -1,5 +1,8 @@
 import { MOODS, pressureLabel, rankPois } from "./ranking.js";
 
+const PLACE_CACHE_KEY = "london-by-mood:places:v1";
+const PLACE_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
 const LOCATIONS = [
   { id: "charing-cross", name: "Charing Cross", lat: 51.5079, lon: -0.1281 },
   { id: "kings-cross", name: "King’s Cross", lat: 51.5308, lon: -0.1238 },
@@ -52,24 +55,89 @@ async function loadPlaces() {
   elements.results.setAttribute("aria-busy", "true");
   setEmptyState("Loading London", "Preparing places from the live London Advanced collection.");
 
-  try {
-    const response = await fetch("/api/pois", { headers: { Accept: "application/json" } });
-    const payload = await response.json();
-    if (!response.ok || !payload?.ok || !Array.isArray(payload.places)) {
-      throw new Error(payload?.error || "The place data could not be loaded");
+  let initialPayload = readSavedPlaces();
+  if (!initialPayload) {
+    try {
+      initialPayload = await fetchPlaces("/pois-snapshot.json", 6000);
+    } catch {
+      // The live endpoint below remains the final fallback.
     }
+  }
 
-    state.pois = payload.places;
-    state.loaded = true;
-    elements.dataNote.textContent = `${payload.count.toLocaleString("en-GB")} places across London`;
-    setEmptyState("Start with a feeling", "Choose one of the eight moods, set the context and find your London.");
+  if (initialPayload) {
+    applyPlaces(initialPayload, true);
+    refreshLivePlaces();
+    return;
+  }
+
+  try {
+    const payload = await fetchPlaces("/api/pois", 30000);
+    applyPlaces(payload, true);
+    savePlaces(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : "The place data could not be loaded";
     elements.dataNote.textContent = "Place data unavailable";
     setEmptyState("London did not load", `${message}. Try again in a moment.`, true);
-  } finally {
     elements.findButton.disabled = !state.loaded;
     elements.results.setAttribute("aria-busy", "false");
+  }
+}
+
+async function refreshLivePlaces() {
+  try {
+    const payload = await fetchPlaces("/api/pois", 30000);
+    applyPlaces(payload, false);
+    savePlaces(payload);
+  } catch {
+    // Keep the saved or bundled data; visitors should never wait for Google.
+  }
+}
+
+async function fetchPlaces(url, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.ok || !Array.isArray(payload.places)) {
+      throw new Error(payload?.error || "The place data could not be loaded");
+    }
+    return payload;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function applyPlaces(payload, showReadyState) {
+  state.pois = payload.places;
+  state.loaded = true;
+  elements.dataNote.textContent = `${payload.places.length.toLocaleString("en-GB")} places across London`;
+  elements.findButton.disabled = false;
+  elements.results.setAttribute("aria-busy", "false");
+  if (showReadyState) {
+    setEmptyState("Start with a feeling", "Choose one of the eight moods, set the context and find your London.");
+  }
+}
+
+function readSavedPlaces() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PLACE_CACHE_KEY));
+    if (!saved?.savedAt || Date.now() - saved.savedAt > PLACE_CACHE_MAX_AGE_MS) return null;
+    if (!saved.payload?.ok || !Array.isArray(saved.payload.places)) return null;
+    return saved.payload;
+  } catch {
+    return null;
+  }
+}
+
+function savePlaces(payload) {
+  try {
+    localStorage.setItem(PLACE_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), payload }));
+  } catch {
+    // Storage may be unavailable in privacy-restricted embedded browsers.
   }
 }
 

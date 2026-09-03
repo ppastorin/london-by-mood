@@ -4,9 +4,12 @@ import test, { afterEach } from "node:test";
 import worker from "../src/worker.js";
 
 const originalFetch = globalThis.fetch;
+const originalCaches = globalThis.caches;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  if (originalCaches === undefined) delete globalThis.caches;
+  else globalThis.caches = originalCaches;
 });
 
 function context() {
@@ -47,6 +50,47 @@ test("POI endpoint validates and normalises the Google payload", async () => {
   assert.equal(payload.ok, true);
   assert.equal(payload.count, 1);
   assert.equal(payload.places[0].name, "Test Place");
+});
+
+test("expired POI data is served immediately while a refresh runs in the background", async () => {
+  const stalePayload = {
+    ok: true,
+    schemaVersion: 1,
+    count: 1,
+    places: [{ id: "OLD", name: "Saved Place", lat: 51.5, lon: -0.1 }],
+  };
+  const freshPayload = {
+    ok: true,
+    schemaVersion: 1,
+    count: 1,
+    places: [{ id: "NEW", name: "Updated Place", lat: 51.51, lon: -0.11 }],
+  };
+  let backgroundWork;
+  let writes = 0;
+  globalThis.caches = {
+    default: {
+      match: async (key) => key.url.endsWith("/stale")
+        ? Response.json(stalePayload, { headers: { "Cache-Control": "public, max-age=86400" } })
+        : undefined,
+      put: async () => { writes += 1; },
+    },
+  };
+  globalThis.fetch = async () => Response.json(freshPayload);
+
+  const response = await worker.fetch(
+    new Request("https://example.com/api/pois"),
+    {
+      GOOGLE_SHEET_API_URL: "https://example.com/sheet",
+      DATA_CACHE_SECONDS: "300",
+      ASSETS: { fetch: async () => new Response("unused") },
+    },
+    { waitUntil(promise) { backgroundWork = promise; }, passThroughOnException() {} },
+  );
+  const payload = await response.json();
+  assert.equal(response.headers.get("x-london-data-cache"), "STALE-REFRESHING");
+  assert.equal(payload.places[0].name, "Saved Place");
+  await backgroundWork;
+  assert.equal(writes, 2);
 });
 
 test("address search is explicit, London-bounded and returns coordinates", async () => {

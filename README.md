@@ -11,7 +11,7 @@ London by Mood is a Cloudflare Worker application for London Advanced. The publi
 5. Files in `public/` provide the responsive user interface.
 6. The published `workers.dev` URL can be embedded in Google Sites.
 
-Spreadsheet changes do not require a GitHub commit or Cloudflare deployment. They normally appear after the five-minute data cache expires.
+Spreadsheet changes do not require a GitHub commit or Cloudflare deployment. They normally appear after the five-minute data cache expires. Visitors receive the last valid dataset immediately while an expired cache refreshes in the background; a bundled snapshot also prevents a cold first visit from waiting for Google Apps Script.
 
 ## Files
 
@@ -146,7 +146,7 @@ Confirm that you embedded the Cloudflare root URL, not the Apps Script URL. The 
 
 ### A spreadsheet change is not visible immediately
 
-Wait five minutes and reload. Browser and Cloudflare data caches deliberately prevent every visitor from triggering a slow Google Sheet read.
+Wait five minutes and reload. Browser and Cloudflare data caches deliberately prevent every visitor from triggering a slow Google Sheet read. Loading remains immediate because the existing dataset is shown while the refresh completes in the background.
 
 ### An address or postcode is not found
 
