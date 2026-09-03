@@ -14,6 +14,8 @@
   },
   "vars": {
     "GOOGLE_SHEET_API_URL": "https://script.google.com/macros/s/AKfycbzAtYaI6LKs_-iswRujzBvwz6KSFBKdsmHWzlYhWHJzmJhaTLhZXr2mT3weMbGHfZL8/exec",
-    "DATA_CACHE_SECONDS": "300"
+    "DATA_CACHE_SECONDS": "300",
+    "GEOCODING_API_URL": "https://nominatim.openstreetmap.org/search",
+    "GEOCODING_CACHE_SECONDS": "86400"
   }
 }

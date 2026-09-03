@@ -7,14 +7,15 @@ London by Mood is a Cloudflare Worker application for London Advanced. The publi
 1. `POI_MASTER` in Google Sheets is the only editable data source.
 2. `google-apps-script/Code.gs` publishes active rows as structured JSON.
 3. `src/worker.js` fetches, validates and caches that JSON.
-4. Files in `public/` provide the responsive user interface.
-5. The published `workers.dev` URL can be embedded in Google Sites.
+4. The same Worker converts an explicitly submitted London address or postcode into coordinates through a cached OpenStreetMap Nominatim search.
+5. Files in `public/` provide the responsive user interface.
+6. The published `workers.dev` URL can be embedded in Google Sites.
 
 Spreadsheet changes do not require a GitHub commit or Cloudflare deployment. They normally appear after the five-minute data cache expires.
 
 ## Files
 
-- `src/worker.js` — Cloudflare API proxy, validation, caching and iframe policy.
+- `src/worker.js` — Cloudflare data and address-search proxy, validation, caching and iframe policy.
 - `public/index.html` — application structure.
 - `public/styles.css` — desktop and mobile presentation.
 - `public/app.js` — user interaction and result rendering.
@@ -71,9 +72,12 @@ Test these addresses in order:
 
 1. `/health` should return `{"ok":true,"service":"london-by-mood"}`.
 2. `/api/pois` should return `"ok":true`, `"count":881` and the `places` array.
-3. The root URL should display the application.
+3. `/api/geocode?q=SW1A%201AA` should return `"ok":true` and London coordinates.
+4. The root URL should display the application.
 
 The first `/api/pois` request after a cold start may take longer because Google generates the source data. Later requests should use Cloudflare caching. The response header `X-London-Data-Cache` reports `MISS`, `HIT` or `STALE`.
+
+Address search is performed only after the visitor explicitly submits an address or postcode. It is not an autocomplete service. Searches are bounded to London and cached for 24 hours. The implementation follows the public Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 
 ## D. Embed it in London Advanced
 
@@ -124,6 +128,7 @@ Never reuse a `poi_id`. The Apps Script refuses to publish duplicate active IDs.
 - Edit files in GitHub: Cloudflare automatically tests and deploys the new commit.
 - Replace the Apps Script deployment: update `GOOGLE_SHEET_API_URL` in `wrangler.jsonc`, then commit the change.
 - Change cache delay: edit `DATA_CACHE_SECONDS` in `wrangler.jsonc`.
+- Change the address-search provider: update `GEOCODING_API_URL` in Cloudflare or `wrangler.jsonc`. A paid or self-hosted provider should replace the public Nominatim endpoint if traffic becomes substantial.
 
 ## Troubleshooting
 
@@ -142,6 +147,10 @@ Confirm that you embedded the Cloudflare root URL, not the Apps Script URL. The 
 ### A spreadsheet change is not visible immediately
 
 Wait five minutes and reload. Browser and Cloudflare data caches deliberately prevent every visitor from triggering a slow Google Sheet read.
+
+### An address or postcode is not found
+
+Try a fuller London address or select one of the preset locations. The search deliberately excludes results outside the Greater London bounding box. Do not add autocomplete: the public Nominatim service prohibits it and limits applications to moderate, user-triggered use.
 
 ## Local testing (optional)
 

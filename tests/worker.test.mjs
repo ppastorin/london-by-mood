@@ -49,6 +49,38 @@ test("POI endpoint validates and normalises the Google payload", async () => {
   assert.equal(payload.places[0].name, "Test Place");
 });
 
+test("address search is explicit, London-bounded and returns coordinates", async () => {
+  let requestedUrl;
+  let requestedHeaders;
+  globalThis.fetch = async (request, init) => {
+    requestedUrl = new URL(request);
+    requestedHeaders = new Headers(init.headers);
+    return Response.json([{
+      display_name: "Westminster, London, SW1A 1AA, United Kingdom",
+      lat: "51.501009",
+      lon: "-0.141588",
+    }]);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://example.com/api/geocode?q=SW1A%201AA"),
+    {
+      GEOCODING_API_URL: "https://nominatim.openstreetmap.org/search",
+      GEOCODING_CACHE_SECONDS: "86400",
+      ASSETS: { fetch: async () => new Response("unused") },
+    },
+    context(),
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.result.lat, 51.501009);
+  assert.equal(payload.result.lon, -0.141588);
+  assert.equal(requestedUrl.searchParams.get("bounded"), "1");
+  assert.equal(requestedUrl.searchParams.get("countrycodes"), "gb");
+  assert.match(requestedHeaders.get("user-agent"), /LondonAdvanced-LondonByMood/);
+});
+
 test("static HTML is explicitly embeddable by London Advanced and Google Sites", async () => {
   const response = await worker.fetch(
     new Request("https://example.com/"),

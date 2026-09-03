@@ -1,5 +1,12 @@
 const DEFAULT_CACHE_SECONDS = 300;
 const STALE_CACHE_SECONDS = 86400;
+const DEFAULT_GEOCODING_CACHE_SECONDS = 86400;
+const LONDON_BOUNDS = Object.freeze({
+  west: -0.5103,
+  south: 51.2868,
+  east: 0.334,
+  north: 51.6919,
+});
 const EMBED_POLICY = [
   "'self'",
   "https://www.londonadvanced.com",
@@ -27,6 +34,16 @@ export default {
         });
       }
       return getPlaces(request, env, ctx);
+    }
+
+    if (url.pathname === "/api/geocode") {
+      if (request.method !== "GET") {
+        return jsonResponse({ ok: false, error: "Method not allowed" }, 405, {
+          Allow: "GET",
+          "Cache-Control": "no-store",
+        });
+      }
+      return geocodeAddress(request, env, ctx);
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
@@ -85,6 +102,91 @@ async function getPlaces(request, env, ctx) {
     return jsonResponse({
       ok: false,
       error: error instanceof Error ? error.message : "Place data could not be loaded",
+    }, 502, { "Cache-Control": "no-store" });
+  }
+}
+
+async function geocodeAddress(request, env, ctx) {
+  const requestUrl = new URL(request.url);
+  const query = normaliseAddressQuery(requestUrl.searchParams.get("q"));
+  if (!query) {
+    return jsonResponse({ ok: false, error: "Enter a London address or postcode" }, 400, {
+      "Cache-Control": "no-store",
+    });
+  }
+
+  const providerUrl = env.GEOCODING_API_URL || "https://nominatim.openstreetmap.org/search";
+  const cacheSeconds = positiveInteger(env.GEOCODING_CACHE_SECONDS, DEFAULT_GEOCODING_CACHE_SECONDS);
+  const cache = globalThis.caches?.default;
+  const cacheKey = new Request(
+    `${requestUrl.origin}/__geocode-cache?q=${encodeURIComponent(query.toLowerCase())}`,
+    { method: "GET" },
+  );
+
+  if (cache) {
+    const cached = await cache.match(cacheKey);
+    if (cached) return labelledResponse(cached, "HIT");
+  }
+
+  try {
+    const target = new URL(providerUrl);
+    target.searchParams.set("q", londonQuery(query));
+    target.searchParams.set("format", "jsonv2");
+    target.searchParams.set("limit", "1");
+    target.searchParams.set("countrycodes", "gb");
+    target.searchParams.set(
+      "viewbox",
+      `${LONDON_BOUNDS.west},${LONDON_BOUNDS.north},${LONDON_BOUNDS.east},${LONDON_BOUNDS.south}`,
+    );
+    target.searchParams.set("bounded", "1");
+    target.searchParams.set("addressdetails", "0");
+
+    const upstream = await fetch(target, {
+      headers: {
+        Accept: "application/json",
+        "Accept-Language": "en-GB,en;q=0.8",
+        Referer: "https://www.londonadvanced.com/",
+        "User-Agent": "LondonAdvanced-LondonByMood/1.1 (https://www.londonadvanced.com/)",
+      },
+      cf: { cacheEverything: true, cacheTtl: cacheSeconds },
+    });
+    if (!upstream.ok) throw new Error(`Address search returned ${upstream.status}`);
+
+    const matches = await upstream.json();
+    if (!Array.isArray(matches) || !matches.length) {
+      return jsonResponse({ ok: false, error: "We could not find that address or postcode in London" }, 404, {
+        "Cache-Control": "no-store",
+      });
+    }
+
+    const match = matches[0];
+    const lat = Number(match.lat);
+    const lon = Number(match.lon);
+    if (!insideLondonBounds(lat, lon)) {
+      return jsonResponse({ ok: false, error: "That location appears to be outside London" }, 404, {
+        "Cache-Control": "no-store",
+      });
+    }
+
+    const body = JSON.stringify({
+      ok: true,
+      result: {
+        label: String(match.display_name || query),
+        lat,
+        lon,
+      },
+      attribution: "Search data © OpenStreetMap contributors",
+    });
+    const response = new Response(body, {
+      status: 200,
+      headers: dataHeaders(cacheSeconds),
+    });
+    if (cache) ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    return labelledResponse(response, "MISS");
+  } catch (error) {
+    return jsonResponse({
+      ok: false,
+      error: error instanceof Error ? error.message : "The address search is temporarily unavailable",
     }, 502, { "Cache-Control": "no-store" });
   }
 }
@@ -164,7 +266,7 @@ function addSiteHeaders(response) {
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set(
     "Permissions-Policy",
-    'geolocation=(self "https://www.londonadvanced.com" "https://sites.google.com")',
+    "geolocation=()",
   );
 
   return new Response(response.body, {
@@ -177,4 +279,19 @@ function addSiteHeaders(response) {
 function positiveInteger(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normaliseAddressQuery(value) {
+  const query = String(value || "").trim().replace(/\s+/g, " ");
+  return query.length >= 3 && query.length <= 160 ? query : "";
+}
+
+function londonQuery(query) {
+  return /\blondon\b/i.test(query) ? query : `${query}, London, UK`;
+}
+
+function insideLondonBounds(lat, lon) {
+  return Number.isFinite(lat) && Number.isFinite(lon)
+    && lat >= LONDON_BOUNDS.south && lat <= LONDON_BOUNDS.north
+    && lon >= LONDON_BOUNDS.west && lon <= LONDON_BOUNDS.east;
 }

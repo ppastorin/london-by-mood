@@ -56,10 +56,17 @@ button { cursor: pointer; }
 .field-block + .field-block, .two-fields + .field-block, .field-block + .two-fields { margin-top: 18px; }
 .field-block > label, .label-row label, fieldset legend { display: block; margin-bottom: 8px; color: #4e5963; font-size: 13px; font-weight: 700; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-.location-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-.wide-select, .secondary-button { min-height: 42px; border: 1px solid #dfe1dd; border-radius: 10px; background: #fafaf8; color: #17212c; }
+.wide-select, .address-input, .secondary-button { min-height: 42px; border: 1px solid #dfe1dd; border-radius: 10px; background: #fafaf8; color: #17212c; }
 .wide-select { width: 100%; padding: 0 34px 0 12px; }
+.choice-divider { margin: 10px 0; display: flex; align-items: center; gap: 10px; color: #8a9095; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.choice-divider::before, .choice-divider::after { content: ""; height: 1px; flex: 1; background: #e2e3df; }
+.address-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.address-input { width: 100%; min-width: 0; padding: 0 12px; }
+.address-input::placeholder { color: #858c91; }
 .secondary-button { padding: 0 13px; font-size: 13px; font-weight: 700; }
+.address-button { white-space: nowrap; }
+.address-note { margin: 7px 0 0; color: #777f85; font-size: 11px; line-height: 1.4; }
+.address-note a, footer a { color: inherit; text-underline-offset: 2px; }
 .field-message { min-height: 16px; margin: 7px 0 0; color: #687078; font-size: 12px; }
 .field-message.error { color: #9b3129; }
 .two-fields { display: grid; grid-template-columns: 1.2fr .8fr; gap: 15px; }
@@ -118,6 +125,7 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .no-results { min-height: 320px; display: grid; place-items: center; color: #737b82; text-align: center; }
 footer { max-width: 1184px; margin: 22px auto 0; padding: 22px 3px 36px; display: flex; justify-content: space-between; gap: 20px; color: #798087; font-size: 12px; }
 footer span:first-child { color: #17212c; font-weight: 750; }
+footer a { color: #798087; }
 
 @media (max-width: 980px) {
   .intro-band, .workspace { margin-left: 18px; margin-right: 18px; }
@@ -141,8 +149,8 @@ footer span:first-child { color: #17212c; font-weight: 750; }
   .mood-icon { width: 29px; height: 29px; border-radius: 9px; font-size: 17px; }
   .mood-card strong { font-size: 13px; }
   .mood-card small { font-size: 10px; }
-  .location-row, .two-fields { grid-template-columns: 1fr; }
-  .locate-button { width: 100%; }
+  .address-row, .two-fields { grid-template-columns: 1fr; }
+  .address-button { width: 100%; }
   .results-panel { min-height: 350px; }
   .results-heading { display: block; }
   .results-heading h2 { font-size: 25px; }

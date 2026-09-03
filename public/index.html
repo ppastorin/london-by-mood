@@ -47,8 +47,7 @@
 
           <div class="field-block">
             <label for="location-select">Starting from</label>
-            <div class="location-row">
-              <select id="location-select" class="wide-select">
+            <select id="location-select" class="wide-select">
                 <option value="charing-cross">Charing Cross</option>
                 <option value="kings-cross">King’s Cross</option>
                 <option value="liverpool-street">Liverpool Street</option>
@@ -58,9 +57,13 @@
                 <option value="stratford">Stratford</option>
                 <option value="greenwich">Greenwich</option>
                 <option value="wimbledon">Wimbledon</option>
-              </select>
-              <button type="button" class="secondary-button locate-button" id="locate-button"><span aria-hidden="true">⌖</span> Use my location</button>
+            </select>
+            <div class="choice-divider"><span>or</span></div>
+            <div class="address-row">
+              <input id="address-input" class="address-input" type="search" maxlength="160" autocomplete="street-address" placeholder="Enter a London address or postcode" aria-describedby="address-note location-message">
+              <button type="button" class="secondary-button address-button" id="address-button">Use this place</button>
             </div>
+            <p class="address-note" id="address-note">Address search by <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>. Don’t enter confidential information.</p>
             <p class="field-message" id="location-message" aria-live="polite"></p>
           </div>
 
@@ -111,6 +114,7 @@
     <footer>
       <span>London Advanced</span>
       <span>Independent recommendations beyond the usual London checklist.</span>
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Search data © OpenStreetMap contributors</a>
     </footer>
   </main>
   <script type="module" src="/app.js"></script>

@@ -17,6 +17,7 @@ const state = {
   mood: null,
   locationId: "charing-cross",
   customLocation: null,
+  customQuery: "",
   horizonHours: 0,
   weather: "dry",
   maxTravelMinutes: 45,
@@ -28,7 +29,8 @@ const elements = {
   form: document.querySelector("#search-form"),
   moodGrid: document.querySelector("#mood-grid"),
   locationSelect: document.querySelector("#location-select"),
-  locateButton: document.querySelector("#locate-button"),
+  addressInput: document.querySelector("#address-input"),
+  addressButton: document.querySelector("#address-button"),
   locationMessage: document.querySelector("#location-message"),
   timeControl: document.querySelector("#time-control"),
   weatherControl: document.querySelector("#weather-control"),
@@ -112,13 +114,21 @@ function selectMood(key) {
 function bindControls() {
   elements.locationSelect.addEventListener("change", () => {
     state.locationId = elements.locationSelect.value;
-    state.customLocation = null;
+    if (state.locationId !== "custom") {
+      state.customLocation = null;
+      state.customQuery = "";
+      elements.addressInput.value = "";
+    }
     setLocationMessage("");
-    const currentOption = elements.locationSelect.querySelector('option[value="current"]');
-    if (currentOption) currentOption.remove();
   });
 
-  elements.locateButton.addEventListener("click", useMyLocation);
+  elements.addressButton.addEventListener("click", () => geocodeAddress());
+  elements.addressInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      geocodeAddress();
+    }
+  });
   bindSegments(elements.timeControl, (value) => { state.horizonHours = Number(value); });
   bindSegments(elements.weatherControl, (value) => { state.weather = value; });
 
@@ -133,7 +143,7 @@ function bindControls() {
     elements.wanderToggle.setAttribute("aria-pressed", String(state.wander));
   });
 
-  elements.form.addEventListener("submit", (event) => {
+  elements.form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!state.mood) {
       setLocationMessage("Choose a mood first.", true);
@@ -141,6 +151,11 @@ function bindControls() {
       return;
     }
     if (!state.loaded) return;
+    const typedQuery = elements.addressInput.value.trim();
+    if (typedQuery && typedQuery !== state.customQuery) {
+      const found = await geocodeAddress();
+      if (!found) return;
+    }
     setLocationMessage("");
     renderResults();
     if (window.matchMedia("(max-width: 980px)").matches) {
@@ -162,38 +177,55 @@ function bindSegments(container, callback) {
   });
 }
 
-function useMyLocation() {
-  if (!navigator.geolocation) {
-    setLocationMessage("Location is not available in this browser.", true);
-    return;
+async function geocodeAddress() {
+  const query = elements.addressInput.value.trim();
+  if (query.length < 3) {
+    setLocationMessage("Enter a London address or postcode.", true);
+    elements.addressInput.focus();
+    return false;
   }
 
-  elements.locateButton.disabled = true;
-  setLocationMessage("Finding your location…");
-  navigator.geolocation.getCurrentPosition(
-    ({ coords }) => {
-      state.customLocation = {
-        lat: coords.latitude,
-        lon: coords.longitude,
-        name: "My current location",
-      };
-      let option = elements.locationSelect.querySelector('option[value="current"]');
-      if (!option) {
-        option = document.createElement("option");
-        option.value = "current";
-        option.textContent = "My current location";
-        elements.locationSelect.prepend(option);
-      }
-      elements.locationSelect.value = "current";
-      setLocationMessage("Using your current location.");
-      elements.locateButton.disabled = false;
-    },
-    () => {
-      setLocationMessage("We could not use your location. Choose a station instead.", true);
-      elements.locateButton.disabled = false;
-    },
-    { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
-  );
+  elements.addressButton.disabled = true;
+  elements.addressButton.textContent = "Searching…";
+  setLocationMessage("Finding that location…");
+  try {
+    const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`, {
+      headers: { Accept: "application/json" },
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.ok || !payload.result) {
+      throw new Error(payload?.error || "We could not find that location in London");
+    }
+
+    const label = shortLocationLabel(payload.result.label, query);
+    state.customLocation = {
+      lat: Number(payload.result.lat),
+      lon: Number(payload.result.lon),
+      name: label,
+    };
+    state.customQuery = query;
+    state.locationId = "custom";
+
+    let option = elements.locationSelect.querySelector('option[value="custom"]');
+    if (!option) {
+      option = document.createElement("option");
+      option.value = "custom";
+      elements.locationSelect.prepend(option);
+    }
+    option.textContent = label;
+    elements.locationSelect.value = "custom";
+    setLocationMessage(`Using ${label}.`);
+    return true;
+  } catch (error) {
+    setLocationMessage(
+      error instanceof Error ? error.message : "The address search is temporarily unavailable.",
+      true,
+    );
+    return false;
+  } finally {
+    elements.addressButton.disabled = false;
+    elements.addressButton.textContent = "Use this place";
+  }
 }
 
 function renderResults() {
@@ -322,6 +354,12 @@ function safeHttpUrl(value) {
   } catch {
     return null;
   }
+}
+
+function shortLocationLabel(value, fallback) {
+  const parts = String(value || fallback).split(",").map((part) => part.trim()).filter(Boolean);
+  const concise = parts.slice(0, 3).join(", ") || fallback;
+  return concise.length > 70 ? `${concise.slice(0, 67)}…` : concise;
 }
 
 function createLink(href, text, className) {
