@@ -91,7 +91,7 @@ Address search is performed only after the visitor explicitly submits an address
 8. Preview the Google Site on desktop and mobile.
 9. Publish the Google Site.
 
-The Worker removes `X-Frame-Options` and permits framing by `londonadvanced.com` and `sites.google.com` through its Content Security Policy.
+The Worker removes `X-Frame-Options` and sends `Content-Security-Policy: frame-ancestors *`. Google Sites uses additional Google-controlled origins while validating and rendering URL embeds, so a fixed `sites.google.com` allowlist is not sufficient. The application is public, and this policy only allows other pages to display it in a frame; it does not expose the Google Sheet or add write access.
 
 ## E. Maintain the location data
 
@@ -142,7 +142,7 @@ Open `/api/pois`. If it works, force-refresh the application. If it fails, check
 
 ### Google Sites refuses to embed the URL
 
-Confirm that you embedded the Cloudflare root URL, not the Apps Script URL. The Apps Script is a data endpoint and is not the application.
+Confirm that you embedded the Cloudflare root URL, not the Apps Script URL. The Apps Script is a data endpoint and is not the application. Then inspect the root URL response and verify that it has no `X-Frame-Options` header and contains `Content-Security-Policy: frame-ancestors *`.
 
 ### A spreadsheet change is not visible immediately
 

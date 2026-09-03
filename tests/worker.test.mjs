@@ -81,7 +81,7 @@ test("address search is explicit, London-bounded and returns coordinates", async
   assert.match(requestedHeaders.get("user-agent"), /LondonAdvanced-LondonByMood/);
 });
 
-test("static HTML is explicitly embeddable by London Advanced and Google Sites", async () => {
+test("static HTML is embeddable by the Google Sites validation and render origins", async () => {
   const response = await worker.fetch(
     new Request("https://example.com/"),
     {
@@ -95,6 +95,5 @@ test("static HTML is explicitly embeddable by London Advanced and Google Sites",
   );
   const policy = response.headers.get("content-security-policy");
   assert.equal(response.headers.has("x-frame-options"), false);
-  assert.match(policy, /https:\/\/www\.londonadvanced\.com/);
-  assert.match(policy, /https:\/\/sites\.google\.com/);
+  assert.equal(policy, "frame-ancestors *");
 });
