@@ -7,12 +7,10 @@ const LONDON_BOUNDS = Object.freeze({
   east: 0.334,
   north: 51.6919,
 });
-const EMBED_POLICY = [
-  "'self'",
-  "https://www.londonadvanced.com",
-  "https://londonadvanced.com",
-  "https://sites.google.com",
-].join(" ");
+// Google Sites validates and renders URL embeds through changing Google-owned
+// origins. A fixed allowlist can therefore reject a valid Site before it is
+// published. The app is public, so allow it to be framed by any HTTPS host.
+const EMBED_POLICY = "*";
 
 let inFlightDataRequest = null;
 
