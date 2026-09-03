@@ -2,6 +2,10 @@ import { MOODS, pressureLabel, rankPois } from "./ranking.js";
 
 const PLACE_CACHE_KEY = "london-by-mood:places:v1";
 const PLACE_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const TRAVEL_MODES = {
+  transit: { label: "public transport", min: 15, max: 75 },
+  walking: { label: "walking", min: 10, max: 90 },
+};
 
 const LOCATIONS = [
   { id: "charing-cross", name: "Charing Cross", lat: 51.5079, lon: -0.1281 },
@@ -23,6 +27,7 @@ const state = {
   customQuery: "",
   horizonHours: 0,
   weather: "dry",
+  travelMode: "transit",
   maxTravelMinutes: 45,
   wander: false,
   loaded: false,
@@ -37,8 +42,12 @@ const elements = {
   locationMessage: document.querySelector("#location-message"),
   timeControl: document.querySelector("#time-control"),
   weatherControl: document.querySelector("#weather-control"),
+  travelModeControl: document.querySelector("#travel-mode-control"),
   travelRange: document.querySelector("#travel-range"),
+  travelLabel: document.querySelector("#travel-label"),
   travelValue: document.querySelector("#travel-value"),
+  travelMin: document.querySelector("#travel-min"),
+  travelMax: document.querySelector("#travel-max"),
   wanderToggle: document.querySelector("#wander-toggle"),
   findButton: document.querySelector("#find-button"),
   results: document.querySelector("#results"),
@@ -199,6 +208,7 @@ function bindControls() {
   });
   bindSegments(elements.timeControl, (value) => { state.horizonHours = Number(value); });
   bindSegments(elements.weatherControl, (value) => { state.weather = value; });
+  bindSegments(elements.travelModeControl, (value) => setTravelMode(value));
 
   elements.travelRange.addEventListener("input", () => {
     state.maxTravelMinutes = Number(elements.travelRange.value);
@@ -230,6 +240,22 @@ function bindControls() {
       elements.results.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   });
+}
+
+function setTravelMode(mode) {
+  const config = TRAVEL_MODES[mode] ?? TRAVEL_MODES.transit;
+  state.travelMode = mode in TRAVEL_MODES ? mode : "transit";
+  elements.travelRange.min = String(config.min);
+  elements.travelRange.max = String(config.max);
+  state.maxTravelMinutes = Math.min(
+    config.max,
+    Math.max(config.min, Number(elements.travelRange.value)),
+  );
+  elements.travelRange.value = String(state.maxTravelMinutes);
+  elements.travelLabel.textContent = `Maximum ${config.label} journey`;
+  elements.travelValue.textContent = `${state.maxTravelMinutes} min`;
+  elements.travelMin.textContent = `${config.min} min`;
+  elements.travelMax.textContent = `${config.max} min`;
 }
 
 function bindSegments(container, callback) {
@@ -304,6 +330,7 @@ function renderResults() {
     lat: location.lat,
     lon: location.lon,
     horizonHours: state.horizonHours,
+    travelMode: state.travelMode,
     maxTravelMinutes: state.maxTravelMinutes,
     weather: state.weather,
     wander: state.wander,
@@ -322,7 +349,7 @@ function renderResults() {
       "p",
       "results-summary",
       results.length
-        ? `Showing ${results.length} places within about ${state.maxTravelMinutes} minutes`
+        ? `Showing ${results.length} places within about ${state.maxTravelMinutes} minutes by ${TRAVEL_MODES[state.travelMode].label}`
         : "No strong matches inside this journey time",
     ),
   );
@@ -332,7 +359,7 @@ function renderResults() {
   if (results.length) {
     const list = document.createElement("div");
     list.className = "result-list";
-    results.forEach((result, index) => list.append(createResultCard(result, index, mood)));
+    results.forEach((result, index) => list.append(createResultCard(result, index, mood, location)));
     content.append(list);
   } else {
     const noResults = createElement("div", "no-results");
@@ -343,12 +370,12 @@ function renderResults() {
   content.append(createElement(
     "p",
     "method-note",
-    "Journey times are approximate. Crowd pressure combines each place’s visitor intensity with the selected day and time. Check opening and access details before travelling.",
+    "Journey times are conservative estimates, not live TfL routing. Open Directions for a current route. Crowd pressure combines each place’s visitor intensity with the selected day and time. Check opening and access details before travelling.",
   ));
   elements.results.replaceChildren(content);
 }
 
-function createResultCard(result, index, mood) {
+function createResultCard(result, index, mood, location) {
   const article = document.createElement("article");
   article.className = "result-card";
   article.style.setProperty("--mood-colour", mood.colour);
@@ -370,7 +397,7 @@ function createResultCard(result, index, mood) {
   const facts = document.createElement("div");
   facts.className = "result-facts";
   facts.append(
-    createElement("span", "", `↗ About ${result.travelMinutes} min`),
+    createElement("span", "", `↗ Est. ${result.travelMinutes} min by ${TRAVEL_MODES[state.travelMode].label}`),
     createElement("span", "", `◷ ${result.visitMinutes || 30} min visit`),
   );
   if (result.stations?.[0]?.name) {
@@ -387,9 +414,14 @@ function createResultCard(result, index, mood) {
 
   const actions = document.createElement("div");
   actions.className = "result-actions";
+  const directions = new URL("https://www.google.com/maps/dir/");
+  directions.searchParams.set("api", "1");
+  directions.searchParams.set("origin", `${location.lat},${location.lon}`);
+  directions.searchParams.set("destination", `${result.lat},${result.lon}`);
+  directions.searchParams.set("travelmode", state.travelMode === "walking" ? "walking" : "transit");
   const map = createLink(
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${result.lat},${result.lon}`)}`,
-    "Map ↗",
+    directions.href,
+    "Directions ↗",
     "map-link",
   );
   actions.append(map);

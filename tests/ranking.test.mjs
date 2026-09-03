@@ -18,10 +18,11 @@ const basePoi = {
   confidence: "HIGH",
 };
 
-test("distance and travel estimates remain plausible", () => {
-  const distance = distanceKm(51.5079, -0.1281, 51.5308, -0.1238);
-  assert.ok(distance > 2.4 && distance < 2.8);
-  assert.ok(estimateTravelMinutes(distance) >= 15);
+test("Charing Cross to Barbican has conservative mode-specific estimates", () => {
+  const distance = distanceKm(51.5079, -0.1281, 51.520003, -0.0931621);
+  assert.ok(distance > 2.7 && distance < 2.9);
+  assert.equal(estimateTravelMinutes(distance, "walking"), 43);
+  assert.equal(estimateTravelMinutes(distance, "transit"), 23);
 });
 
 test("a strong mood match beats a nearby weak match", () => {
@@ -49,6 +50,7 @@ test("a strong mood match beats a nearby weak match", () => {
     lat: 51.5079,
     lon: -0.1281,
     horizonHours: 0,
+    travelMode: "transit",
     maxTravelMinutes: 45,
     weather: "dry",
     wander: false,
@@ -56,6 +58,30 @@ test("a strong mood match beats a nearby weak match", () => {
   });
 
   assert.equal(results[0].id, "strong");
+});
+
+test("maximum journey filtering respects the selected travel mode", () => {
+  const candidate = {
+    ...basePoi,
+    id: "candidate",
+    name: "Candidate",
+    lat: 51.535,
+    lon: -0.1281,
+    moods: { ...basePoi.moods, quiet: 3 },
+  };
+  const context = {
+    mood: "quiet",
+    lat: 51.5079,
+    lon: -0.1281,
+    horizonHours: 0,
+    maxTravelMinutes: 30,
+    weather: "dry",
+    wander: false,
+    now: new Date("2026-09-03T10:30:00Z"),
+  };
+
+  assert.equal(rankPois([candidate], { ...context, travelMode: "transit" }).length, 1);
+  assert.equal(rankPois([candidate], { ...context, travelMode: "walking" }).length, 0);
 });
 
 test("pressure labels cover all published bands", () => {

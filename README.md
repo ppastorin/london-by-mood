@@ -11,6 +11,8 @@ London by Mood is a Cloudflare Worker application for London Advanced. The publi
 5. Files in `public/` provide the responsive user interface.
 6. The published `workers.dev` URL can be embedded in Google Sites.
 
+Visitors explicitly choose **Public transport** or **Walking** before setting their maximum journey time. The app uses conservative mode-specific estimates for ranking and filtering, and the Directions link opens Google Maps with the same origin, destination and travel mode. These estimates are deliberately labelled as estimates; accurate live public-transport times require a routing service such as TfL Journey Planner.
+
 Spreadsheet changes do not require a GitHub commit or Cloudflare deployment. They normally appear after the five-minute data cache expires. Visitors receive the last valid dataset immediately while an expired cache refreshes in the background; a bundled snapshot also prevents a cold first visit from waiting for Google Apps Script.
 
 ## Files

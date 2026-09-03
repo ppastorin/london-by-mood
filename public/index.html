@@ -86,10 +86,18 @@
             </fieldset>
           </div>
 
+          <fieldset class="field-block">
+            <legend>Journey by</legend>
+            <div class="segment-control" id="travel-mode-control">
+              <button type="button" data-value="transit" class="active" aria-pressed="true">Public transport</button>
+              <button type="button" data-value="walking" aria-pressed="false">Walking</button>
+            </div>
+          </fieldset>
+
           <div class="field-block travel-field">
-            <div class="label-row"><label for="travel-range">Maximum journey</label><strong id="travel-value">45 min</strong></div>
-            <input id="travel-range" type="range" min="20" max="75" step="5" value="45">
-            <div class="slider-scale"><span>20 min</span><span>75 min</span></div>
+            <div class="label-row"><label for="travel-range" id="travel-label">Maximum public transport journey</label><strong id="travel-value">45 min</strong></div>
+            <input id="travel-range" type="range" min="15" max="75" step="5" value="45">
+            <div class="slider-scale"><span id="travel-min">15 min</span><span id="travel-max">75 min</span></div>
           </div>
 
           <button type="button" class="wander-toggle" id="wander-toggle" aria-pressed="false">

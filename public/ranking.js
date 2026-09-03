@@ -35,8 +35,15 @@ export function distanceKm(lat1, lon1, lat2, lon2) {
   return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function estimateTravelMinutes(distance) {
-  return Math.max(8, Math.round(7 + distance * 3.4));
+export function estimateTravelMinutes(distance, travelMode = "transit") {
+  if (travelMode === "walking") {
+    const estimatedRouteKm = distance * 1.23;
+    return Math.max(3, Math.ceil((estimatedRouteKm / 4.8) * 60));
+  }
+
+  // Includes a conservative allowance for reaching a stop, waiting,
+  // interchange and the final walk. It is an estimate, not live TfL routing.
+  return Math.max(12, Math.ceil(12 + distance * 3.8));
 }
 
 function londonParts(date) {
@@ -106,7 +113,7 @@ export function rankPois(pois, context, limit = 6) {
     .filter((poi) => (poi.moods?.[context.mood] ?? 0) >= minimumMoodScore)
     .map((poi) => {
       const distance = distanceKm(context.lat, context.lon, poi.lat, poi.lon);
-      const travelMinutes = estimateTravelMinutes(distance);
+      const travelMinutes = estimateTravelMinutes(distance, context.travelMode ?? "transit");
       const moodScore = clamp(Math.round(poi.moods?.[context.mood] ?? 0), 0, 3);
       const affinity = poi.timeAffinity?.[key] ?? 50;
       const pressure = clamp(Math.round((poi.touristIntensity * affinity) / 100));
