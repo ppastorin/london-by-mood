@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Choose how you want London to feel and find places that match, with crowd pressure taken into account.">
+  <title>London by Mood | London Advanced</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="site-header">
+      <a class="brand" href="https://www.londonadvanced.com/" target="_blank" rel="noreferrer">
+        <span class="brand-mark" aria-hidden="true">LA</span>
+        <span><strong>London Advanced</strong><small>Beyond the obvious</small></span>
+      </a>
+      <span class="data-note" id="data-note">Loading London places…</span>
+    </header>
+
+    <section class="intro-band">
+      <div class="intro-content">
+        <p class="eyebrow">London by Mood</p>
+        <h1>How do you want London to feel?</h1>
+        <p class="intro-copy">Choose the experience first. We’ll find places that fit it—and steer around the worst crowd pressure.</p>
+      </div>
+      <div class="map-window" role="img" aria-label="Map showing London Advanced places across London">
+        <p class="map-caption"><span aria-hidden="true">⌖</span> From hidden corners to whole neighbourhoods</p>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <form class="controls-panel" id="search-form">
+        <section aria-labelledby="mood-title">
+          <div class="section-heading">
+            <span aria-hidden="true">1</span>
+            <div><h2 id="mood-title">Choose a mood</h2><p>Categories stay behind the scenes.</p></div>
+          </div>
+          <div class="mood-grid" id="mood-grid" role="radiogroup" aria-labelledby="mood-title"></div>
+        </section>
+
+        <section class="context-section" aria-labelledby="context-title">
+          <div class="section-heading">
+            <span aria-hidden="true">2</span>
+            <div><h2 id="context-title">Set the context</h2><p>Enough detail to make the result useful.</p></div>
+          </div>
+
+          <div class="field-block">
+            <label for="location-select">Starting from</label>
+            <div class="location-row">
+              <select id="location-select" class="wide-select">
+                <option value="charing-cross">Charing Cross</option>
+                <option value="kings-cross">King’s Cross</option>
+                <option value="liverpool-street">Liverpool Street</option>
+                <option value="victoria">Victoria</option>
+                <option value="waterloo">Waterloo</option>
+                <option value="paddington">Paddington</option>
+                <option value="stratford">Stratford</option>
+                <option value="greenwich">Greenwich</option>
+                <option value="wimbledon">Wimbledon</option>
+              </select>
+              <button type="button" class="secondary-button locate-button" id="locate-button"><span aria-hidden="true">⌖</span> Use my location</button>
+            </div>
+            <p class="field-message" id="location-message" aria-live="polite"></p>
+          </div>
+
+          <div class="two-fields">
+            <fieldset class="field-block">
+              <legend>When</legend>
+              <div class="segment-control" id="time-control">
+                <button type="button" data-value="0" class="active" aria-pressed="true">Now</button>
+                <button type="button" data-value="1" aria-pressed="false">+1h</button>
+                <button type="button" data-value="2" aria-pressed="false">+2h</button>
+                <button type="button" data-value="3" aria-pressed="false">+3h</button>
+              </div>
+            </fieldset>
+            <fieldset class="field-block">
+              <legend>Weather</legend>
+              <div class="segment-control weather-control" id="weather-control">
+                <button type="button" data-value="dry" class="active" aria-pressed="true"><span aria-hidden="true">☀</span> Dry</button>
+                <button type="button" data-value="rain" aria-pressed="false"><span aria-hidden="true">☂</span> Rain</button>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="field-block travel-field">
+            <div class="label-row"><label for="travel-range">Maximum journey</label><strong id="travel-value">45 min</strong></div>
+            <input id="travel-range" type="range" min="20" max="75" step="5" value="45">
+            <div class="slider-scale"><span>20 min</span><span>75 min</span></div>
+          </div>
+
+          <button type="button" class="wander-toggle" id="wander-toggle" aria-pressed="false">
+            <span class="wander-icon" aria-hidden="true">↟</span>
+            <span><strong>I want to wander</strong><small>Prefer places that reward exploring on foot</small></span>
+            <span class="toggle-dot" aria-hidden="true"></span>
+          </button>
+
+          <button type="submit" class="find-button" id="find-button">Find my London <span aria-hidden="true">→</span></button>
+        </section>
+      </form>
+
+      <section class="results-panel" id="results" aria-live="polite" aria-busy="true">
+        <div class="empty-state" id="empty-state">
+          <span class="empty-symbol" aria-hidden="true">◉</span>
+          <h2>Loading London</h2>
+          <p>Preparing places from the live London Advanced collection.</p>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <span>London Advanced</span>
+      <span>Independent recommendations beyond the usual London checklist.</span>
+    </footer>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

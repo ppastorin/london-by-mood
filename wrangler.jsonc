@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "london-by-mood",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-03",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "GOOGLE_SHEET_API_URL": "https://script.google.com/macros/s/AKfycbzAtYaI6LKs_-iswRujzBvwz6KSFBKdsmHWzlYhWHJzmJhaTLhZXr2mT3weMbGHfZL8/exec",
+    "DATA_CACHE_SECONDS": "300"
+  }
+}
