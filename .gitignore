@@ -1,0 +1,6 @@
+.dev.vars
+.wrangler/
+node_modules/
+db/seed.sql
+__pycache__/
+*.pyc

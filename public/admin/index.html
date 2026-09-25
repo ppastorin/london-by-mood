@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>Places editor dev | London Advanced</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+  <header><div><strong>London Advanced</strong><span>Places editor</span></div><span class="dev">Dev only</span></header>
+  <main>
+    <section id="login" class="login card">
+      <p class="eyebrow">Private maintenance</p><h1>Open the places editor</h1>
+      <p>Cloudflare Access will protect this page later. The local prototype uses a temporary development token.</p>
+      <label>Development token<input id="token" type="password" autocomplete="current-password"></label><button id="unlock" class="primary">Open editor</button><p id="login-message" class="message"></p>
+    </section>
+    <div id="editor" hidden>
+      <section class="capture card"><div><p class="eyebrow">Quick capture</p><h1>Add a discovery without touching a spreadsheet</h1><p>Paste a Google Maps link, a place name, an address or a postcode. It opens as a draft, so an incomplete discovery never leaks into the public tools.</p></div><div><label>Google Maps link, name or address<input id="capture-input" type="text" placeholder="Paste here"></label><button id="resolve" class="primary">Create draft</button><p id="capture-message" class="message"></p></div></section>
+      <div class="layout">
+        <aside class="card library"><div class="library-head"><div><p class="eyebrow">Collection</p><h2>Places</h2></div><button id="new" class="secondary">New</button></div><div class="filters"><input id="search" type="search" placeholder="Search places"><select id="status-filter"><option value="">All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></div><p id="list-status" class="message"></p><div id="place-list" class="place-list"></div></aside>
+        <form id="place-form" class="card form">
+          <div class="form-head"><div><p class="eyebrow">Place record</p><h2 id="form-title">New draft</h2></div><span id="place-id">New</span></div>
+          <div class="grid two"><label>Name<input name="name" required maxlength="180"></label><label>Category<select name="category" required><option value="">Choose</option><option>AREA</option><option>BUILDING</option><option>MUSEUM</option><option>ODDITY</option><option>PARK</option><option>RELIGIOUS</option><option>SHOPPING</option><option>VIEWPOINT</option></select></label></div>
+          <div class="grid two"><label>Latitude<input name="lat" type="number" step="any" required></label><label>Longitude<input name="lon" type="number" step="any" required></label></div>
+          <div id="edit-map"></div><p class="hint">Tap the map to adjust the pin.</p>
+          <label>English description<textarea name="description" rows="4"></textarea></label><label>Italian description<textarea name="descriptionIt" rows="4"></textarea></label>
+          <div class="grid two"><label>English short hook<textarea name="hook" rows="2"></textarea></label><label>Italian short hook<textarea name="hookIt" rows="2"></textarea></label></div>
+          <div class="grid three"><label>Visit (minutes)<input name="visitMinutes" type="number" min="1" max="720" value="30"></label><label>Tourist intensity<input name="touristIntensity" type="number" min="0" max="100" value="30"></label><label>Price note<input name="price"></label></div>
+          <div class="grid two"><label>Official URL<input name="officialUrl" type="url"></label><label>Google Maps URL<input name="mapUrl" type="url"></label></div>
+          <div class="grid three"><label>Access<select name="accessType"><option>VARIABLE</option><option>24H</option><option>TICKETED</option><option>SEASONAL</option></select></label><label>Best time<select name="bestTime"><option>ANY</option><option>MORNING</option><option>DAY</option><option>DUSK</option><option>EVENING</option></select></label><label>Visit mode<select name="visitMode"><option>STOP</option><option>WALK</option><option>EXPLORE</option></select></label></div>
+          <label>Access notes<input name="accessNotes"></label>
+          <fieldset><legend>Mood scores <small>0 = no fit, 3 = strong fit</small></legend><div id="moods" class="moods"></div></fieldset>
+          <div class="grid three"><label>Confidence<select name="confidence"><option>LOW</option><option>MEDIUM</option><option>HIGH</option></select></label><label class="check"><input name="reviewed" type="checkbox"> Mood reviewed</label><label>Status<select name="status"><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label></div>
+          <input name="sourceRef" type="hidden"><input name="slug" type="hidden">
+          <div class="save-row"><p id="save-message" class="message"></p><button type="submit" class="primary">Save place</button></div>
+        </form>
+      </div>
+    </div>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script type="module" src="/admin/app.js"></script>
+</body></html>

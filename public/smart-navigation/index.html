@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build a London walking route and find worthwhile places close to it.">
+  <title>Smart Navigation dev | London Advanced</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/smart-navigation/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="https://www.londonadvanced.com/" target="_blank" rel="noreferrer"><span>LA</span><strong>London Advanced</strong></a>
+      <div><p>Make the journey part of the visit</p><h1>Smart Navigation</h1></div>
+      <span class="dev-badge">D1 dev prototype</span>
+    </header>
+
+    <div id="message" class="message" role="status">Loading the London Advanced collection…</div>
+    <div class="workspace">
+      <aside class="controls">
+        <section>
+          <span class="step">01</span><h2>Choose the route</h2>
+          <label for="start-query">Starting point</label>
+          <div class="search-row"><input id="start-query" type="search" placeholder="Address, station or postcode"><button data-search="start">Find</button></div>
+          <p id="start-choice" class="choice">Not selected</p>
+          <label for="end-query">Destination</label>
+          <div class="search-row"><input id="end-query" type="search" placeholder="Address, station or postcode"><button data-search="end">Find</button></div>
+          <p id="end-choice" class="choice">Not selected</p>
+        </section>
+        <section>
+          <span class="step">02</span><h2>Set the detour</h2>
+          <fieldset><legend>Distance from the route</legend><div class="segments" id="corridor"><button data-value="200" class="active">200 m</button><button data-value="500">500 m</button></div></fieldset>
+          <div class="category-heading"><legend>Places to include</legend><div><button id="all-categories" class="text-button">All</button><button id="no-categories" class="text-button">None</button></div></div>
+          <div id="categories" class="categories"></div>
+          <button id="route-button" class="primary" disabled>Find walking route</button>
+        </section>
+        <section id="bikes-panel" hidden>
+          <div class="section-row"><div><span class="step">Live</span><h2>Santander Cycles nearby</h2></div><button id="refresh-bikes" class="text-button">Refresh</button></div>
+          <div id="bikes" class="bikes"></div>
+        </section>
+      </aside>
+
+      <section class="map-column">
+        <div id="map" aria-label="Interactive route map"></div>
+        <div id="route-summary" class="summary" hidden>
+          <div><small>Walking route</small><strong id="distance">—</strong></div>
+          <div><small>Estimated time</small><strong id="duration">—</strong></div>
+          <div><small>Matches</small><strong id="match-count">—</strong></div>
+          <button id="reset" class="secondary">Start again</button>
+        </div>
+        <section id="results-section" class="results" hidden>
+          <div class="results-title"><div><p>Along the route</p><h2>Worthwhile detours</h2></div><span id="results-note"></span></div>
+          <div id="results-list" class="results-list"></div>
+        </section>
+      </section>
+    </div>
+    <footer>Map data © OpenStreetMap contributors. Routes © openrouteservice. Cycle availability © Transport for London.</footer>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+  <script type="module" src="/smart-navigation/app.js"></script>
+</body>
+</html>
