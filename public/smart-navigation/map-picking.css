@@ -1,0 +1,25 @@
+.map-choice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-choice-row .choice {
+  min-width: 0;
+  flex: 1;
+}
+
+.map-pick {
+  white-space: nowrap;
+}
+
+.map-pick.active {
+  border-radius: 7px;
+  background: var(--teal);
+  color: #fff;
+}
+
+.leaflet-container.picking-location {
+  cursor: crosshair;
+}
