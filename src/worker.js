@@ -26,6 +26,16 @@ export default {
         if (auth) return auth;
         return request.method === "POST" ? resolveCapturedPlace(request, env) : methodNotAllowed("POST");
       }
+      if (url.pathname === "/api/admin/imports/preview") {
+        const auth = requireAdmin(request, env);
+        if (auth) return auth;
+        return request.method === "POST" ? previewCsvImport(request, env) : methodNotAllowed("POST");
+      }
+      if (url.pathname === "/api/admin/imports/commit") {
+        const auth = requireAdmin(request, env);
+        if (auth) return auth;
+        return request.method === "POST" ? commitCsvImport(request, env) : methodNotAllowed("POST");
+      }
       if (url.pathname === "/api/admin/places") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
@@ -352,6 +362,216 @@ async function resolveCapturedPlace(request, env) {
   return json({ ok: true, result: { ...result, sourceRef: input } });
 }
 
+async function previewCsvImport(request, env) {
+  requireDatabase(env);
+  const body = await readJson(request);
+  const filename = cleanText(body.filename, 240) || "google-mymaps.csv";
+  const sourceName = cleanText(body.sourceName, 180) || filename.replace(/\.csv$/i, "");
+  const csv = String(body.csv || "");
+  if (!csv.trim()) return json({ ok: false, error: "Choose a non-empty My Maps CSV file" }, 400);
+  if (new TextEncoder().encode(csv).byteLength > 2_000_000) {
+    return json({ ok: false, error: "The CSV exceeds the 2 MB import limit" }, 413);
+  }
+  const parsed = parseCsv(csv);
+  const headerIndex = Object.fromEntries(parsed.headers.map((header, index) => [header.trim().toLowerCase(), index]));
+  if (headerIndex.wkt === undefined || headerIndex.name === undefined) {
+    return json({ ok: false, error: "Expected My Maps columns named WKT and name" }, 422);
+  }
+
+  const placeResult = await env.DB.prepare(
+    "SELECT id, name, latitude, longitude FROM places WHERE status <> 'archived'",
+  ).all();
+  const existingPlaces = placeResult.results || [];
+  const sourceResult = await env.DB.prepare(
+    "SELECT fingerprint, place_id FROM place_sources WHERE provider = 'google-mymaps'",
+  ).all();
+  const sourceMatches = new Map((sourceResult.results || []).map((row) => [row.fingerprint, row.place_id]));
+  const batchId = `IMP-${crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`;
+  const candidates = [];
+
+  for (let index = 0; index < parsed.rows.length; index += 1) {
+    const values = parsed.rows[index];
+    const rowNumber = index + 2;
+    const name = cleanText(values[headerIndex.name], 180);
+    const description = headerIndex.description === undefined ? "" : cleanText(values[headerIndex.description], 6000);
+    const point = parseWktPoint(values[headerIndex.wkt]);
+    const raw = Object.fromEntries(parsed.headers.map((header, column) => [header, values[column] ?? ""]));
+    if (!name || !point || !insidePlaceBounds(point.lat, point.lon)) {
+      candidates.push({ rowNumber, name, description, lat: point?.lat ?? null, lon: point?.lon ?? null,
+        fingerprint: "", classification: "invalid", matchedPlaceId: null,
+        matchName: "", matchReason: !name ? "Missing name" : !point ? "Invalid WKT point" : "Coordinates outside collection bounds",
+        distanceMetres: null, raw });
+      continue;
+    }
+    const fingerprint = await importFingerprint(name, point.lat, point.lon);
+    const knownPlaceId = sourceMatches.get(fingerprint);
+    if (knownPlaceId) {
+      const match = existingPlaces.find((place) => place.id === knownPlaceId);
+      candidates.push({ rowNumber, name, description, ...point, fingerprint, classification: "existing",
+        matchedPlaceId: knownPlaceId, matchName: match?.name || "", matchReason: "Previously imported source fingerprint",
+        distanceMetres: match ? Math.round(haversineKm(point.lat, point.lon, match.latitude, match.longitude) * 1000) : null, raw });
+      continue;
+    }
+    const match = closestPlaceMatch(name, point.lat, point.lon, existingPlaces);
+    candidates.push({ rowNumber, name, description, ...point, fingerprint,
+      classification: match.classification, matchedPlaceId: match.place?.id || null,
+      matchName: match.place?.name || "", matchReason: match.reason,
+      distanceMetres: match.distanceMetres, raw });
+  }
+
+  const counts = countClassifications(candidates);
+  await env.DB.prepare(`INSERT INTO import_batches(id, provider, source_name, filename, total_rows, existing_rows,
+    review_rows, new_rows, invalid_rows, actor_email) VALUES (?, 'google-mymaps', ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(batchId, sourceName, filename, candidates.length, counts.existing, counts.review, counts.new, counts.invalid,
+      actorEmail(request)).run();
+  for (let start = 0; start < candidates.length; start += 70) {
+    const statements = candidates.slice(start, start + 70).map((candidate) => env.DB.prepare(`INSERT INTO import_candidates(
+      batch_id, row_number, name, description, latitude, longitude, fingerprint, classification, matched_place_id,
+      match_reason, distance_metres, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(batchId, candidate.rowNumber, candidate.name, candidate.description, candidate.lat, candidate.lon,
+        candidate.fingerprint, candidate.classification, candidate.matchedPlaceId, candidate.matchReason,
+        candidate.distanceMetres, JSON.stringify(candidate.raw)));
+    if (statements.length) await env.DB.batch(statements);
+  }
+  return json({ ok: true, batchId, filename, sourceName, counts: { total: candidates.length, ...counts }, candidates }, 200,
+    { "Cache-Control": "no-store" });
+}
+
+async function commitCsvImport(request, env) {
+  requireDatabase(env);
+  const body = await readJson(request);
+  const batchId = cleanText(body.batchId, 80);
+  const category = normalCategory(body.category) || "MUSEUM";
+  const selectedRows = Array.isArray(body.rows)
+    ? new Set(body.rows.map((value) => clampInt(value, 2, 1000000, -1)).filter((value) => value >= 2))
+    : null;
+  const batch = await env.DB.prepare("SELECT * FROM import_batches WHERE id = ?").bind(batchId).first();
+  if (!batch) return json({ ok: false, error: "Import preview not found" }, 404);
+  if (batch.status === "committed") return json({ ok: true, batchId, created: batch.created_rows, alreadyCommitted: true });
+  const result = await env.DB.prepare(`SELECT * FROM import_candidates
+    WHERE batch_id = ? AND classification = 'new' AND created_place_id IS NULL ORDER BY row_number`).bind(batchId).all();
+  const candidates = (result.results || []).filter((candidate) => !selectedRows || selectedRows.has(candidate.row_number));
+  await env.DB.prepare("UPDATE import_batches SET status='committing' WHERE id=?").bind(batchId).run();
+  const created = [];
+  try {
+    for (const candidate of candidates) {
+      const id = `LA-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
+      const place = validatePlace({
+        id, name: candidate.name, category, lat: candidate.latitude, lon: candidate.longitude,
+        status: "draft", description: candidate.description, confidence: "LOW", reviewed: false,
+        sourceType: "google-mymaps-csv", sourceRef: `${batch.filename}#row=${candidate.row_number}`,
+      }, null);
+      place.id = id;
+      place.slug = `${slugify(place.name).slice(0, 150)}-${id.slice(-8).toLowerCase()}`;
+      const statements = buildPlaceWriteStatements(env.DB, place, false);
+      statements.push(env.DB.prepare(`INSERT INTO place_sources(place_id, provider, source_name, source_latitude,
+        source_longitude, fingerprint) VALUES (?, 'google-mymaps', ?, ?, ?, ?)`)
+        .bind(id, candidate.name, candidate.latitude, candidate.longitude, candidate.fingerprint));
+      statements.push(env.DB.prepare(
+        "INSERT INTO place_revisions(place_id, action, actor_email, snapshot_json) VALUES (?, 'create', ?, ?)",
+      ).bind(id, actorEmail(request), JSON.stringify(place)));
+      statements.push(env.DB.prepare(
+        "UPDATE import_candidates SET created_place_id=? WHERE batch_id=? AND row_number=?",
+      ).bind(id, batchId, candidate.row_number));
+      await env.DB.batch(statements);
+      created.push({ rowNumber: candidate.row_number, id, name: candidate.name });
+    }
+    if (created.length) await bumpVersion(env.DB).run();
+    await env.DB.prepare(`UPDATE import_batches SET status='committed', created_rows=?, committed_at=CURRENT_TIMESTAMP
+      WHERE id=?`).bind(created.length, batchId).run();
+    return json({ ok: true, batchId, created: created.length, places: created }, 201, { "Cache-Control": "no-store" });
+  } catch (error) {
+    await env.DB.prepare("UPDATE import_batches SET status='failed', created_rows=? WHERE id=?")
+      .bind(created.length, batchId).run();
+    throw error;
+  }
+}
+
+function parseCsv(input) {
+  const rows = [];
+  let row = [], value = "", quoted = false;
+  const text = String(input).replace(/^\uFEFF/, "");
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (quoted) {
+      if (character === '"' && text[index + 1] === '"') { value += '"'; index += 1; }
+      else if (character === '"') quoted = false;
+      else value += character;
+    } else if (character === '"') quoted = true;
+    else if (character === ",") { row.push(value); value = ""; }
+    else if (character === "\n" || character === "\r") {
+      if (character === "\r" && text[index + 1] === "\n") index += 1;
+      row.push(value); value = "";
+      if (row.some((cell) => String(cell).trim())) rows.push(row);
+      row = [];
+    } else value += character;
+  }
+  if (value || row.length) { row.push(value); if (row.some((cell) => String(cell).trim())) rows.push(row); }
+  if (!rows.length) throw new Error("The CSV contains no rows");
+  const headers = rows.shift().map((header) => String(header).trim());
+  return { headers, rows };
+}
+
+function parseWktPoint(value) {
+  const match = String(value || "").match(/^\s*POINT\s*\(\s*([-+\d.eE]+)\s+([-+\d.eE]+)\s*\)\s*$/i);
+  if (!match) return null;
+  const lon = Number(match[1]), lat = Number(match[2]);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+}
+
+async function importFingerprint(name, lat, lon) {
+  const source = `${normalImportName(name)}|${Number(lat).toFixed(5)}|${Number(lon).toFixed(5)}`;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function normalImportName(value) {
+  return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/^the\s+/, "").replace(/[^a-z0-9]+/g, "");
+}
+
+function nameSimilarity(left, right) {
+  const a = normalImportName(left), b = normalImportName(right);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const grams = (value) => {
+    const result = new Set();
+    for (let index = 0; index < Math.max(1, value.length - 2); index += 1) result.add(value.slice(index, index + 3));
+    return result;
+  };
+  const first = grams(a), second = grams(b);
+  const overlap = [...first].filter((item) => second.has(item)).length;
+  return (2 * overlap) / (first.size + second.size);
+}
+
+function closestPlaceMatch(name, lat, lon, places) {
+  let closest = null;
+  for (const place of places) {
+    const distanceMetres = haversineKm(lat, lon, Number(place.latitude), Number(place.longitude)) * 1000;
+    const similarity = nameSimilarity(name, place.name);
+    if (!closest || distanceMetres < closest.distanceMetres) closest = { place, distanceMetres, similarity };
+    if (normalImportName(name) === normalImportName(place.name) && distanceMetres <= 250) {
+      return { classification: "existing", place, distanceMetres: Math.round(distanceMetres), reason: "Same normalised name and nearby coordinates" };
+    }
+  }
+  if (!closest) return { classification: "new", place: null, distanceMetres: null, reason: "No existing places" };
+  const distance = Math.round(closest.distanceMetres);
+  if ((closest.distanceMetres <= 8 && closest.similarity >= 0.35) ||
+      (closest.distanceMetres <= 40 && closest.similarity >= 0.72)) {
+    return { classification: "existing", place: closest.place, distanceMetres: distance, reason: "Strong name and coordinate match" };
+  }
+  if (closest.distanceMetres <= 80 || (closest.distanceMetres <= 300 && closest.similarity >= 0.68)) {
+    return { classification: "review", place: closest.place, distanceMetres: distance, reason: "Possible renamed or colocated place" };
+  }
+  return { classification: "new", place: closest.place, distanceMetres: distance, reason: "No credible existing match" };
+}
+
+function countClassifications(candidates) {
+  const counts = { existing: 0, review: 0, new: 0, invalid: 0 };
+  for (const candidate of candidates) counts[candidate.classification] += 1;
+  return counts;
+}
+
 async function routeRequest(request, env) {
   const body = await readJson(request);
   const start = { lat: finiteNumber(body.start?.lat), lon: finiteNumber(body.start?.lon) };
@@ -428,4 +648,5 @@ function methodNotAllowed(allow) { return json({ ok: false, error: "Method not a
 function json(value, status = 200, headers = {}) { return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json; charset=utf-8", "X-Content-Type-Options": "nosniff", ...headers } }); }
 function addSiteHeaders(response) { const headers = new Headers(response.headers); headers.delete("X-Frame-Options"); headers.set("Content-Security-Policy", "frame-ancestors *"); headers.set("Referrer-Policy", "strict-origin-when-cross-origin"); headers.set("X-Content-Type-Options", "nosniff"); return new Response(response.body, { status: response.status, statusText: response.statusText, headers }); }
 
-export const __test = { mapPlace, validatePlace, coordinatesFromText, slugify, insideLondonBounds };
+export const __test = { mapPlace, validatePlace, coordinatesFromText, slugify, insideLondonBounds,
+  parseCsv, parseWktPoint, normalImportName, nameSimilarity, closestPlaceMatch };

@@ -22,6 +22,7 @@ const auth = { Authorization: "Bearer dev-test-token" };
 try {
   const db = await mf.getD1Database("DB", "london-places-integration");
   await applySql(db, await readFile("migrations/0001_places.sql", "utf8"));
+  await applySql(db, await readFile("migrations/0002_imports.sql", "utf8"));
   await applySql(db, await readFile("db/seed.sql", "utf8"));
 
   const health = await mf.dispatchFetch("http://local.test/health");
@@ -77,7 +78,36 @@ try {
   const revisions = await db.prepare("SELECT action FROM place_revisions WHERE place_id = ? ORDER BY revision_id").bind(createdPayload.id).all();
   assert.deepEqual(revisions.results.map((row) => row.action), ["create", "publish"]);
 
-  console.log(JSON.stringify({ places: publicPayload.count, stations: 2128, adminCycle: "pass", smartNavigator: "pass" }));
+  const csv = `WKT,name,description\n"POINT (-0.1269566 51.5194133)",The British Museum,\n"POINT (0.4001 51.3001)",Integration CSV Place,A draft from the importer\n`;
+  const preview = await mf.dispatchFetch("http://local.test/api/admin/imports/preview", {
+    method: "POST", headers: { ...auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: "integration.csv", sourceName: "Integration", csv }),
+  });
+  const previewPayload = await preview.json();
+  assert.equal(preview.status, 200, JSON.stringify(previewPayload));
+  assert.equal(previewPayload.counts.existing, 1);
+  assert.equal(previewPayload.counts.new, 1);
+  const newRow = previewPayload.candidates.find((candidate) => candidate.classification === "new").rowNumber;
+
+  const committed = await mf.dispatchFetch("http://local.test/api/admin/imports/commit", {
+    method: "POST", headers: { ...auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ batchId: previewPayload.batchId, rows: [newRow], category: "MUSEUM" }),
+  });
+  const committedPayload = await committed.json();
+  assert.equal(committed.status, 201, JSON.stringify(committedPayload));
+  assert.equal(committedPayload.created, 1);
+  const imported = await db.prepare("SELECT status, source_type FROM places WHERE id = ?").bind(committedPayload.places[0].id).first();
+  assert.deepEqual(imported, { status: "draft", source_type: "google-mymaps-csv" });
+
+  const secondPreview = await mf.dispatchFetch("http://local.test/api/admin/imports/preview", {
+    method: "POST", headers: { ...auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: "integration.csv", sourceName: "Integration", csv }),
+  });
+  const secondPayload = await secondPreview.json();
+  assert.equal(secondPayload.counts.new, 0);
+  assert.equal(secondPayload.counts.existing, 2);
+
+  console.log(JSON.stringify({ places: publicPayload.count, stations: 2128, adminCycle: "pass", csvImport: "pass", smartNavigator: "pass" }));
 } finally {
   await mf.dispose();
 }

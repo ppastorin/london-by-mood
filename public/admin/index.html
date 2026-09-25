@@ -15,6 +15,12 @@
     </section>
     <div id="editor" hidden>
       <section class="capture card"><div><p class="eyebrow">Quick capture</p><h1>Add a discovery without touching a spreadsheet</h1><p>Paste a Google Maps link, a place name, an address or a postcode. It opens as a draft, so an incomplete discovery never leaks into the public tools.</p></div><div><label>Google Maps link, name or address<input id="capture-input" type="text" placeholder="Paste here"></label><button id="resolve" class="primary">Create draft</button><p id="capture-message" class="message"></p></div></section>
+      <section class="importer card">
+        <div><p class="eyebrow">Monthly import</p><h2>Compare a Google My Maps CSV</h2><p>Preview the complete exported layer. Existing places are skipped, uncertain matches are held for review and only selected new rows can become drafts.</p></div>
+        <div class="import-controls"><label>CSV file<input id="import-file" type="file" accept=".csv,text/csv"></label><label>Default category<select id="import-category"><option>MUSEUM</option><option>AREA</option><option>BUILDING</option><option>ODDITY</option><option>PARK</option><option>RELIGIOUS</option><option>SHOPPING</option><option>VIEWPOINT</option></select></label><button id="import-preview" class="secondary" type="button">Preview import</button></div>
+        <p id="import-message" class="message"></p><div id="import-summary" class="import-summary" hidden></div><div id="import-results" class="import-results" hidden></div>
+        <div class="import-actions"><button id="import-commit" class="primary" type="button" hidden>Create selected drafts</button></div>
+      </section>
       <div class="layout">
         <aside class="card library"><div class="library-head"><div><p class="eyebrow">Collection</p><h2>Places</h2></div><button id="new" class="secondary">New</button></div><div class="filters"><input id="search" type="search" placeholder="Search places"><select id="status-filter"><option value="">All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></div><p id="list-status" class="message"></p><div id="place-list" class="place-list"></div></aside>
         <form id="place-form" class="card form">

@@ -109,6 +109,22 @@ test("place validation preserves editorial fields and defaults", () => {
   assert.deepEqual(place.openingHours, { monday: "10–17" });
 });
 
+test("My Maps CSV parsing preserves quoted descriptions and coordinates", () => {
+  const csv = 'WKT,name,description\r\n"POINT (-0.1269 51.5194)",The British Museum,"History, art and culture"\r\n';
+  const parsed = __test.parseCsv(csv);
+  assert.deepEqual(parsed.headers, ["WKT", "name", "description"]);
+  assert.equal(parsed.rows[0][2], "History, art and culture");
+  assert.deepEqual(__test.parseWktPoint(parsed.rows[0][0]), { lat: 51.5194, lon: -0.1269 });
+});
+
+test("CSV duplicate matching recognises renamed places at the same point", () => {
+  const match = __test.closestPlaceMatch("Home of Charles Darwin - Down House", 51.331, 0.054, [
+    { id: "P1", name: "Home of Charles Darwin", latitude: 51.331, longitude: 0.054 },
+  ]);
+  assert.equal(match.classification, "existing");
+  assert.equal(match.place.id, "P1");
+});
+
 test("static HTML remains embeddable by Google Sites", async () => {
   const response = await worker.fetch(new Request("https://example.com/"), { ASSETS: assets() }, context());
   assert.equal(response.headers.has("x-frame-options"), false);

@@ -10,9 +10,11 @@ Nothing in this branch is configured for production. `wrangler.jsonc` intentiona
 - `/smart-navigation/` — rebuilt Smart Navigator, with walking-route detours and live TfL cycle availability.
 - `/admin/` — private place capture/editor prototype with draft, publish and archive states.
 - `migrations/0001_places.sql` — normalized D1 schema.
+- `migrations/0002_imports.sql` — durable source identities plus preview/commit batch imports.
 - `db/seed.sql` — private, git-ignored one-time import generated locally from the workbook.
 - `scripts/build-d1-seed.py` — reproducible spreadsheet-to-D1 converter.
 - `scripts/integration-smoke.mjs` — full D1/API create-edit-publish smoke test.
+- `scripts/preview-csv-import.mjs` — non-mutating local check of a complete My Maps CSV.
 - `docs/D1_MIGRATION_DESIGN.md` — recommendation, alternatives, cutover plan and operating model.
 
 The old `google-apps-script/` folder is retained only as a migration reference. It is no longer on the runtime path.
@@ -43,9 +45,16 @@ Use the same temporary token on the admin login screen. Put real secrets in `.de
 npm run check
 npm test
 npm run test:integration
+npm run test:csv -- "/path/to/google-mymaps-export.csv"
 ```
 
-After the private seed has been generated, the integration test creates an ephemeral D1 instance, loads the complete seed, confirms all 881 places and 2,128 station relationships, exercises unauthenticated access, and performs a create → publish → read revision cycle.
+After the private seed has been generated, the integration test creates an ephemeral D1 instance, loads the complete seed, confirms all 881 places and 2,128 station relationships, exercises unauthenticated access, performs a create → publish → read revision cycle, and proves that importing the same CSV twice creates no duplicate records.
+
+## Monthly My Maps import
+
+Export the complete My Maps layer as CSV, open `/admin/`, choose the file and select **Preview import**. The preview classifies every row as already existing, possible duplicate, new or invalid. Existing and uncertain rows cannot be committed automatically. Selected new rows are created as unpublished drafts with a durable source fingerprint; they must be enriched and reviewed before publication.
+
+Re-importing an unchanged export is safe. The importer compares source fingerprints, normalized names and coordinate proximity, and records each preview in `import_batches` and `import_candidates` for audit.
 
 ## Rebuild the migration seed
 
