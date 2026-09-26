@@ -7,7 +7,11 @@ const el=Object.fromEntries(["message","start-query","start-choice","end-query",
 start();
 async function start(){
   state.map=L.map("map",{preferCanvas:true}).setView([51.5074,-.1278],11);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(state.map);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:i18n.locale==="it"?"© collaboratori OpenStreetMap":"© OpenStreetMap contributors"}).addTo(state.map);
+  if(i18n.locale==="it"){
+    state.map.zoomControl._zoomInButton.setAttribute("title","Ingrandisci");state.map.zoomControl._zoomInButton.setAttribute("aria-label","Ingrandisci");
+    state.map.zoomControl._zoomOutButton.setAttribute("title","Riduci");state.map.zoomControl._zoomOutButton.setAttribute("aria-label","Riduci");
+  }
   state.poiLayer=L.layerGroup().addTo(state.map);
   state.map.on("click",event=>{
     if(!state.pickMode)return;
