@@ -579,11 +579,18 @@ async function routeRequest(request, env) {
   if (!insideLondonBounds(start.lat, start.lon) || !insideLondonBounds(end.lat, end.lon)) return json({ ok: false, error: "Both route points must be in London" }, 400);
   if (!env.HEIGIT_API_KEY) return json({ ok: false, error: "Routing is not configured in this dev environment" }, 503);
   const routingApiUrl = env.ROUTING_API_URL || "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson";
-  const upstream = await fetch(routingApiUrl, {
-    method: "POST", headers: { Authorization: env.HEIGIT_API_KEY, "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ coordinates: [[start.lon, start.lat], [end.lon, end.lat]] }),
-  });
-  const responseText = await upstream.text();
+  let upstream;
+  let responseText;
+  try {
+    upstream = await fetch(routingApiUrl, {
+      method: "POST", headers: { Authorization: env.HEIGIT_API_KEY.trim(), "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ coordinates: [[start.lon, start.lat], [end.lon, end.lat]] }),
+      signal: AbortSignal.timeout(12000),
+    });
+    responseText = await upstream.text();
+  } catch (error) {
+    return json({ ok: false, error: `Walking route service unavailable: ${safeErrorMessage(error)}` }, 502, { "Cache-Control": "no-store" });
+  }
   let payload;
   try { payload = JSON.parse(responseText); } catch { payload = null; }
   if (!upstream.ok) {
@@ -595,6 +602,11 @@ async function routeRequest(request, env) {
   if (!feature?.geometry) throw new Error("The routing service returned no route");
   return json({ ok: true, geometry: feature.geometry, distanceMetres: feature.properties?.summary?.distance ?? 0,
     durationSeconds: feature.properties?.summary?.duration ?? 0, attribution: "Route data © openrouteservice and OpenStreetMap contributors" });
+}
+
+function safeErrorMessage(error) {
+  const message = error instanceof Error ? error.message : String(error || "Unknown error");
+  return message.replace(/[\r\n]+/g, " ").slice(0, 180);
 }
 
 async function bikePoints(url, env) {

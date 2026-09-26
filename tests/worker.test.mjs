@@ -127,6 +127,21 @@ test("walking routes use the current HeiGIT endpoint", async () => {
   assert.equal(payload.distanceMetres, 2100);
 });
 
+test("walking-route network failures return a controlled JSON error", async () => {
+  globalThis.fetch = async () => { throw new Error("upstream unavailable"); };
+  const response = await worker.fetch(
+    new Request("https://example.com/api/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: { lat: 51.507587, lon: -0.127716 }, end: { lat: 51.515008, lon: -0.102911 } }),
+    }),
+    { HEIGIT_API_KEY: "test-key", ASSETS: assets() },
+    context(),
+  );
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { ok: false, error: "Walking route service unavailable: upstream unavailable" });
+});
+
 test("Google Maps coordinate formats are accepted", () => {
   assert.deepEqual(__test.coordinatesFromText("https://maps.google.com/@51.501,-0.142,16z"), { lat: 51.501, lon: -0.142 });
   assert.deepEqual(__test.coordinatesFromText("https://maps.google.com/?q=51.501%2C-0.142"), { lat: 51.501, lon: -0.142 });
