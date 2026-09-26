@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Resolve the Cloudflare account
+      - name: Resolve the development and production Cloudflare accounts
         shell: bash
         run: |
           set -euo pipefail
@@ -49,24 +49,38 @@ jobs:
             --header "Content-Type: application/json" \
             https://api.cloudflare.com/client/v4/accounts)"
           development_database_id="$(jq -r '.d1_databases[0].database_id' wrangler.dev.jsonc)"
-          matches=()
+          development_matches=()
+          production_matches=()
           while IFS= read -r candidate; do
             echo "::add-mask::${candidate}"
-            probe="$(curl --silent --show-error \
+            database_probe="$(curl --silent --show-error \
               --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
               --header "Content-Type: application/json" \
               "https://api.cloudflare.com/client/v4/accounts/${candidate}/d1/database/${development_database_id}")"
-            if jq -e --arg id "${development_database_id}" '.success == true and .result.uuid == $id' <<<"${probe}" >/dev/null; then
-              matches+=("${candidate}")
+            if jq -e --arg id "${development_database_id}" '.success == true and .result.uuid == $id' <<<"${database_probe}" >/dev/null; then
+              development_matches+=("${candidate}")
+            fi
+            worker_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+              --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/accounts/${candidate}/workers/scripts/london-by-mood")"
+            if [[ "${worker_status}" == "200" ]]; then
+              production_matches+=("${candidate}")
             fi
           done < <(jq -r '.result[].id' <<<"${response}")
-          if [[ "${#matches[@]}" != "1" ]]; then
-            echo "Could not uniquely resolve the account containing the configured development D1 database; matches=${#matches[@]}." >&2
+          if [[ "${#development_matches[@]}" != "1" ]]; then
+            echo "Could not uniquely resolve the account containing the configured development D1 database; matches=${#development_matches[@]}." >&2
             exit 1
           fi
-          account_id="${matches[0]}"
-          echo "::add-mask::${account_id}"
-          echo "CLOUDFLARE_ACCOUNT_ID=${account_id}" >> "${GITHUB_ENV}"
+          if [[ "${#production_matches[@]}" != "1" ]]; then
+            echo "Could not uniquely resolve the account containing the existing london-by-mood Worker; matches=${#production_matches[@]}." >&2
+            exit 1
+          fi
+          development_account_id="${development_matches[0]}"
+          production_account_id="${production_matches[0]}"
+          echo "::add-mask::${development_account_id}"
+          echo "::add-mask::${production_account_id}"
+          echo "DEVELOPMENT_ACCOUNT_ID=${development_account_id}" >> "${GITHUB_ENV}"
+          echo "PRODUCTION_ACCOUNT_ID=${production_account_id}" >> "${GITHUB_ENV}"
 
       - name: Check source and unit tests
         run: npm run check && npm test
@@ -75,7 +89,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/access"
+          api="https://api.cloudflare.com/client/v4/accounts/${PRODUCTION_ACCOUNT_ID}/access"
           auth_header="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
           editor_domain="${PRODUCTION_HOST}/admin"
 
@@ -122,6 +136,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}"
           databases="$(npx wrangler d1 list --json)"
           database_id="$(jq -r '.[] | select(.name == "london-advanced-places") | .uuid' <<<"${databases}" | head -n 1)"
           if [[ -z "${database_id}" ]]; then
@@ -137,59 +152,38 @@ jobs:
           jq --arg id "${database_id}" '.d1_databases[0].database_id = $id' wrangler.jsonc > /tmp/wrangler.production.jsonc
 
       - name: Apply production D1 migrations
-        run: npx wrangler d1 migrations apply DB --remote --config /tmp/wrangler.production.jsonc
+        run: CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 migrations apply DB --remote --config /tmp/wrangler.production.jsonc
 
-      - name: Copy accepted data directly between Cloudflare D1 databases
+      - name: Copy accepted data between the Cloudflare accounts
         shell: bash
         run: |
           set -euo pipefail
-          production_result="$(npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
+          production_result="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
           production_count="$(jq -r '.[0].results[0].count' <<<"${production_result}")"
-          development_result="$(npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
+          development_result="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
           development_count="$(jq -r '.[0].results[0].count' <<<"${development_result}")"
           if [[ "${development_count}" != "881" ]]; then
             echo "Expected 881 accepted development places; found ${development_count}." >&2
             exit 1
           fi
           if [[ "${production_count}" == "0" ]]; then
-            migration_token="$(openssl rand -hex 32)"
-            echo "::add-mask::${migration_token}"
-            development_database_id="$(jq -r '.d1_databases[0].database_id' wrangler.dev.jsonc)"
-            production_database_id="$(jq -r '.d1_databases[0].database_id' /tmp/wrangler.production.jsonc)"
-            jq -n \
-              --arg dev "${development_database_id}" \
-              --arg prod "${production_database_id}" \
-              '{name:"london-advanced-d1-migrator",main:"src/migrate-production.js",compatibility_date:"2026-09-03",workers_dev:true,d1_databases:[{binding:"DEV_DB",database_name:"london-advanced-places-dev",database_id:$dev},{binding:"PROD_DB",database_name:"london-advanced-places",database_id:$prod}]}' \
-              > /tmp/wrangler.migration.jsonc
-            cleanup_migrator() { npx wrangler delete london-advanced-d1-migrator --force --config /tmp/wrangler.migration.jsonc >/dev/null 2>&1 || true; }
-            trap cleanup_migrator EXIT
-            npx wrangler deploy --config /tmp/wrangler.migration.jsonc
-            printf '%s' "${migration_token}" | npx wrangler secret put MIGRATION_TOKEN --config /tmp/wrangler.migration.jsonc
-
-            migration_url="https://london-advanced-d1-migrator.screeching-drizzle.workers.dev/migrate"
+            cleanup_exports() { rm -f /tmp/places.sql /tmp/place_time_affinity.sql /tmp/place_stations.sql; }
+            trap cleanup_exports EXIT
             for table in places place_time_affinity place_stations; do
-              offset=0
-              while true; do
-                body="$(jq -n --arg table "${table}" --argjson offset "${offset}" '{table:$table,offset:$offset,limit:50}')"
-                result="$(curl --fail --silent --show-error --retry 6 --retry-delay 3 --retry-all-errors \
-                  --request POST \
-                  --header "Authorization: Bearer ${migration_token}" \
-                  --header 'Content-Type: application/json' \
-                  --data "${body}" \
-                  "${migration_url}")"
-                jq -e '.ok == true' <<<"${result}" >/dev/null
-                offset="$(jq -r '.nextOffset' <<<"${result}")"
-                [[ "$(jq -r '.done' <<<"${result}")" == "true" ]] && break
-              done
+              export_file="/tmp/${table}.sql"
+              CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 export DB \
+                --remote --config wrangler.dev.jsonc --table "${table}" --no-schema --output "${export_file}" --yes
+              CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB \
+                --remote --config /tmp/wrangler.production.jsonc --file "${export_file}" --yes
             done
-            cleanup_migrator
+            cleanup_exports
             trap - EXIT
           elif [[ "${production_count}" != "${development_count}" ]]; then
             echo "Production already contains ${production_count} places; refusing to overwrite it with ${development_count}." >&2
             exit 1
           fi
-          development_version="$(npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command \"SELECT value FROM app_meta WHERE key='data_version'\" --json | jq -r '.[0].results[0].value')"
-          npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc \
+          development_version="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command \"SELECT value FROM app_meta WHERE key='data_version'\" --json | jq -r '.[0].results[0].value')"
+          CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc \
             --command "UPDATE app_meta SET value='${development_version}', updated_at=CURRENT_TIMESTAMP WHERE key='data_version'" --yes
 
       - name: Verify production database parity
@@ -197,8 +191,8 @@ jobs:
         run: |
           set -euo pipefail
           for table in places place_time_affinity place_stations; do
-            development="$(npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
-            production="$(npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
+            development="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
+            production="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
             if [[ "${development}" != "${production}" ]]; then
               echo "Parity check failed for ${table}: development=${development}, production=${production}." >&2
               exit 1
@@ -209,10 +203,10 @@ jobs:
       - name: Synchronise the production walking-route API key
         if: env.HEIGIT_API_KEY != ''
         shell: bash
-        run: printf '%s' "${HEIGIT_API_KEY}" | npx wrangler secret put HEIGIT_API_KEY --config /tmp/wrangler.production.jsonc
+        run: printf '%s' "${HEIGIT_API_KEY}" | CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler secret put HEIGIT_API_KEY --config /tmp/wrangler.production.jsonc
 
       - name: Deploy the production Worker
-        run: npx wrangler deploy --config /tmp/wrangler.production.jsonc
+        run: CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler deploy --config /tmp/wrangler.production.jsonc
 
       - name: Verify the production application
         shell: bash
