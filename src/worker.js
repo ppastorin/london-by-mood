@@ -583,7 +583,7 @@ async function routeRequest(request, env) {
   let responseText;
   try {
     upstream = await fetch(routingApiUrl, {
-      method: "POST", headers: { Authorization: env.HEIGIT_API_KEY.trim(), "Content-Type": "application/json", Accept: "application/json" },
+      method: "POST", headers: { Authorization: env.HEIGIT_API_KEY.trim(), "Content-Type": "application/json", Accept: "application/geo+json, application/json" },
       body: JSON.stringify({ coordinates: [[start.lon, start.lat], [end.lon, end.lat]] }),
       signal: AbortSignal.timeout(12000),
     });

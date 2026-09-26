@@ -123,6 +123,7 @@ test("walking routes use the current HeiGIT endpoint", async () => {
   assert.equal(response.status, 200);
   assert.equal(requestedUrl, "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson");
   assert.equal(requestedHeaders.get("authorization"), "test-key");
+  assert.equal(requestedHeaders.get("accept"), "application/geo+json, application/json");
   assert.deepEqual(requestedBody.coordinates, [[-0.127716, 51.507587], [-0.102911, 51.515008]]);
   assert.equal(payload.distanceMetres, 2100);
 });
