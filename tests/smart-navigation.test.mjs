@@ -28,8 +28,10 @@ test("Smart Navigation serves a complete Italian interface when lang=it", async 
   assert.match(i18n, /get\("lang"\) === "it"/);
   assert.match(i18n, /Navigazione intelligente/);
   assert.match(i18n, /Calcola il percorso a piedi/);
+  assert.match(i18n, /Distanza dal percorso/);
   assert.match(i18n, /Santander Cycles nelle vicinanze/);
   assert.match(i18n, /Deviazioni che meritano/);
   assert.match(app, /Luoghi religiosi/);
+  assert.match(app, /aria-label","Ingrandisci/);
   assert.match(app, /localizeError\(error\.message\)/);
 });
