@@ -46,12 +46,23 @@ jobs:
             --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             --header "Content-Type: application/json" \
             https://api.cloudflare.com/client/v4/accounts)"
-          count="$(jq -r '.result | length' <<<"${response}")"
-          if [[ "$(jq -r '.success' <<<"${response}")" != "true" || "${count}" != "1" ]]; then
-            echo "The token must grant access to exactly one Cloudflare account; found ${count}." >&2
+          development_database_id="$(jq -r '.d1_databases[0].database_id' wrangler.dev.jsonc)"
+          matches=()
+          while IFS= read -r candidate; do
+            echo "::add-mask::${candidate}"
+            probe="$(curl --silent --show-error \
+              --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              --header "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/${candidate}/d1/database/${development_database_id}")"
+            if jq -e --arg id "${development_database_id}" '.success == true and .result.uuid == $id' <<<"${probe}" >/dev/null; then
+              matches+=("${candidate}")
+            fi
+          done < <(jq -r '.result[].id' <<<"${response}")
+          if [[ "${#matches[@]}" != "1" ]]; then
+            echo "Could not uniquely resolve the account containing the configured development D1 database; matches=${#matches[@]}." >&2
             exit 1
           fi
-          account_id="$(jq -r '.result[0].id' <<<"${response}")"
+          account_id="${matches[0]}"
           echo "::add-mask::${account_id}"
           echo "CLOUDFLARE_ACCOUNT_ID=${account_id}" >> "${GITHUB_ENV}"
 
