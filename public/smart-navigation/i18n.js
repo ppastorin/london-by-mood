@@ -68,7 +68,7 @@
       ["#end-choice", "Non selezionato"],
       ["#pick-end", "Scegli sulla mappa"],
       [".controls section:nth-of-type(2) h2", "Imposta la deviazione"],
-      ["#corridor legend", "Distanza dal percorso"],
+      [".controls section:nth-of-type(2) fieldset legend", "Distanza dal percorso"],
       [".category-heading legend", "Luoghi da includere"],
       ["#all-categories", "Tutti"],
       ["#no-categories", "Nessuno"],
