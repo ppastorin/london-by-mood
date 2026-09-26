@@ -249,4 +249,4 @@ jobs:
             --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
             "${base_url}/api/route")"
           jq -e '.ok == true and (.geometry.coordinates | length) > 1 and .distanceMetres > 0' <<<"${route}" >/dev/null
-          echo "Production verification passed: public tools, 881 places, routing and protected editor."
+          echo "Production verification passed: public tools, 881 places, routing and a non-public editor boundary."

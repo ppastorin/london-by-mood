@@ -94,6 +94,19 @@ test("production admin endpoints require the Access assertion and exact email", 
   assert.equal(wrongEmail.status, 403);
 });
 
+test("the production editor page is locked until Cloudflare Access supplies a signed identity", async () => {
+  const env = { TRUST_CF_ACCESS: "true", ADMIN_EMAIL: "paolo.pastorino@gmail.com", ASSETS: assets() };
+  const anonymous = await worker.fetch(new Request("https://example.com/admin/"), env, context());
+  assert.equal(anonymous.status, 401);
+
+  const authenticated = await worker.fetch(new Request("https://example.com/admin/", { headers: {
+    "Cf-Access-Authenticated-User-Email": "paolo.pastorino@gmail.com",
+    "Cf-Access-Jwt-Assertion": "signed-by-access",
+  } }), env, context());
+  assert.equal(authenticated.status, 200);
+  assert.equal(authenticated.headers.get("x-frame-options"), "DENY");
+});
+
 test("address search is explicit, London-bounded and returns coordinates", async () => {
   let requestedUrl;
   let requestedHeaders;

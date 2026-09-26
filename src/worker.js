@@ -21,6 +21,10 @@ export default {
       if (url.pathname === "/api/bikepoints") {
         return request.method === "GET" ? await bikePoints(url, env) : methodNotAllowed("GET");
       }
+      if (env.TRUST_CF_ACCESS === "true" && (url.pathname === "/admin" || url.pathname.startsWith("/admin/"))) {
+        const auth = requireAdmin(request, env);
+        if (auth) return auth;
+      }
       if (url.pathname === "/admin/api/resolve") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
