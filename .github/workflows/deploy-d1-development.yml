@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 20
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      HEIGIT_API_KEY: ${{ secrets.HEIGIT_API_KEY }}
 
     steps:
       - name: Check out the development branch
@@ -57,6 +58,11 @@ jobs:
       - name: Check source and unit tests
         run: npm run check && npm test
 
+      - name: Synchronise the walking-route API key
+        if: env.HEIGIT_API_KEY != ''
+        shell: bash
+        run: printf '%s' "${HEIGIT_API_KEY}" | npx wrangler secret put HEIGIT_API_KEY --config wrangler.dev.jsonc
+
       - name: Export the current development database
         run: |
           mkdir -p backups
@@ -91,5 +97,13 @@ jobs:
           if [[ "${admin_status}" != "401" ]]; then
             echo "Expected anonymous admin request to return 401; received ${admin_status}." >&2
             exit 1
+          fi
+          if [[ -n "${HEIGIT_API_KEY:-}" ]]; then
+            route="$(curl --fail --silent --show-error --retry 3 \
+              --request POST \
+              --header 'Content-Type: application/json' \
+              --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
+              "${base_url}/api/route")"
+            jq -e '.ok == true and (.geometry.coordinates | length) > 1 and .distanceMetres > 0' <<<"${route}" >/dev/null
           fi
           echo "Development verification passed: 881 published places and protected admin API."
