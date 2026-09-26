@@ -93,7 +93,19 @@ jobs:
           auth_header="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
           editor_domain="${PRODUCTION_HOST}/admin"
 
-          apps="$(curl --fail --silent --show-error --header "${auth_header}" "${api}/apps?per_page=100")"
+          apps_file="$(mktemp)"
+          apps_status="$(curl --silent --show-error \
+            --output "${apps_file}" \
+            --write-out '%{http_code}' \
+            --header "${auth_header}" \
+            "${api}/apps?per_page=100")"
+          apps="$(cat "${apps_file}")"
+          rm -f "${apps_file}"
+          if [[ "${apps_status}" != "200" ]]; then
+            echo "Cloudflare Access API returned HTTP ${apps_status}." >&2
+            jq -c '{success, errors, messages}' <<<"${apps}" >&2 || echo "Cloudflare returned a non-JSON error response." >&2
+            exit 1
+          fi
           app_id="$(jq -r --arg domain "${editor_domain}" '.result[] | select(.domain == $domain) | .id' <<<"${apps}" | head -n 1)"
           if [[ -z "${app_id}" ]]; then
             app_body="$(jq -n --arg domain "${editor_domain}" '{name:"London Advanced places editor",domain:$domain,type:"self_hosted",session_duration:"24h",app_launcher_visible:false,allow_iframe:false}')"
