@@ -63,21 +63,6 @@ jobs:
         shell: bash
         run: printf '%s' "${HEIGIT_API_KEY}" | npx wrangler secret put HEIGIT_API_KEY --config wrangler.dev.jsonc
 
-      - name: Export the current development database
-        run: |
-          mkdir -p backups
-          npx wrangler d1 export DB --remote --skip-confirmation \
-            --config wrangler.dev.jsonc \
-            --output "backups/london-advanced-places-dev-${GITHUB_RUN_ID}.sql"
-
-      - name: Retain the pre-deployment database backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: london-advanced-places-dev-before-${{ github.run_id }}
-          path: backups/*.sql
-          if-no-files-found: error
-          retention-days: 30
-
       - name: Apply pending D1 migrations
         run: npx wrangler d1 migrations apply DB --remote --config wrangler.dev.jsonc
 
@@ -100,13 +85,21 @@ jobs:
           fi
           if [[ -n "${HEIGIT_API_KEY:-}" ]]; then
             route_file="$(mktemp)"
-            route_status="$(curl --silent --show-error \
-              --request POST \
-              --header 'Content-Type: application/json' \
-              --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
-              --output "${route_file}" \
-              --write-out '%{http_code}' \
-              "${base_url}/api/route")"
+            route_status="000"
+            for attempt in 1 2 3 4 5 6; do
+              route_status="$(curl --silent --show-error \
+                --request POST \
+                --header 'Content-Type: application/json' \
+                --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
+                --output "${route_file}" \
+                --write-out '%{http_code}' \
+                "${base_url}/api/route")"
+              if [[ "${route_status}" == "200" ]]; then
+                break
+              fi
+              echo "Walking-route verification attempt ${attempt} returned HTTP ${route_status}; waiting for deployment propagation."
+              sleep 3
+            done
             if [[ "${route_status}" != "200" ]]; then
               tail_log="$(mktemp)"
               timeout 15s npx wrangler tail --config wrangler.dev.jsonc --format pretty >"${tail_log}" 2>&1 &
