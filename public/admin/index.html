@@ -2,16 +2,16 @@
 <html lang="en-GB">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow"><title>Places editor dev | London Advanced</title>
+  <meta name="robots" content="noindex,nofollow"><title>Places editor | London Advanced</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="/admin/styles.css">
 </head>
 <body>
-  <header><div><strong>London Advanced</strong><span>Places editor</span></div><span class="dev">Dev only</span></header>
+  <header><div><strong>London Advanced</strong><span>Places editor</span></div><span class="dev">Private</span></header>
   <main>
     <section id="login" class="login card">
-      <p class="eyebrow">Private maintenance</p><h1>Open the places editor</h1>
-      <p>Cloudflare Access will protect this page later. The local prototype uses a temporary development token.</p>
-      <label>Development token<input id="token" type="password" autocomplete="current-password"></label><button id="unlock" class="primary">Open editor</button><p id="login-message" class="message"></p>
+      <p class="eyebrow">Private maintenance</p><h1>Opening the places editor</h1>
+      <p id="login-copy">Checking your Cloudflare Access session…</p>
+      <div id="token-login" hidden><label>Development token<input id="token" type="password" autocomplete="current-password"></label><button id="unlock" class="primary">Open editor</button></div><p id="login-message" class="message"></p>
     </section>
     <div id="editor" hidden>
       <section class="capture card"><div><p class="eyebrow">Quick capture</p><h1>Add a discovery without touching a spreadsheet</h1><p>Paste a Google Maps link, a place name, an address or a postcode. It opens as a draft, so an incomplete discovery never leaks into the public tools.</p></div><div><label>Google Maps link, name or address<input id="capture-input" type="text" placeholder="Paste here"></label><button id="resolve" class="primary">Create draft</button><p id="capture-message" class="message"></p></div></section>

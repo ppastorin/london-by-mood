@@ -66,9 +66,9 @@ The application exposes `published` places publicly. Draft and archived records 
 | `GET /api/geocode` | Explicit London-bounded address lookup | Public |
 | `POST /api/route` | Walking route through openrouteservice | Public |
 | `GET /api/bikepoints` | Nearby live Santander Cycles availability | Public |
-| `POST /api/admin/resolve` | Convert a Maps link/name/address into a draft location | Private |
-| `GET/POST /api/admin/places` | Search and create | Private |
-| `GET/PUT /api/admin/places/:id` | Read and edit a record | Private |
+| `POST /admin/api/resolve` | Convert a Maps link/name/address into a draft location | Private |
+| `GET/POST /admin/api/places` | Search and create | Private |
+| `GET/PUT /admin/api/places/:id` | Read and edit a record | Private |
 
 ## Redesigned Smart Navigator
 
@@ -104,13 +104,13 @@ Add a CSV/KML draft importer as phase 2 if batch discovery is frequent. It shoul
 
 ## Security and operating controls
 
-- Put Cloudflare Access in front of both `/admin/*` **and** `/api/admin/*`, with Paolo’s approved identity/email as the allow policy.
+- Put Cloudflare Access in front of `/admin/*`, which contains the editor and its API, with Paolo’s approved identity/email as the allow policy.
 - Keep the local `ADMIN_TOKEN` fallback for development only. Never place it in Git or client code.
-- Set `TRUST_CF_ACCESS=true` only after the exact Access paths are active. A forwarded email header alone is not an authentication system.
+- Set `TRUST_CF_ACCESS=true` only after the exact Access path is active. The Worker also requires an Access assertion and the exact configured email.
 - Use separate `london-advanced-places-dev` and production D1 databases.
 - Store `HEIGIT_API_KEY`, optional `TFL_API_KEY` and any temporary admin token as Worker secrets.
 - Preserve the revision table and export a periodic D1 backup before bulk edits.
-- Keep public write routes nonexistent; all state-changing methods live under `/api/admin/`.
+- Keep public write routes nonexistent; all state-changing methods live under `/admin/api/`.
 
 ## Development and cutover plan
 

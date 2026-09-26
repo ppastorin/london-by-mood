@@ -1,0 +1,209 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: london-advanced-production
+  cancel-in-progress: false
+
+jobs:
+  test-migrate-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      HEIGIT_API_KEY: ${{ secrets.HEIGIT_API_KEY }}
+      ADMIN_EMAIL: paolo.pastorino@gmail.com
+      PRODUCTION_HOST: london-by-mood.ppastorin.workers.dev
+
+    steps:
+      - name: Check out the production branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve the Cloudflare account
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "Missing GitHub repository secret CLOUDFLARE_API_TOKEN" >&2
+            exit 1
+          fi
+          response="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            https://api.cloudflare.com/client/v4/accounts)"
+          count="$(jq -r '.result | length' <<<"${response}")"
+          if [[ "$(jq -r '.success' <<<"${response}")" != "true" || "${count}" != "1" ]]; then
+            echo "The token must grant access to exactly one Cloudflare account; found ${count}." >&2
+            exit 1
+          fi
+          account_id="$(jq -r '.result[0].id' <<<"${response}")"
+          echo "::add-mask::${account_id}"
+          echo "CLOUDFLARE_ACCOUNT_ID=${account_id}" >> "${GITHUB_ENV}"
+
+      - name: Check source and unit tests
+        run: npm run check && npm test
+
+      - name: Protect the private editor with Cloudflare Access
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/access"
+          auth_header="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+          editor_domain="${PRODUCTION_HOST}/admin"
+
+          apps="$(curl --fail --silent --show-error --header "${auth_header}" "${api}/apps?per_page=100")"
+          app_id="$(jq -r --arg domain "${editor_domain}" '.result[] | select(.domain == $domain) | .id' <<<"${apps}" | head -n 1)"
+          if [[ -z "${app_id}" ]]; then
+            app_body="$(jq -n --arg domain "${editor_domain}" '{name:"London Advanced places editor",domain:$domain,type:"self_hosted",session_duration:"24h",app_launcher_visible:false,allow_iframe:false}')"
+            created="$(curl --fail --silent --show-error \
+              --request POST \
+              --header "${auth_header}" \
+              --header "Content-Type: application/json" \
+              --data "${app_body}" \
+              "${api}/apps")"
+            app_id="$(jq -r '.result.id' <<<"${created}")"
+          fi
+          if [[ -z "${app_id}" || "${app_id}" == "null" ]]; then
+            echo "Could not resolve the Cloudflare Access application." >&2
+            exit 1
+          fi
+          echo "::add-mask::${app_id}"
+
+          policy_name="Allow Paolo Pastorino"
+          policy_body="$(jq -n --arg name "${policy_name}" --arg email "${ADMIN_EMAIL}" '{name:$name,decision:"allow",precedence:1,include:[{email:{email:$email}}],exclude:[],require:[]}')"
+          policies="$(curl --fail --silent --show-error --header "${auth_header}" "${api}/apps/${app_id}/policies?per_page=100")"
+          policy_id="$(jq -r --arg name "${policy_name}" '.result[] | select(.name == $name) | .id' <<<"${policies}" | head -n 1)"
+          if [[ -n "${policy_id}" ]]; then
+            curl --fail --silent --show-error \
+              --request PUT \
+              --header "${auth_header}" \
+              --header "Content-Type: application/json" \
+              --data "${policy_body}" \
+              "${api}/apps/${app_id}/policies/${policy_id}" >/dev/null
+          else
+            curl --fail --silent --show-error \
+              --request POST \
+              --header "${auth_header}" \
+              --header "Content-Type: application/json" \
+              --data "${policy_body}" \
+              "${api}/apps/${app_id}/policies" >/dev/null
+          fi
+          echo "Cloudflare Access protects /admin for the approved email."
+
+      - name: Resolve or create the production D1 database
+        shell: bash
+        run: |
+          set -euo pipefail
+          databases="$(npx wrangler d1 list --json)"
+          database_id="$(jq -r '.[] | select(.name == "london-advanced-places") | .uuid' <<<"${databases}" | head -n 1)"
+          if [[ -z "${database_id}" ]]; then
+            npx wrangler d1 create london-advanced-places --location weur
+            databases="$(npx wrangler d1 list --json)"
+            database_id="$(jq -r '.[] | select(.name == "london-advanced-places") | .uuid' <<<"${databases}" | head -n 1)"
+          fi
+          if [[ -z "${database_id}" || "${database_id}" == "null" ]]; then
+            echo "Could not resolve the production D1 database." >&2
+            exit 1
+          fi
+          echo "::add-mask::${database_id}"
+          jq --arg id "${database_id}" '.d1_databases[0].database_id = $id' wrangler.jsonc > /tmp/wrangler.production.jsonc
+
+      - name: Apply production D1 migrations
+        run: npx wrangler d1 migrations apply DB --remote --config /tmp/wrangler.production.jsonc
+
+      - name: Copy the accepted development data into an empty production database
+        shell: bash
+        run: |
+          set -euo pipefail
+          production_result="$(npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
+          production_count="$(jq -r '.[0].results[0].count' <<<"${production_result}")"
+          development_result="$(npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
+          development_count="$(jq -r '.[0].results[0].count' <<<"${development_result}")"
+          if [[ "${development_count}" != "881" ]]; then
+            echo "Expected 881 accepted development places; found ${development_count}." >&2
+            exit 1
+          fi
+          if [[ "${production_count}" == "0" ]]; then
+            npx wrangler d1 export DB --remote --config wrangler.dev.jsonc \
+              --output /tmp/development-data.sql --no-schema --skip-confirmation \
+              --table places --table place_time_affinity --table place_stations
+            npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc \
+              --file /tmp/development-data.sql --yes
+          elif [[ "${production_count}" != "${development_count}" ]]; then
+            echo "Production already contains ${production_count} places; refusing to overwrite it with ${development_count}." >&2
+            exit 1
+          fi
+          development_version="$(npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command \"SELECT value FROM app_meta WHERE key='data_version'\" --json | jq -r '.[0].results[0].value')"
+          npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc \
+            --command "UPDATE app_meta SET value='${development_version}', updated_at=CURRENT_TIMESTAMP WHERE key='data_version'" --yes
+          rm -f /tmp/development-data.sql
+
+      - name: Verify production database parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          for table in places place_time_affinity place_stations; do
+            development="$(npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
+            production="$(npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
+            if [[ "${development}" != "${production}" ]]; then
+              echo "Parity check failed for ${table}: development=${development}, production=${production}." >&2
+              exit 1
+            fi
+            echo "${table}: ${production} rows"
+          done
+
+      - name: Synchronise the production walking-route API key
+        if: env.HEIGIT_API_KEY != ''
+        shell: bash
+        run: printf '%s' "${HEIGIT_API_KEY}" | npx wrangler secret put HEIGIT_API_KEY --config /tmp/wrangler.production.jsonc
+
+      - name: Deploy the production Worker
+        run: npx wrangler deploy --config /tmp/wrangler.production.jsonc
+
+      - name: Verify the production application
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="https://${PRODUCTION_HOST}"
+          health="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/health")"
+          jq -e '.ok == true and .database == "d1"' <<<"${health}" >/dev/null
+          places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=2000")"
+          jq -e '.ok == true and .count == 881' <<<"${places}" >/dev/null
+          curl --fail --silent --show-error "${base_url}/" | grep -q "London by Mood"
+          curl --fail --silent --show-error "${base_url}/smart-navigation/" | grep -q "Smart Navigation"
+
+          admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-redirs 0 "${base_url}/admin/")"
+          if [[ "${admin_status}" == "200" ]]; then
+            echo "The private editor was reachable without Cloudflare Access." >&2
+            exit 1
+          fi
+          api_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-redirs 0 "${base_url}/admin/api/places?limit=1")"
+          if [[ "${api_status}" == "200" ]]; then
+            echo "The private editor API was reachable without Cloudflare Access." >&2
+            exit 1
+          fi
+
+          route="$(curl --fail --silent --show-error \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
+            "${base_url}/api/route")"
+          jq -e '.ok == true and (.geometry.coordinates | length) > 1 and .distanceMetres > 0' <<<"${route}" >/dev/null
+          echo "Production verification passed: public tools, 881 places, routing and protected editor."

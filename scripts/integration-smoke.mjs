@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 
+const integrationToken = crypto.randomUUID();
 const mf = new Miniflare(convertV4MiniflareOptions({
   workers: [{
     name: "london-places-integration",
@@ -10,14 +11,14 @@ const mf = new Miniflare(convertV4MiniflareOptions({
     compatibilityDate: "2026-09-03",
     d1Databases: { DB: "london-advanced-places-dev" },
     bindings: {
-      ADMIN_TOKEN: "dev-test-token",
+      ADMIN_TOKEN: integrationToken,
       GEOCODING_API_URL: "https://nominatim.openstreetmap.org/search",
     },
     assets: { directory: "public", binding: "ASSETS", run_worker_first: true, routerConfig: { has_user_worker: true } },
   }],
 }));
 
-const auth = { Authorization: "Bearer dev-test-token" };
+const auth = { Authorization: `Bearer ${integrationToken}` };
 
 try {
   const db = await mf.getD1Database("DB", "london-places-integration");
@@ -36,7 +37,7 @@ try {
   assert.equal(publicPayload.count, 881);
   assert.equal(publicPayload.places.reduce((sum, place) => sum + place.stations.length, 0), 2128);
 
-  const denied = await mf.dispatchFetch("http://local.test/api/admin/places?limit=1");
+  const denied = await mf.dispatchFetch("http://local.test/admin/api/places?limit=1");
   assert.equal(denied.status, 401);
 
   const draft = {
@@ -49,7 +50,7 @@ try {
     mapUrl: "https://www.google.com/maps?q=51.5074,-0.1278",
     moods: { unexpected: 3, local: 2 },
   };
-  const created = await mf.dispatchFetch("http://local.test/api/admin/places", {
+  const created = await mf.dispatchFetch("http://local.test/admin/api/places", {
     method: "POST",
     headers: { ...auth, "Content-Type": "application/json" },
     body: JSON.stringify(draft),
@@ -58,14 +59,14 @@ try {
   assert.equal(created.status, 201);
   assert.match(createdPayload.id, /^LA-/);
 
-  const edited = await mf.dispatchFetch(`http://local.test/api/admin/places/${createdPayload.id}`, {
+  const edited = await mf.dispatchFetch(`http://local.test/admin/api/places/${createdPayload.id}`, {
     method: "PUT",
     headers: { ...auth, "Content-Type": "application/json" },
     body: JSON.stringify({ status: "published", hook: "A verified local test." }),
   });
   assert.equal(edited.status, 200);
 
-  const saved = await mf.dispatchFetch(`http://local.test/api/admin/places/${createdPayload.id}`, { headers: auth });
+  const saved = await mf.dispatchFetch(`http://local.test/admin/api/places/${createdPayload.id}`, { headers: auth });
   const savedPayload = await saved.json();
   assert.equal(savedPayload.place.status, "published");
   assert.equal(savedPayload.place.name, draft.name);
@@ -79,7 +80,7 @@ try {
   assert.deepEqual(revisions.results.map((row) => row.action), ["create", "publish"]);
 
   const csv = `WKT,name,description\n"POINT (-0.1269566 51.5194133)",The British Museum,\n"POINT (0.4001 51.3001)",Integration CSV Place,A draft from the importer\n`;
-  const preview = await mf.dispatchFetch("http://local.test/api/admin/imports/preview", {
+  const preview = await mf.dispatchFetch("http://local.test/admin/api/imports/preview", {
     method: "POST", headers: { ...auth, "Content-Type": "application/json" },
     body: JSON.stringify({ filename: "integration.csv", sourceName: "Integration", csv }),
   });
@@ -89,7 +90,7 @@ try {
   assert.equal(previewPayload.counts.new, 1);
   const newRow = previewPayload.candidates.find((candidate) => candidate.classification === "new").rowNumber;
 
-  const committed = await mf.dispatchFetch("http://local.test/api/admin/imports/commit", {
+  const committed = await mf.dispatchFetch("http://local.test/admin/api/imports/commit", {
     method: "POST", headers: { ...auth, "Content-Type": "application/json" },
     body: JSON.stringify({ batchId: previewPayload.batchId, rows: [newRow], category: "MUSEUM" }),
   });
@@ -99,7 +100,7 @@ try {
   const imported = await db.prepare("SELECT status, source_type FROM places WHERE id = ?").bind(committedPayload.places[0].id).first();
   assert.deepEqual(imported, { status: "draft", source_type: "google-mymaps-csv" });
 
-  const secondPreview = await mf.dispatchFetch("http://local.test/api/admin/imports/preview", {
+  const secondPreview = await mf.dispatchFetch("http://local.test/admin/api/imports/preview", {
     method: "POST", headers: { ...auth, "Content-Type": "application/json" },
     body: JSON.stringify({ filename: "integration.csv", sourceName: "Integration", csv }),
   });

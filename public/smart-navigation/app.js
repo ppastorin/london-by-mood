@@ -16,7 +16,7 @@ async function start(){
     message(`${type==="start"?"Starting point":"Destination"} selected on the map.`);
   });
   bind();
-  try{const payload=await api("/api/pois");state.places=payload.places;renderCategories();message(`${payload.count.toLocaleString("en-GB")} places loaded from the dev D1 database.`)}catch(error){message(error.message,true)}
+  try{const payload=await api("/api/pois");state.places=payload.places;renderCategories();message(`${payload.count.toLocaleString("en-GB")} places loaded.`)}catch(error){message(error.message,true)}
 }
 function bind(){
   document.querySelectorAll("[data-search]").forEach(button=>button.addEventListener("click",()=>search(button.dataset.search)));

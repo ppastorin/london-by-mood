@@ -71,7 +71,7 @@ The converter refuses to finish unless it finds exactly 881 place records. That 
 1. Create a database named `london-advanced-places-dev` in the Cloudflare development account/environment.
 2. Replace the placeholder `database_id` in the development configuration only.
 3. Generate `db/seed.sql` privately, then apply `migrations/0001_places.sql` and the seed to that development database.
-4. Set `ADMIN_TOKEN` as a secret for the first dev review, or put Cloudflare Access in front of both `/admin/*` and `/api/admin/*` and set `TRUST_CF_ACCESS=true` only after those policies are active.
+4. Set `ADMIN_TOKEN` as a secret for the development review. In production, put Cloudflare Access in front of `/admin/*` (including `/admin/api/*`) and set `TRUST_CF_ACCESS=true` only after that policy is active.
 5. Set `HEIGIT_API_KEY` for walking routes. `TFL_API_KEY` is optional for the BikePoint feed.
 6. Use a Cloudflare branch preview. Do not bind this branch to the production D1 database and do not change the Google Sites embeds until acceptance is complete.
 

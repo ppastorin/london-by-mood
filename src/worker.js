@@ -21,29 +21,29 @@ export default {
       if (url.pathname === "/api/bikepoints") {
         return request.method === "GET" ? await bikePoints(url, env) : methodNotAllowed("GET");
       }
-      if (url.pathname === "/api/admin/resolve") {
+      if (url.pathname === "/admin/api/resolve") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
         return request.method === "POST" ? await resolveCapturedPlace(request, env) : methodNotAllowed("POST");
       }
-      if (url.pathname === "/api/admin/imports/preview") {
+      if (url.pathname === "/admin/api/imports/preview") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
         return request.method === "POST" ? await previewCsvImport(request, env) : methodNotAllowed("POST");
       }
-      if (url.pathname === "/api/admin/imports/commit") {
+      if (url.pathname === "/admin/api/imports/commit") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
         return request.method === "POST" ? await commitCsvImport(request, env) : methodNotAllowed("POST");
       }
-      if (url.pathname === "/api/admin/places") {
+      if (url.pathname === "/admin/api/places") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
         if (request.method === "GET") return await listAdminPlaces(url, env);
         if (request.method === "POST") return await createPlace(request, env);
         return methodNotAllowed("GET, POST");
       }
-      const placeMatch = url.pathname.match(/^\/api\/admin\/places\/([^/]+)$/);
+      const placeMatch = url.pathname.match(/^\/admin\/api\/places\/([^/]+)$/);
       if (placeMatch) {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
@@ -53,7 +53,7 @@ export default {
       }
 
       const response = await env.ASSETS.fetch(request);
-      return addSiteHeaders(response);
+      return addSiteHeaders(response, url.pathname);
     } catch (error) {
       console.error(error);
       return json({ ok: false, error: error instanceof Error ? error.message : "Unexpected error" }, 500, {
@@ -629,7 +629,14 @@ function mapBikePoint(place, lat, lon) {
 }
 
 function requireAdmin(request, env) {
-  if (env.TRUST_CF_ACCESS === "true" && request.headers.get("Cf-Access-Authenticated-User-Email")) return null;
+  if (env.TRUST_CF_ACCESS === "true") {
+    const email = request.headers.get("Cf-Access-Authenticated-User-Email")?.trim().toLowerCase();
+    const assertion = request.headers.get("Cf-Access-Jwt-Assertion");
+    const allowedEmail = String(env.ADMIN_EMAIL || "").trim().toLowerCase();
+    if (!email || !assertion) return json({ ok: false, error: "Cloudflare Access authentication required" }, 401);
+    if (!allowedEmail || email !== allowedEmail) return json({ ok: false, error: "This identity is not authorised for the editor" }, 403);
+    return null;
+  }
   if (!env.ADMIN_TOKEN) return json({ ok: false, error: "Admin access is not configured" }, 503);
   const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") || request.headers.get("X-Admin-Token");
   return token === env.ADMIN_TOKEN ? null : json({ ok: false, error: "Admin authentication required" }, 401);
@@ -665,7 +672,22 @@ function mapsQuery(value) { try { const u = new URL(value); return u.searchParam
 function haversineKm(lat1, lon1, lat2, lon2) { const r = 6371; const rad = (x) => x * Math.PI / 180; const dLat = rad(lat2-lat1); const dLon = rad(lon2-lon1); const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLon/2)**2; return 2*r*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
 function methodNotAllowed(allow) { return json({ ok: false, error: "Method not allowed" }, 405, { Allow: allow }); }
 function json(value, status = 200, headers = {}) { return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json; charset=utf-8", "X-Content-Type-Options": "nosniff", ...headers } }); }
-function addSiteHeaders(response) { const headers = new Headers(response.headers); headers.delete("X-Frame-Options"); headers.set("Content-Security-Policy", "frame-ancestors *"); headers.set("Referrer-Policy", "strict-origin-when-cross-origin"); headers.set("X-Content-Type-Options", "nosniff"); return new Response(response.body, { status: response.status, statusText: response.statusText, headers }); }
+function addSiteHeaders(response, pathname = "/") {
+  const headers = new Headers(response.headers);
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+  if (isAdmin) {
+    headers.set("X-Frame-Options", "DENY");
+    headers.set("Content-Security-Policy", "frame-ancestors 'none'");
+    headers.set("Cache-Control", "no-store");
+    headers.set("X-Robots-Tag", "noindex, nofollow");
+  } else {
+    headers.delete("X-Frame-Options");
+    headers.set("Content-Security-Policy", "frame-ancestors *");
+  }
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("X-Content-Type-Options", "nosniff");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
 
 export const __test = { mapPlace, validatePlace, coordinatesFromText, slugify, insideLondonBounds,
   parseCsv, parseWktPoint, normalImportName, nameSimilarity, closestPlaceMatch };

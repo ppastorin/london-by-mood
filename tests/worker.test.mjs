@@ -66,12 +66,32 @@ test("public POI reads chunk station lookups below D1's 100-bind limit", async (
 
 test("admin endpoints reject unauthenticated requests", async () => {
   const response = await worker.fetch(
-    new Request("https://example.com/api/admin/places"),
+    new Request("https://example.com/admin/api/places"),
     { DB: {}, ADMIN_TOKEN: "dev-secret", ASSETS: assets() },
     context(),
   );
   assert.equal(response.status, 401);
   assert.equal((await response.json()).error, "Admin authentication required");
+});
+
+test("production admin endpoints require the Access assertion and exact email", async () => {
+  const env = { DB: {}, TRUST_CF_ACCESS: "true", ADMIN_EMAIL: "paolo.pastorino@gmail.com", ASSETS: assets() };
+  const missingAssertion = await worker.fetch(
+    new Request("https://example.com/admin/api/places", { headers: { "Cf-Access-Authenticated-User-Email": "paolo.pastorino@gmail.com" } }),
+    env,
+    context(),
+  );
+  assert.equal(missingAssertion.status, 401);
+
+  const wrongEmail = await worker.fetch(
+    new Request("https://example.com/admin/api/places", { headers: {
+      "Cf-Access-Authenticated-User-Email": "someone@example.com",
+      "Cf-Access-Jwt-Assertion": "signed-by-access",
+    } }),
+    env,
+    context(),
+  );
+  assert.equal(wrongEmail.status, 403);
 });
 
 test("address search is explicit, London-bounded and returns coordinates", async () => {
@@ -192,4 +212,12 @@ test("static HTML remains embeddable by Google Sites", async () => {
   const response = await worker.fetch(new Request("https://example.com/"), { ASSETS: assets() }, context());
   assert.equal(response.headers.has("x-frame-options"), false);
   assert.equal(response.headers.get("content-security-policy"), "frame-ancestors *");
+});
+
+test("the private editor cannot be framed or cached", async () => {
+  const response = await worker.fetch(new Request("https://example.com/admin/"), { ASSETS: assets() }, context());
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.equal(response.headers.get("content-security-policy"), "frame-ancestors 'none'");
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
 });

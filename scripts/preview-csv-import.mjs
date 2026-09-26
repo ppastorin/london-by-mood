@@ -23,7 +23,7 @@ try {
   await applySql(db, await readFile("migrations/0002_imports.sql", "utf8"));
   await applySql(db, await readFile("db/seed.sql", "utf8"));
   const csv = await readFile(csvPath, "utf8");
-  const response = await mf.dispatchFetch("http://local.test/api/admin/imports/preview", {
+  const response = await mf.dispatchFetch("http://local.test/admin/api/imports/preview", {
     method: "POST",
     headers: { Authorization: "Bearer csv-preview-token", "Content-Type": "application/json" },
     body: JSON.stringify({ filename: basename(csvPath), sourceName: basename(csvPath).replace(/\.csv$/i, ""), csv }),
