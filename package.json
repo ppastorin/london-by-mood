@@ -11,7 +11,7 @@
     "test": "node --test tests/*.test.mjs",
     "test:integration": "node scripts/integration-smoke.mjs",
     "test:csv": "node scripts/preview-csv-import.mjs",
-    "check": "node --check src/worker.js && node --check src/migrate-production.js && node --check public/app.js && node --check public/ranking.js && node --check public/admin/app.js && node --check public/smart-navigation/app.js && python3 -m py_compile scripts/build-d1-seed.py"
+    "check": "node --check src/worker.js && node --check src/migrate-production.js && node --check public/app.js && node --check public/ranking.js && node --check public/admin/app.js && node --check public/smart-navigation/app.js && node --check public/smart-navigation/i18n.js && python3 -m py_compile scripts/build-d1-seed.py"
   },
   "devDependencies": {
     "wrangler": "^4.92.0"
