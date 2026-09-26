@@ -578,12 +578,19 @@ async function routeRequest(request, env) {
   const end = { lat: finiteNumber(body.end?.lat), lon: finiteNumber(body.end?.lon) };
   if (!insideLondonBounds(start.lat, start.lon) || !insideLondonBounds(end.lat, end.lon)) return json({ ok: false, error: "Both route points must be in London" }, 400);
   if (!env.HEIGIT_API_KEY) return json({ ok: false, error: "Routing is not configured in this dev environment" }, 503);
-  const upstream = await fetch("https://api.openrouteservice.org/v2/directions/foot-walking/geojson", {
+  const routingApiUrl = env.ROUTING_API_URL || "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson";
+  const upstream = await fetch(routingApiUrl, {
     method: "POST", headers: { Authorization: env.HEIGIT_API_KEY, "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ coordinates: [[start.lon, start.lat], [end.lon, end.lat]] }),
   });
-  const payload = await upstream.json();
-  if (!upstream.ok) throw new Error(payload?.error?.message || `Routing returned ${upstream.status}`);
+  const responseText = await upstream.text();
+  let payload;
+  try { payload = JSON.parse(responseText); } catch { payload = null; }
+  if (!upstream.ok) {
+    const upstreamMessage = payload?.error?.message || payload?.message || responseText.slice(0, 180).trim();
+    throw new Error(upstreamMessage || `Routing returned ${upstream.status}`);
+  }
+  if (!payload) throw new Error("The routing service returned an unreadable response");
   const feature = payload?.features?.[0];
   if (!feature?.geometry) throw new Error("The routing service returned no route");
   return json({ ok: true, geometry: feature.geometry, distanceMetres: feature.properties?.summary?.distance ?? 0,

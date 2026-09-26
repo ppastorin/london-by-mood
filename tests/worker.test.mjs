@@ -95,6 +95,38 @@ test("address search is explicit, London-bounded and returns coordinates", async
   assert.match(requestedHeaders.get("user-agent"), /LondonAdvanced-Places/);
 });
 
+test("walking routes use the current HeiGIT endpoint", async () => {
+  let requestedUrl;
+  let requestedHeaders;
+  let requestedBody;
+  globalThis.fetch = async (url, init) => {
+    requestedUrl = String(url);
+    requestedHeaders = new Headers(init.headers);
+    requestedBody = JSON.parse(init.body);
+    return Response.json({
+      features: [{
+        geometry: { type: "LineString", coordinates: [[-0.127716, 51.507587], [-0.102911, 51.515008]] },
+        properties: { summary: { distance: 2100, duration: 1500 } },
+      }],
+    });
+  };
+  const response = await worker.fetch(
+    new Request("https://example.com/api/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: { lat: 51.507587, lon: -0.127716 }, end: { lat: 51.515008, lon: -0.102911 } }),
+    }),
+    { HEIGIT_API_KEY: "test-key", ASSETS: assets() },
+    context(),
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(requestedUrl, "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson");
+  assert.equal(requestedHeaders.get("authorization"), "test-key");
+  assert.deepEqual(requestedBody.coordinates, [[-0.127716, 51.507587], [-0.102911, 51.515008]]);
+  assert.equal(payload.distanceMetres, 2100);
+});
+
 test("Google Maps coordinate formats are accepted", () => {
   assert.deepEqual(__test.coordinatesFromText("https://maps.google.com/@51.501,-0.142,16z"), { lat: 51.501, lon: -0.142 });
   assert.deepEqual(__test.coordinatesFromText("https://maps.google.com/?q=51.501%2C-0.142"), { lat: 51.501, lon: -0.142 });
