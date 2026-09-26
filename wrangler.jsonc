@@ -17,7 +17,7 @@
     "GEOCODING_CACHE_SECONDS": "86400",
     "ROUTING_API_URL": "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson",
     "TRUST_CF_ACCESS": "true",
-    "ADMIN_EMAIL": "paolo.pastorino@gmail.com"
+    "ADMIN_EMAIL": "ppastorin@gmail.com"
   },
   "d1_databases": [
     {
