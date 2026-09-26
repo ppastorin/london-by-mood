@@ -78,7 +78,13 @@ jobs:
           jq -e '.ok == true and .database == "d1"' <<<"${health}" >/dev/null
           places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=2000")"
           jq -e '.ok == true and .count == 881' <<<"${places}" >/dev/null
-          admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' "${base_url}/admin/api/places?limit=1")"
+          admin_status="000"
+          for attempt in 1 2 3 4 5 6; do
+            admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' "${base_url}/admin/api/places?limit=1")"
+            [[ "${admin_status}" == "401" ]] && break
+            echo "Admin verification attempt ${attempt} returned HTTP ${admin_status}; waiting for deployment propagation."
+            sleep 3
+          done
           if [[ "${admin_status}" != "401" ]]; then
             echo "Expected anonymous admin request to return 401; received ${admin_status}." >&2
             exit 1

@@ -128,7 +128,7 @@ jobs:
       - name: Apply production D1 migrations
         run: npx wrangler d1 migrations apply DB --remote --config /tmp/wrangler.production.jsonc
 
-      - name: Copy the accepted development data into an empty production database
+      - name: Copy accepted data directly between Cloudflare D1 databases
         shell: bash
         run: |
           set -euo pipefail
@@ -141,11 +141,38 @@ jobs:
             exit 1
           fi
           if [[ "${production_count}" == "0" ]]; then
-            npx wrangler d1 export DB --remote --config wrangler.dev.jsonc \
-              --output /tmp/development-data.sql --no-schema --skip-confirmation \
-              --table places --table place_time_affinity --table place_stations
-            npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc \
-              --file /tmp/development-data.sql --yes
+            migration_token="$(openssl rand -hex 32)"
+            echo "::add-mask::${migration_token}"
+            development_database_id="$(jq -r '.d1_databases[0].database_id' wrangler.dev.jsonc)"
+            production_database_id="$(jq -r '.d1_databases[0].database_id' /tmp/wrangler.production.jsonc)"
+            jq -n \
+              --arg dev "${development_database_id}" \
+              --arg prod "${production_database_id}" \
+              '{name:"london-advanced-d1-migrator",main:"src/migrate-production.js",compatibility_date:"2026-09-03",workers_dev:true,d1_databases:[{binding:"DEV_DB",database_name:"london-advanced-places-dev",database_id:$dev},{binding:"PROD_DB",database_name:"london-advanced-places",database_id:$prod}]}' \
+              > /tmp/wrangler.migration.jsonc
+            cleanup_migrator() { npx wrangler delete london-advanced-d1-migrator --force --config /tmp/wrangler.migration.jsonc >/dev/null 2>&1 || true; }
+            trap cleanup_migrator EXIT
+            npx wrangler deploy --config /tmp/wrangler.migration.jsonc
+            printf '%s' "${migration_token}" | npx wrangler secret put MIGRATION_TOKEN --config /tmp/wrangler.migration.jsonc
+
+            migration_url="https://london-advanced-d1-migrator.screeching-drizzle.workers.dev/migrate"
+            for table in places place_time_affinity place_stations; do
+              offset=0
+              while true; do
+                body="$(jq -n --arg table "${table}" --argjson offset "${offset}" '{table:$table,offset:$offset,limit:50}')"
+                result="$(curl --fail --silent --show-error --retry 6 --retry-delay 3 --retry-all-errors \
+                  --request POST \
+                  --header "Authorization: Bearer ${migration_token}" \
+                  --header 'Content-Type: application/json' \
+                  --data "${body}" \
+                  "${migration_url}")"
+                jq -e '.ok == true' <<<"${result}" >/dev/null
+                offset="$(jq -r '.nextOffset' <<<"${result}")"
+                [[ "$(jq -r '.done' <<<"${result}")" == "true" ]] && break
+              done
+            done
+            cleanup_migrator
+            trap - EXIT
           elif [[ "${production_count}" != "${development_count}" ]]; then
             echo "Production already contains ${production_count} places; refusing to overwrite it with ${development_count}." >&2
             exit 1
@@ -153,7 +180,6 @@ jobs:
           development_version="$(npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command \"SELECT value FROM app_meta WHERE key='data_version'\" --json | jq -r '.[0].results[0].value')"
           npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc \
             --command "UPDATE app_meta SET value='${development_version}', updated_at=CURRENT_TIMESTAMP WHERE key='data_version'" --yes
-          rm -f /tmp/development-data.sql
 
       - name: Verify production database parity
         shell: bash
@@ -189,14 +215,26 @@ jobs:
           curl --fail --silent --show-error "${base_url}/" | grep -q "London by Mood"
           curl --fail --silent --show-error "${base_url}/smart-navigation/" | grep -q "Smart Navigation"
 
-          admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-redirs 0 "${base_url}/admin/")"
-          if [[ "${admin_status}" == "200" ]]; then
-            echo "The private editor was reachable without Cloudflare Access." >&2
+          admin_status="200"
+          for attempt in 1 2 3 4 5 6; do
+            admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-redirs 0 "${base_url}/admin/")"
+            [[ "${admin_status}" != "200" && "${admin_status}" != "404" ]] && break
+            echo "Editor protection attempt ${attempt} returned HTTP ${admin_status}; waiting for Access and Worker propagation."
+            sleep 3
+          done
+          if [[ "${admin_status}" == "200" || "${admin_status}" == "404" ]]; then
+            echo "The private editor was not protected after propagation (HTTP ${admin_status})." >&2
             exit 1
           fi
-          api_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-redirs 0 "${base_url}/admin/api/places?limit=1")"
-          if [[ "${api_status}" == "200" ]]; then
-            echo "The private editor API was reachable without Cloudflare Access." >&2
+          api_status="200"
+          for attempt in 1 2 3 4 5 6; do
+            api_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-redirs 0 "${base_url}/admin/api/places?limit=1")"
+            [[ "${api_status}" != "200" && "${api_status}" != "404" ]] && break
+            echo "Editor API protection attempt ${attempt} returned HTTP ${api_status}; waiting for Access and Worker propagation."
+            sleep 3
+          done
+          if [[ "${api_status}" == "200" || "${api_status}" == "404" ]]; then
+            echo "The private editor API was not protected after propagation (HTTP ${api_status})." >&2
             exit 1
           fi
 
