@@ -161,16 +161,16 @@ jobs:
             exit 1
           fi
           echo "::add-mask::${database_id}"
-          jq --arg id "${database_id}" '.d1_databases[0].database_id = $id' wrangler.jsonc > /tmp/wrangler.production.jsonc
+          jq --arg id "${database_id}" '.d1_databases[0].database_id = $id' wrangler.jsonc > wrangler.production.runtime.jsonc
 
       - name: Apply production D1 migrations
-        run: CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 migrations apply DB --remote --config /tmp/wrangler.production.jsonc
+        run: CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 migrations apply DB --remote --config wrangler.production.runtime.jsonc
 
       - name: Copy accepted data between the Cloudflare accounts
         shell: bash
         run: |
           set -euo pipefail
-          production_result="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
+          production_result="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.production.runtime.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
           production_count="$(jq -r '.[0].results[0].count' <<<"${production_result}")"
           development_result="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command 'SELECT COUNT(*) AS count FROM places' --json)"
           development_count="$(jq -r '.[0].results[0].count' <<<"${development_result}")"
@@ -186,7 +186,7 @@ jobs:
               CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 export DB \
                 --remote --config wrangler.dev.jsonc --table "${table}" --no-schema --output "${export_file}" --yes
               CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB \
-                --remote --config /tmp/wrangler.production.jsonc --file "${export_file}" --yes
+                --remote --config wrangler.production.runtime.jsonc --file "${export_file}" --yes
             done
             cleanup_exports
             trap - EXIT
@@ -195,7 +195,7 @@ jobs:
             exit 1
           fi
           development_version="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command \"SELECT value FROM app_meta WHERE key='data_version'\" --json | jq -r '.[0].results[0].value')"
-          CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc \
+          CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.production.runtime.jsonc \
             --command "UPDATE app_meta SET value='${development_version}', updated_at=CURRENT_TIMESTAMP WHERE key='data_version'" --yes
 
       - name: Verify production database parity
@@ -204,7 +204,7 @@ jobs:
           set -euo pipefail
           for table in places place_time_affinity place_stations; do
             development="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
-            production="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config /tmp/wrangler.production.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
+            production="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.production.runtime.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
             if [[ "${development}" != "${production}" ]]; then
               echo "Parity check failed for ${table}: development=${development}, production=${production}." >&2
               exit 1
@@ -215,10 +215,10 @@ jobs:
       - name: Synchronise the production walking-route API key
         if: env.HEIGIT_API_KEY != ''
         shell: bash
-        run: printf '%s' "${HEIGIT_API_KEY}" | CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler secret put HEIGIT_API_KEY --config /tmp/wrangler.production.jsonc
+        run: printf '%s' "${HEIGIT_API_KEY}" | CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler secret put HEIGIT_API_KEY --config wrangler.production.runtime.jsonc
 
       - name: Deploy the production Worker
-        run: CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler deploy --config /tmp/wrangler.production.jsonc
+        run: CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler deploy --config wrangler.production.runtime.jsonc
 
       - name: Verify the production application
         shell: bash
