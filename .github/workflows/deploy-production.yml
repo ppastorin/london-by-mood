@@ -194,7 +194,7 @@ jobs:
             echo "Production already contains ${production_count} places; refusing to overwrite it with ${development_count}." >&2
             exit 1
           fi
-          development_version="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command \"SELECT value FROM app_meta WHERE key='data_version'\" --json | jq -r '.[0].results[0].value')"
+          development_version="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command "SELECT value FROM app_meta WHERE key='data_version'" --json | jq -r '.[0].results[0].value')"
           CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.production.runtime.jsonc \
             --command "UPDATE app_meta SET value='${development_version}', updated_at=CURRENT_TIMESTAMP WHERE key='data_version'" --yes
 
