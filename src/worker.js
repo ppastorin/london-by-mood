@@ -10,45 +10,45 @@ export default {
     try {
       if (url.pathname === "/health") return health(env);
       if (url.pathname === "/api/pois" || url.pathname === "/api/places") {
-        return request.method === "GET" ? listPublicPlaces(url, env) : methodNotAllowed("GET");
+        return request.method === "GET" ? await listPublicPlaces(url, env) : methodNotAllowed("GET");
       }
       if (url.pathname === "/api/geocode") {
-        return request.method === "GET" ? geocodeAddress(url, env, ctx) : methodNotAllowed("GET");
+        return request.method === "GET" ? await geocodeAddress(url, env, ctx) : methodNotAllowed("GET");
       }
       if (url.pathname === "/api/route") {
-        return request.method === "POST" ? routeRequest(request, env) : methodNotAllowed("POST");
+        return request.method === "POST" ? await routeRequest(request, env) : methodNotAllowed("POST");
       }
       if (url.pathname === "/api/bikepoints") {
-        return request.method === "GET" ? bikePoints(url, env) : methodNotAllowed("GET");
+        return request.method === "GET" ? await bikePoints(url, env) : methodNotAllowed("GET");
       }
       if (url.pathname === "/api/admin/resolve") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
-        return request.method === "POST" ? resolveCapturedPlace(request, env) : methodNotAllowed("POST");
+        return request.method === "POST" ? await resolveCapturedPlace(request, env) : methodNotAllowed("POST");
       }
       if (url.pathname === "/api/admin/imports/preview") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
-        return request.method === "POST" ? previewCsvImport(request, env) : methodNotAllowed("POST");
+        return request.method === "POST" ? await previewCsvImport(request, env) : methodNotAllowed("POST");
       }
       if (url.pathname === "/api/admin/imports/commit") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
-        return request.method === "POST" ? commitCsvImport(request, env) : methodNotAllowed("POST");
+        return request.method === "POST" ? await commitCsvImport(request, env) : methodNotAllowed("POST");
       }
       if (url.pathname === "/api/admin/places") {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
-        if (request.method === "GET") return listAdminPlaces(url, env);
-        if (request.method === "POST") return createPlace(request, env);
+        if (request.method === "GET") return await listAdminPlaces(url, env);
+        if (request.method === "POST") return await createPlace(request, env);
         return methodNotAllowed("GET, POST");
       }
       const placeMatch = url.pathname.match(/^\/api\/admin\/places\/([^/]+)$/);
       if (placeMatch) {
         const auth = requireAdmin(request, env);
         if (auth) return auth;
-        if (request.method === "GET") return getAdminPlace(decodeURIComponent(placeMatch[1]), env);
-        if (request.method === "PUT") return updatePlace(decodeURIComponent(placeMatch[1]), request, env);
+        if (request.method === "GET") return await getAdminPlace(decodeURIComponent(placeMatch[1]), env);
+        if (request.method === "PUT") return await updatePlace(decodeURIComponent(placeMatch[1]), request, env);
         return methodNotAllowed("GET, PUT");
       }
 
@@ -595,7 +595,7 @@ async function routeRequest(request, env) {
   try { payload = JSON.parse(responseText); } catch { payload = null; }
   if (!upstream.ok) {
     const upstreamMessage = payload?.error?.message || payload?.message || responseText.slice(0, 180).trim();
-    throw new Error(upstreamMessage || `Routing returned ${upstream.status}`);
+    return json({ ok: false, error: upstreamMessage || `Routing returned ${upstream.status}` }, 502, { "Cache-Control": "no-store" });
   }
   if (!payload) throw new Error("The routing service returned an unreadable response");
   const feature = payload?.features?.[0];
