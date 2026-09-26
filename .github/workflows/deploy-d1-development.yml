@@ -99,11 +99,36 @@ jobs:
             exit 1
           fi
           if [[ -n "${HEIGIT_API_KEY:-}" ]]; then
-            route="$(curl --fail --silent --show-error --retry 3 \
+            route_file="$(mktemp)"
+            route_status="$(curl --silent --show-error \
               --request POST \
               --header 'Content-Type: application/json' \
               --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
+              --output "${route_file}" \
+              --write-out '%{http_code}' \
               "${base_url}/api/route")"
+            if [[ "${route_status}" != "200" ]]; then
+              tail_log="$(mktemp)"
+              timeout 15s npx wrangler tail --config wrangler.dev.jsonc --format pretty >"${tail_log}" 2>&1 &
+              tail_pid=$!
+              sleep 4
+              curl --silent --show-error \
+                --request POST \
+                --header 'Content-Type: application/json' \
+                --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
+                --output "${route_file}" \
+                "${base_url}/api/route" || true
+              sleep 3
+              kill "${tail_pid}" 2>/dev/null || true
+              wait "${tail_pid}" 2>/dev/null || true
+              echo "Walking-route verification returned HTTP ${route_status}." >&2
+              echo "Response body:" >&2
+              sed -n '1,20p' "${route_file}" >&2
+              echo "Worker trace:" >&2
+              sed -n '1,160p' "${tail_log}" >&2
+              exit 1
+            fi
+            route="$(cat "${route_file}")"
             jq -e '.ok == true and (.geometry.coordinates | length) > 1 and .distanceMetres > 0' <<<"${route}" >/dev/null
           fi
           echo "Development verification passed: 881 published places and protected admin API."
