@@ -184,7 +184,7 @@ jobs:
             for table in places place_time_affinity place_stations; do
               export_file="/tmp/${table}.sql"
               CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 export DB \
-                --remote --config wrangler.dev.jsonc --table "${table}" --no-schema --output "${export_file}" --yes
+                --remote --config wrangler.dev.jsonc --table "${table}" --no-schema --output "${export_file}" --skip-confirmation
               CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB \
                 --remote --config wrangler.production.runtime.jsonc --file "${export_file}" --yes
             done
