@@ -229,8 +229,10 @@ jobs:
           jq -e '.ok == true and .database == "d1"' <<<"${health}" >/dev/null
           places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=2000")"
           jq -e '.ok == true and .count == 881' <<<"${places}" >/dev/null
-          curl --fail --silent --show-error "${base_url}/" | grep -q "London by Mood"
-          curl --fail --silent --show-error "${base_url}/smart-navigation/" | grep -q "Smart Navigation"
+          mood_html="$(curl --fail --silent --show-error "${base_url}/")"
+          grep -q "London by Mood" <<<"${mood_html}"
+          navigation_html="$(curl --fail --silent --show-error "${base_url}/smart-navigation/")"
+          grep -q "Smart Navigation" <<<"${navigation_html}"
 
           admin_status="200"
           for attempt in 1 2 3 4 5 6; do
