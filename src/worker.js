@@ -580,7 +580,12 @@ async function routeRequest(request, env) {
   const body = await readJson(request);
   const start = { lat: finiteNumber(body.start?.lat), lon: finiteNumber(body.start?.lon) };
   const end = { lat: finiteNumber(body.end?.lat), lon: finiteNumber(body.end?.lon) };
-  if (!insideLondonBounds(start.lat, start.lon) || !insideLondonBounds(end.lat, end.lon)) return json({ ok: false, error: "Both route points must be in London" }, 400);
+  const viaInput = body.via === undefined ? [] : body.via;
+  if (!Array.isArray(viaInput)) return json({ ok: false, error: "Route stops must be a list" }, 400);
+  if (viaInput.length > 9) return json({ ok: false, error: "A route can include up to 9 stops" }, 400);
+  const via = viaInput.map((point) => ({ lat: finiteNumber(point?.lat), lon: finiteNumber(point?.lon) }));
+  const routePoints = [start, ...via, end];
+  if (routePoints.some((point) => !insideLondonBounds(point.lat, point.lon))) return json({ ok: false, error: "All route points must be in London" }, 400);
   if (!env.HEIGIT_API_KEY) return json({ ok: false, error: "Routing is not configured in this dev environment" }, 503);
   const routingApiUrl = env.ROUTING_API_URL || "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson";
   let upstream;
@@ -588,7 +593,7 @@ async function routeRequest(request, env) {
   try {
     upstream = await fetch(routingApiUrl, {
       method: "POST", headers: { Authorization: env.HEIGIT_API_KEY.trim(), "Content-Type": "application/json", Accept: "application/geo+json, application/json" },
-      body: JSON.stringify({ coordinates: [[start.lon, start.lat], [end.lon, end.lat]] }),
+      body: JSON.stringify({ coordinates: routePoints.map((point) => [point.lon, point.lat]) }),
       signal: AbortSignal.timeout(12000),
     });
     responseText = await upstream.text();
@@ -604,7 +609,7 @@ async function routeRequest(request, env) {
   if (!payload) throw new Error("The routing service returned an unreadable response");
   const feature = payload?.features?.[0];
   if (!feature?.geometry) throw new Error("The routing service returned no route");
-  return json({ ok: true, geometry: feature.geometry, distanceMetres: feature.properties?.summary?.distance ?? 0,
+  return json({ ok: true, geometry: feature.geometry, distanceMetres: feature.properties?.summary?.distance ?? 0, stopCount: via.length,
     durationSeconds: feature.properties?.summary?.duration ?? 0, attribution: "Route data © openrouteservice and OpenStreetMap contributors" });
 }
 

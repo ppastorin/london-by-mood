@@ -35,3 +35,21 @@ test("Smart Navigation serves a complete Italian interface when lang=it", async 
   assert.match(app, /aria-label","Ingrandisci/);
   assert.match(app, /localizeError\(error\.message\)/);
 });
+
+test("Smart Navigation provides a mobile-first nine-stop Google Maps itinerary", async () => {
+  const html = await readFile(htmlPath, "utf8");
+  const app = await readFile(appPath, "utf8");
+  const i18n = await readFile(i18nPath, "utf8");
+
+  assert.match(html, /id="use-location"/);
+  assert.match(html, /id="itinerary-list"/);
+  assert.match(html, /id="navigate"[^>]*target="_blank"/);
+  assert.match(html, /id="mobile-itinerary-bar"/);
+  assert.match(app, /MAX_STOPS/);
+  assert.match(app, /buildGoogleMapsUrl/);
+  assert.match(app, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(app, /localStorage\.setItem/);
+  assert.match(app, /via,end:state\.end/);
+  assert.match(i18n, /Aggiungi fino a nove luoghi/);
+  assert.match(i18n, /Naviga con Google Maps/);
+});

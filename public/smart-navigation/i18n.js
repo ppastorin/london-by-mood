@@ -1,5 +1,26 @@
 (() => {
   const locale = new URLSearchParams(window.location.search).get("lang") === "it" ? "it" : "en";
+  const english = {
+    fallbackPlace: "A place from the London Advanced collection.",
+    currentLocation: "My current location",
+    findingLocation: "Finding your current location…",
+    currentLocationSelected: "Current location selected as the starting point.",
+    currentLocationOutsideLondon: "Your current location appears to be outside London.",
+    locationUnavailable: "Your location is unavailable. Check the browser permission and try again.",
+    addToWalk: "Add to walk",
+    removeFromWalk: "Remove from walk",
+    stopLimit: "You can add up to {max} stops.",
+    updatingItinerary: "Updating your walking itinerary…",
+    itineraryReady: "Itinerary ready with {count} stops.",
+    stopCount: "{count} of {max} stops",
+    mobileStopCount: "{count} stops selected",
+    moveEarlier: "Move {name} earlier",
+    moveLater: "Move {name} later",
+    moveEarlierShort: "Move earlier",
+    moveLaterShort: "Move later",
+    removeStop: "Remove {name}",
+    remove: "Remove"
+  };
   const italian = {
     mapPoint: "Punto sulla mappa {lat}, {lon}",
     startSelectedOnMap: "Punto di partenza selezionato sulla mappa.",
@@ -32,11 +53,29 @@
     routingNotConfigured: "Il calcolo del percorso non è configurato",
     unreadableRoute: "Il servizio ha restituito una risposta non leggibile",
     noRoute: "Il servizio non ha restituito alcun percorso",
-    chooseLondonStart: "Scegli un punto di partenza a Londra"
+    chooseLondonStart: "Scegli un punto di partenza a Londra",
+    currentLocation: "La mia posizione attuale",
+    findingLocation: "Ricerca della posizione attuale…",
+    currentLocationSelected: "Posizione attuale selezionata come punto di partenza.",
+    currentLocationOutsideLondon: "La posizione attuale sembra essere fuori Londra.",
+    locationUnavailable: "La posizione non è disponibile. Controlla il permesso del browser e riprova.",
+    addToWalk: "Aggiungi al percorso",
+    removeFromWalk: "Rimuovi dal percorso",
+    stopLimit: "Puoi aggiungere fino a {max} tappe.",
+    updatingItinerary: "Aggiornamento dell'itinerario a piedi…",
+    itineraryReady: "Itinerario pronto con {count} tappe.",
+    stopCount: "{count} tappe su {max}",
+    mobileStopCount: "{count} tappe selezionate",
+    moveEarlier: "Sposta {name} prima",
+    moveLater: "Sposta {name} dopo",
+    moveEarlierShort: "Sposta prima",
+    moveLaterShort: "Sposta dopo",
+    removeStop: "Rimuovi {name}",
+    remove: "Rimuovi"
   };
 
   function t(key, variables = {}) {
-    const template = locale === "it" ? italian[key] : null;
+    const template = locale === "it" ? italian[key] : english[key];
     if (!template) return key;
     return template.replace(/\{(\w+)\}/g, (_, name) => variables[name] ?? "");
   }
@@ -62,6 +101,7 @@
       ['label[for="start-query"]', "Punto di partenza"],
       ['button[data-search="start"]', "Cerca"],
       ["#start-choice", "Non selezionato"],
+      ["#use-location", "Usa la mia posizione"],
       ["#pick-start", "Scegli sulla mappa"],
       ['label[for="end-query"]', "Destinazione"],
       ['button[data-search="end"]', "Cerca"],
@@ -80,6 +120,15 @@
       ["#route-summary div:nth-of-type(2) small", "Tempo stimato"],
       ["#route-summary div:nth-of-type(3) small", "Luoghi trovati"],
       ["#reset", "Ricomincia"],
+      [".itinerary-heading p", "Il tuo percorso"],
+      ["#itinerary-title", "Itinerario a piedi"],
+      ["#stop-count", "0 tappe su 9"],
+      ["#itinerary-help", "Aggiungi fino a nove luoghi qui sotto. Verranno visitati nell'ordine indicato."],
+      ["#navigate", "Naviga con Google Maps"],
+      [".navigation-note", "Google Maps potrebbe modificare il percorso a piedi usando i dati di navigazione correnti."],
+      ["#mobile-stop-count", "0 tappe selezionate"],
+      ["#mobile-duration", "Percorso a piedi pronto"],
+      ["#mobile-navigate", "Naviga"],
       [".results-title p", "Lungo il percorso"],
       [".results-title h2", "Deviazioni che meritano"],
       ["footer", "Dati cartografici © collaboratori OpenStreetMap. Percorsi © openrouteservice. Disponibilità biciclette © Transport for London."]
@@ -96,6 +145,9 @@
       "We could not find that place in London": t("placeNotFound"),
       "That location appears to be outside London": t("outsideLondon"),
       "Both route points must be in London": t("routePointsLondon"),
+      "All route points must be in London": "Tutti i punti del percorso devono trovarsi a Londra",
+      "Route stops must be a list": "Le tappe del percorso devono essere un elenco",
+      "A route can include up to 9 stops": "Un percorso può includere fino a 9 tappe",
       "Routing is not configured in this dev environment": t("routingNotConfigured"),
       "The routing service returned an unreadable response": t("unreadableRoute"),
       "The routing service returned no route": t("noRoute"),
