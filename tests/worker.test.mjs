@@ -159,6 +159,56 @@ test("walking routes use the current HeiGIT endpoint", async () => {
   assert.equal(requestedHeaders.get("accept"), "application/geo+json, application/json");
   assert.deepEqual(requestedBody.coordinates, [[-0.127716, 51.507587], [-0.102911, 51.515008]]);
   assert.equal(payload.distanceMetres, 2100);
+  assert.equal(payload.stopCount, 0);
+});
+
+test("walking routes preserve the order of up to nine intermediate stops", async () => {
+  let requestedBody;
+  globalThis.fetch = async (_url, init) => {
+    requestedBody = JSON.parse(init.body);
+    return Response.json({
+      features: [{
+        geometry: { type: "LineString", coordinates: requestedBody.coordinates },
+        properties: { summary: { distance: 4200, duration: 3100 } },
+      }],
+    });
+  };
+  const via = Array.from({ length: 9 }, (_, index) => ({ lat: 51.48 + index * .01, lon: -.2 + index * .02 }));
+  const response = await worker.fetch(
+    new Request("https://example.com/api/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: { lat: 51.47, lon: -.22 }, via, end: { lat: 51.58, lon: -.01 } }),
+    }),
+    { HEIGIT_API_KEY: "test-key", ASSETS: assets() },
+    context(),
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.stopCount, 9);
+  assert.deepEqual(requestedBody.coordinates, [
+    [-.22, 51.47],
+    ...via.map((point) => [point.lon, point.lat]),
+    [-.01, 51.58],
+  ]);
+});
+
+test("walking routes reject a tenth intermediate stop before calling the provider", async () => {
+  let requested = false;
+  globalThis.fetch = async () => { requested = true; return Response.json({}); };
+  const via = Array.from({ length: 10 }, (_, index) => ({ lat: 51.5, lon: -.2 + index * .01 }));
+  const response = await worker.fetch(
+    new Request("https://example.com/api/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: { lat: 51.47, lon: -.22 }, via, end: { lat: 51.58, lon: -.01 } }),
+    }),
+    { HEIGIT_API_KEY: "test-key", ASSETS: assets() },
+    context(),
+  );
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { ok: false, error: "A route can include up to 9 stops" });
+  assert.equal(requested, false);
 });
 
 test("walking-route network failures return a controlled JSON error", async () => {

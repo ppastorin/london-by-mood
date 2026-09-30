@@ -25,7 +25,7 @@
           <span class="step">01</span><h2>Choose the route</h2>
           <label for="start-query">Starting point</label>
           <div class="search-row"><input id="start-query" type="search" placeholder="Address, station or postcode"><button data-search="start">Find</button></div>
-          <div class="map-choice-row"><p id="start-choice" class="choice">Not selected</p><button id="pick-start" class="text-button map-pick" type="button">Choose on map</button></div>
+          <div class="map-choice-row"><p id="start-choice" class="choice">Not selected</p><div class="point-actions"><button id="use-location" class="text-button" type="button">Use my location</button><button id="pick-start" class="text-button map-pick" type="button">Choose on map</button></div></div>
           <label for="end-query">Destination</label>
           <div class="search-row"><input id="end-query" type="search" placeholder="Address, station or postcode"><button data-search="end">Find</button></div>
           <div class="map-choice-row"><p id="end-choice" class="choice">Not selected</p><button id="pick-end" class="text-button map-pick" type="button">Choose on map</button></div>
@@ -51,11 +51,27 @@
           <div><small>Matches</small><strong id="match-count">—</strong></div>
           <button id="reset" class="secondary">Start again</button>
         </div>
+        <section id="itinerary" class="itinerary" hidden aria-labelledby="itinerary-title">
+          <div class="itinerary-heading">
+            <div><p>Your route</p><h2 id="itinerary-title">Walking itinerary</h2></div>
+            <strong id="stop-count">0 of 9 stops</strong>
+          </div>
+          <p id="itinerary-help" class="itinerary-help">Add up to nine places below. They will be visited in the order shown.</p>
+          <ol id="itinerary-list" class="itinerary-list"></ol>
+          <div class="itinerary-actions">
+            <a id="navigate" class="navigate-button" href="#" target="_blank" rel="noopener" aria-disabled="true">Navigate in Google Maps</a>
+          </div>
+          <p class="navigation-note">Google Maps may adjust the walking path using its current routing data.</p>
+        </section>
         <section id="results-section" class="results" hidden>
           <div class="results-title"><div><p>Along the route</p><h2>Worthwhile detours</h2></div><span id="results-note"></span></div>
           <div id="results-list" class="results-list"></div>
         </section>
       </section>
+    </div>
+    <div id="mobile-itinerary-bar" class="mobile-itinerary-bar" hidden>
+      <div><strong id="mobile-stop-count">0 stops</strong><span id="mobile-duration">Walking route ready</span></div>
+      <a id="mobile-navigate" href="#" target="_blank" rel="noopener" aria-disabled="true">Navigate</a>
     </div>
     <footer>Map data © OpenStreetMap contributors. Routes © openrouteservice. Cycle availability © Transport for London.</footer>
   </main>
