@@ -53,3 +53,17 @@ test("Smart Navigation provides a mobile-first nine-stop Google Maps itinerary",
   assert.match(i18n, /Aggiungi fino a nove luoghi/);
   assert.match(i18n, /Naviga con Google Maps/);
 });
+
+test("Clear route returns Smart Navigation to a blank state without reloading", async () => {
+  const html = await readFile(htmlPath, "utf8");
+  const app = await readFile(appPath, "utf8");
+  const i18n = await readFile(i18nPath, "utf8");
+
+  assert.match(html, /id="reset"[^>]*>Clear route<\/button>/);
+  assert.match(app, /state\.start=null;state\.end=null;state\.corridor=200/);
+  assert.match(app, /state\.map\.setView\(\[51\.5074,-\.1278\],11\)/);
+  assert.match(app, /localStorage\.removeItem\(STORAGE_KEY\)/);
+  assert.doesNotMatch(app, /location\.reload\(\)/);
+  assert.match(i18n, /Cancella percorso/);
+  assert.match(i18n, /Percorso cancellato/);
+});
