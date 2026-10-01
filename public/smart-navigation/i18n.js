@@ -19,7 +19,8 @@
     moveEarlierShort: "Move earlier",
     moveLaterShort: "Move later",
     removeStop: "Remove {name}",
-    remove: "Remove"
+    remove: "Remove",
+    routeCleared: "Route cleared. Choose a starting point and destination."
   };
   const italian = {
     mapPoint: "Punto sulla mappa {lat}, {lon}",
@@ -71,7 +72,8 @@
     moveEarlierShort: "Sposta prima",
     moveLaterShort: "Sposta dopo",
     removeStop: "Rimuovi {name}",
-    remove: "Rimuovi"
+    remove: "Rimuovi",
+    routeCleared: "Percorso cancellato. Scegli un punto di partenza e una destinazione."
   };
 
   function t(key, variables = {}) {
@@ -119,7 +121,7 @@
       ["#route-summary div:nth-of-type(1) small", "Percorso a piedi"],
       ["#route-summary div:nth-of-type(2) small", "Tempo stimato"],
       ["#route-summary div:nth-of-type(3) small", "Luoghi trovati"],
-      ["#reset", "Ricomincia"],
+      ["#reset", "Cancella percorso"],
       [".itinerary-heading p", "Il tuo percorso"],
       ["#itinerary-title", "Itinerario a piedi"],
       ["#stop-count", "0 tappe su 9"],
