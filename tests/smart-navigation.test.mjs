@@ -78,6 +78,7 @@ test("Smart Navigation removes duplicate branding only when embedded", async () 
   assert.match(html, /window\.self !== window\.top/);
   assert.match(html, /document\.documentElement\.classList\.add\("embedded"\)/);
   assert.match(html, /<header class="topbar">/);
+  assert.match(html, /smart-navigation\/styles\.css\?v=20261001-lean/);
   assert.match(styles, /\.embedded \.topbar\{display:none\}/);
   assert.match(styles, /\.embedded \.message\{margin-top:8px\}/);
 });
