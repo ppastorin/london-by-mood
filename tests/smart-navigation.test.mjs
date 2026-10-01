@@ -70,3 +70,14 @@ test("Clear route returns Smart Navigation to a blank state without reloading", 
   assert.match(i18n, /Percorso cancellato/);
   assert.match(styles, /\.summary\[hidden\]\{display:none!important\}/);
 });
+
+test("Smart Navigation removes duplicate branding only when embedded", async () => {
+  const html = await readFile(htmlPath, "utf8");
+  const styles = await readFile(stylesPath, "utf8");
+
+  assert.match(html, /window\.self !== window\.top/);
+  assert.match(html, /document\.documentElement\.classList\.add\("embedded"\)/);
+  assert.match(html, /<header class="topbar">/);
+  assert.match(styles, /\.embedded \.topbar\{display:none\}/);
+  assert.match(styles, /\.embedded \.message\{margin-top:8px\}/);
+});
