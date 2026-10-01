@@ -96,13 +96,15 @@ function setPoint(type,point,options={}){
 
 async function calculateBaseRoute({resetStops=false,restoring=false}={}){
   if(!(state.start&&state.end))return;
+  const revision=++state.routeRevision;
   if(resetStops){state.selectedIds=[];state.customOrder=false}
   el.route_button.disabled=true;message(i18n.locale==="it"?t("calculatingRoute"):"Calculating the walking route…");
   try{
     const payload=await api("/api/route",{method:"POST",body:JSON.stringify({start:state.start,end:state.end})});
+    if(revision!==state.routeRevision)return;
     state.baseRoute=payload;state.discoveryLine=turf.lineString(payload.geometry.coordinates);drawRoute(payload);calculateMatches();renderItinerary();persistItinerary();
     if(state.selectedIds.length)await refreshItineraryRoute({restoring});else message(i18n.locale==="it"?t("routeReady"):"Route ready.");
-  }catch(error){message(localizeError(error.message),true)}finally{el.route_button.disabled=!(state.start&&state.end)}
+  }catch(error){if(revision===state.routeRevision)message(localizeError(error.message),true)}finally{el.route_button.disabled=!(state.start&&state.end)}
 }
 
 function drawRoute(route){
@@ -196,7 +198,11 @@ function restoreSavedItinerary(){
 
 function validSavedPoint(point){return point&&Number.isFinite(Number(point.lat))&&Number.isFinite(Number(point.lon))}
 function clearRouteResults(){state.routeRevision++;state.baseRoute=null;state.discoveryLine=null;state.matches=[];state.selectedIds=[];state.customOrder=false;if(state.routeLayer){state.map.removeLayer(state.routeLayer);state.routeLayer=null}state.poiLayer.clearLayers();el.route_summary.hidden=true;el.results_section.hidden=true;el.itinerary.hidden=true;el.mobile_itinerary_bar.hidden=true;document.body.classList.remove("has-itinerary");try{localStorage.removeItem(STORAGE_KEY)}catch{}}
-function reset(){try{localStorage.removeItem(STORAGE_KEY)}catch{}location.reload()}
+function reset(){
+  stopMapPicking();clearRouteResults();state.start=null;state.end=null;state.corridor=200;
+  for(const type of ["start","end"]){const markerKey=`${type}Marker`;if(state[markerKey]){state.map.removeLayer(state[markerKey]);state[markerKey]=null}el[`${type}_query`].value="";const choice=el[`${type}_choice`];choice.textContent=i18n.locale==="it"?"Non selezionato":"Not selected";choice.classList.remove("selected")}
+  document.querySelectorAll("#corridor button").forEach(button=>button.classList.toggle("active",Number(button.dataset.value)===200));document.querySelectorAll("#categories input").forEach(input=>input.checked=true);el.route_button.disabled=true;el.distance.textContent="—";el.duration.textContent="—";el.match_count.textContent="—";el.results_note.textContent="";el.results_list.replaceChildren();el.itinerary_list.replaceChildren();el.stop_count.textContent=t("stopCount",{count:0,max:MAX_STOPS});el.mobile_stop_count.textContent=t("mobileStopCount",{count:0});for(const link of [el.navigate,el.mobile_navigate]){link.href="#";link.setAttribute("aria-disabled","true")}el.bikes_panel.hidden=true;el.bikes.replaceChildren();state.map.setView([51.5074,-.1278],11);message(t("routeCleared"));
+}
 async function api(url,options={}){const response=await fetch(url,{headers:{Accept:"application/json","Content-Type":"application/json",...(options.headers||{})},...options});const payload=await response.json();if(!response.ok||payload.ok===false)throw new Error(payload.error||`Request failed (${response.status})`);return payload}
 function message(value,error=false){el.message.textContent=value;el.message.classList.toggle("error",error)}
 function shortLabel(value){return String(value||"").split(",").slice(0,3).join(", ").slice(0,90)}function truncate(value,max){return value.length>max?`${value.slice(0,max-1)}…`:value}function formatDistance(m){return m>=1000?`${(m/1000).toFixed(1)} km`:`${Math.round(m)} m`}function formatDuration(s){const m=Math.round(s/60);return m>=60?`${Math.floor(m/60)} hr ${m%60} min`:`${m} min`}function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}function escapeAttr(v){return escapeHtml(v)}
