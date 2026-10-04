@@ -28,6 +28,19 @@ test("AI output is normalised without a neighbourhood or concept phrase dictiona
   assert.deepEqual(intent.experience.semanticTerms, ["meeting house", "chapel", "church"]);
 });
 
+test("AI contract safeguards primary concepts and exact category exclusions generically", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    categoryPreferences: [{ category: "SHOPPING", strength: "PRIMARY", minStops: 2, maxStops: 5 }],
+    experience: { label: "market day", semanticTerms: ["market"], strictCategory: false, strictConcept: false, compact: false },
+    exclusions: ["MUSEUM", "crowded places"],
+  }));
+
+  assert.equal(intent.experience.strictCategory, true);
+  assert.equal(intent.experience.strictConcept, true);
+  assert.ok(intent.excludedCategories.includes("MUSEUM"));
+  assert.deepEqual(intent.avoidTerms, ["crowded places"]);
+});
+
 test("generic resolved geography and AI semantic terms are enforced without falling back elsewhere", () => {
   const kensingtonChurch = fixture("k1", "St Mary Abbots Church", "RELIGIOUS", 51.5008, -0.191, "A historic parish church in Kensington.");
   const kensingtonCemetery = fixture("k2", "Kensington Memorial Garden", "RELIGIOUS", 51.501, -0.195, "A landscaped cemetery and memorial garden.");

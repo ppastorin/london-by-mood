@@ -5,7 +5,7 @@ const RELATIONS = ["IN", "NEAR", "NORTH_OF", "SOUTH_OF", "EAST_OF", "WEST_OF"];
 const ROLES = ["SCOPE", "START", "END", "EXCLUDE"];
 const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "wander"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "3";
+export const PLANNER_INTENT_SCHEMA_VERSION = "4";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -111,15 +111,15 @@ Your only task is to translate a visitor's request into the supplied JSON schema
 
 Interpretation rules:
 - Geography is a hard constraint whenever the user names an area, direction, start or end. Never replace it with a better-known part of London.
-- Resolve the intended London place name in query. In a London travel context, "the City" means "City of London"; an ordinary city-wide request does not.
-- Use role SCOPE for an area to visit, EXCLUDE for an area to avoid, and START or END only for explicit route anchors. A start or end is optional. "No specific destination" is openEnded and requires no clarification.
+- Resolve the intended London place name in query. Use full canonical feature names (for example "River Thames", not "Thames"). In a London travel context, "the City" means "City of London"; an ordinary city-wide request does not.
+- Use role SCOPE for an area to visit, EXCLUDE for an area to avoid, and START or END only for explicit route anchors. Every explicit starting and ending point is mandatory in geography, even when the request also contains a broad scope. A start or end is otherwise optional. "No specific destination" is openEnded and requires no clarification.
 - Use IN for "in/across/within", NEAR for "around/near", and the directional relations for "west/east/north/south of". For a directional constraint, query and label must contain only the geocodable reference place: "west of Hyde Park" is relation WEST_OF with query "Hyde Park", never an IN query containing "west of".
 - For a request with different areas on different days, number them from 1 through days in the order stated. Day 0 is reserved only for a constraint that applies to every day; it is not the first day of a multi-day request.
-- Distinguish the main purpose from incidental possibilities. A day "across churches" makes RELIGIOUS PRIMARY, strictCategory true and strictConcept true. "Possibly a church" makes it OPTIONAL.
+- Distinguish the main purpose from incidental possibilities. When the whole day is organised around one narrow place type, make its category PRIMARY, strictCategory true and strictConcept true; this applies equally to markets, churches and any future narrow concept. A merely possible stop is OPTIONAL.
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
 - semanticTerms are generic place-type words, not named venues. Supply them only when the user's concept is narrower than the category. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
-- PRIMARY means the whole itinerary is led by that category. REQUIRED means at least minStops. PREFERRED is important but not mandatory. OPTIONAL is a possible addition. EXCLUDED is forbidden.
-- Negation always wins: "no museums" is EXCLUDED. A request for no big/major museums keeps MUSEUM available but sets museumScale SMALL_ONLY.
+- PRIMARY means the whole itinerary is led by that category. REQUIRED means at least minStops. PREFERRED is important but not mandatory. OPTIONAL is a possible addition. EXCLUDED is forbidden. minStops and maxStops count itinerary stops, never days.
+- Negation always wins: a negated known category must be a categoryPreference with strength EXCLUDED, not only a free-text exclusion. A request for no big/major museums keeps MUSEUM available but sets museumScale SMALL_ONLY.
 - "Mainly outdoors" is PREFER; "nothing indoor" is ONLY. Green implies PARK. Artistic can imply MUSEUM or BUILDING depending context.
 - A compact/long walk controls experience.compact and transport. A willingness to use the Tube alongside walking is mixed.
 - Ask at most one clarification, and only when ambiguity could materially change geography or violate a hard constraint. Do not ask merely because details are omitted.
@@ -180,9 +180,17 @@ export function normalizePlannerIntent(raw) {
     return question && options.length >= 2 ? [{ id: clean(item.id, 60) || `clarification-${index + 1}`,
       question, reason: clean(item.reason, 240), options }] : [];
   });
+  const exclusionTerms = unique(array(raw.exclusions).map((item) => clean(item, 120)).filter(Boolean));
+  for (const term of exclusionTerms) {
+    const category = CATEGORIES.find((candidate) => candidate === term.toUpperCase());
+    if (category && !categoryPreferences.some((item) => item.category === category)) {
+      categoryPreferences.push({ category, strength: "EXCLUDED", minStops: 0, maxStops: 0 });
+    }
+  }
   const primary = categoryPreferences.find((item) => item.strength === "PRIMARY");
   const preferred = categoryPreferences.filter((item) => item.strength !== "EXCLUDED").map((item) => item.category);
   const excluded = categoryPreferences.filter((item) => item.strength === "EXCLUDED").map((item) => item.category);
+  const semanticTerms = unique(array(experience.semanticTerms).map((term) => clean(term, 60)).filter(Boolean)).slice(0, 10);
   return {
     schemaVersion: PLANNER_INTENT_SCHEMA_VERSION,
     provider: "workers-ai",
@@ -195,11 +203,12 @@ export function normalizePlannerIntent(raw) {
     categoryPreferences,
     categories: unique(preferred), excludedCategories: unique(excluded), primaryCategory: primary?.category,
     experience: {
-      label: clean(experience.label, 160), semanticTerms: unique(array(experience.semanticTerms).map((term) => clean(term, 60)).filter(Boolean)).slice(0, 10),
-      strictCategory: Boolean(experience.strictCategory), strictConcept: Boolean(experience.strictConcept), compact: Boolean(experience.compact),
+      label: clean(experience.label, 160), semanticTerms,
+      strictCategory: Boolean(experience.strictCategory || primary),
+      strictConcept: Boolean(experience.strictConcept || (primary && semanticTerms.length)), compact: Boolean(experience.compact),
     },
     moods: unique(array(raw.moods).filter((mood) => MOODS.includes(mood))),
-    avoidTerms: unique(array(raw.exclusions).map((item) => clean(item, 120)).filter(Boolean)),
+    avoidTerms: exclusionTerms.filter((term) => !CATEGORIES.includes(term.toUpperCase())),
     mustHaves: unique(array(raw.mustInclude).map((item) => clean(item, 120)).filter(Boolean)),
     outdoorOnly: raw.outdoorMode === "ONLY", outdoorPreference: raw.outdoorMode === "PREFER",
     noBigMuseums: raw.museumScale === "SMALL_ONLY",
