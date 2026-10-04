@@ -253,6 +253,8 @@ test("place validation preserves editorial fields and defaults", () => {
   assert.equal(place.category, "PARK");
   assert.equal(place.visitMinutes, 30);
   assert.deepEqual(place.openingHours, { monday: "10–17" });
+  assert.equal(place.planning.bookingMode, "UNKNOWN");
+  assert.equal(place.planning.admissionType, "UNKNOWN");
 });
 
 test("My Maps CSV parsing preserves quoted descriptions and coordinates", () => {
@@ -275,6 +277,17 @@ test("static HTML remains embeddable by Google Sites", async () => {
   const response = await worker.fetch(new Request("https://example.com/"), { ASSETS: assets() }, context());
   assert.equal(response.headers.has("x-frame-options"), false);
   assert.equal(response.headers.get("content-security-policy"), "frame-ancestors *");
+});
+
+test("planner surface fails closed unless the sandbox flag is enabled", async () => {
+  const hidden = await worker.fetch(new Request("https://example.com/planner/"), { ASSETS: assets() }, context());
+  assert.equal(hidden.status, 404);
+  assert.equal(hidden.headers.get("x-robots-tag"), "noindex, nofollow");
+
+  const visible = await worker.fetch(new Request("https://example.com/planner/"), { PLANNER_ENABLED: "true", ASSETS: assets() }, context());
+  assert.equal(visible.status, 200);
+  assert.equal(visible.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal(visible.headers.get("cache-control"), "no-store");
 });
 
 test("the private editor cannot be framed or cached", async () => {
