@@ -41,6 +41,16 @@ test("AI contract safeguards primary concepts and exact category exclusions gene
   assert.deepEqual(intent.avoidTerms, ["crowded places"]);
 });
 
+test("a sole strict required category is normalised as the primary concept", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    categoryPreferences: [{ category: "RELIGIOUS", strength: "REQUIRED", minStops: 3, maxStops: 5 }],
+    experience: { label: "church walk", semanticTerms: ["churches"], strictCategory: true, strictConcept: true, compact: true },
+  }));
+  assert.equal(intent.primaryCategory, "RELIGIOUS");
+  assert.equal(intent.experience.strictCategory, true);
+  assert.equal(intent.experience.strictConcept, true);
+});
+
 test("generic resolved geography and AI semantic terms are enforced without falling back elsewhere", () => {
   const kensingtonChurch = fixture("k1", "St Mary Abbots Church", "RELIGIOUS", 51.5008, -0.191, "A historic parish church in Kensington.");
   const kensingtonCemetery = fixture("k2", "Kensington Memorial Garden", "RELIGIOUS", 51.501, -0.195, "A landscaped cemetery and memorial garden.");

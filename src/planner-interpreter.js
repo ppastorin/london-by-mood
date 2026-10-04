@@ -5,7 +5,7 @@ const RELATIONS = ["IN", "NEAR", "NORTH_OF", "SOUTH_OF", "EAST_OF", "WEST_OF"];
 const ROLES = ["SCOPE", "START", "END", "EXCLUDE"];
 const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "wander"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "6";
+export const PLANNER_INTENT_SCHEMA_VERSION = "7";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -188,7 +188,9 @@ export function normalizePlannerIntent(raw) {
       categoryPreferences.push({ category, strength: "EXCLUDED", minStops: 0, maxStops: 0 });
     }
   }
-  const primary = categoryPreferences.find((item) => item.strength === "PRIMARY");
+  const focusedCategories = categoryPreferences.filter((item) => item.strength !== "EXCLUDED");
+  const primary = categoryPreferences.find((item) => item.strength === "PRIMARY")
+    || (experience.strictCategory && experience.strictConcept && focusedCategories.length === 1 ? focusedCategories[0] : undefined);
   const preferred = categoryPreferences.filter((item) => item.strength !== "EXCLUDED").map((item) => item.category);
   const excluded = categoryPreferences.filter((item) => item.strength === "EXCLUDED").map((item) => item.category);
   const semanticTerms = unique(array(experience.semanticTerms).map((term) => clean(term, 60)).filter(Boolean)).slice(0, 10);
