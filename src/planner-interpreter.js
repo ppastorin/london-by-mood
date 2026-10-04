@@ -5,7 +5,7 @@ const RELATIONS = ["IN", "NEAR", "NORTH_OF", "SOUTH_OF", "EAST_OF", "WEST_OF"];
 const ROLES = ["SCOPE", "START", "END", "EXCLUDE"];
 const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "wander"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "2";
+export const PLANNER_INTENT_SCHEMA_VERSION = "3";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -113,7 +113,8 @@ Interpretation rules:
 - Geography is a hard constraint whenever the user names an area, direction, start or end. Never replace it with a better-known part of London.
 - Resolve the intended London place name in query. In a London travel context, "the City" means "City of London"; an ordinary city-wide request does not.
 - Use role SCOPE for an area to visit, EXCLUDE for an area to avoid, and START or END only for explicit route anchors. A start or end is optional. "No specific destination" is openEnded and requires no clarification.
-- Use IN for "in/across/within", NEAR for "around/near", and the directional relations for "west/east/north/south of". Day 0 applies to every day.
+- Use IN for "in/across/within", NEAR for "around/near", and the directional relations for "west/east/north/south of". For a directional constraint, query and label must contain only the geocodable reference place: "west of Hyde Park" is relation WEST_OF with query "Hyde Park", never an IN query containing "west of".
+- For a request with different areas on different days, number them from 1 through days in the order stated. Day 0 is reserved only for a constraint that applies to every day; it is not the first day of a multi-day request.
 - Distinguish the main purpose from incidental possibilities. A day "across churches" makes RELIGIOUS PRIMARY, strictCategory true and strictConcept true. "Possibly a church" makes it OPTIONAL.
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
 - semanticTerms are generic place-type words, not named venues. Supply them only when the user's concept is narrower than the category. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
@@ -125,6 +126,7 @@ Interpretation rules:
 - Do not put questions in assumptions or insights. Keep insights short and user-facing.
 - If clarification answers are supplied, treat them as authoritative and normally return no further clarification.
 - Radius is geometric scope, not travel distance: about 2-3 km for a compact neighbourhood, 5-8 km around a broad district and up to 15-20 km for a directional part of London.
+- preferredWeekdays uses 0=Sunday, 1=Monday, ... 6=Saturday. "During the week" means 1 through 5.
 - Default unspecified values: days=1, blank times, pace=unspecified, transport=unspecified, familiarity=unspecified, season=unspecified, outdoorMode=ANY, museumScale=ANY, crowd/tourist preference=ANY.
 - confidence reflects the interpretation, not itinerary quality or database coverage.`;
 

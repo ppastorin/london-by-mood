@@ -75,15 +75,21 @@ const cases = [
 
 const results = [];
 for (const item of cases) {
-  const response = await fetch(`${baseUrl}/api/planner/interpret`, {
-    method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ prompt: item.prompt }),
-  });
-  const payload = await response.json();
-  assert.equal(response.status, 200, `${item.name}: ${JSON.stringify(payload)}`);
-  item.check(payload.intent);
-  results.push({ name: item.name, confidence: payload.intent.confidence,
-    geography: payload.intent.geoScopes.map((scope) => `${scope.relation} ${scope.label}`),
-    categories: payload.intent.categoryPreferences.map((entry) => `${entry.strength} ${entry.category}`) });
+  try {
+    const response = await fetch(`${baseUrl}/api/planner/interpret`, {
+      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ prompt: item.prompt }),
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 200, `${item.name}: ${JSON.stringify(payload)}`);
+    item.check(payload.intent);
+    results.push({ name: item.name, passed: true, confidence: payload.intent.confidence,
+      geography: payload.intent.geoScopes.map((scope) => `${scope.relation} ${scope.label}`),
+      categories: payload.intent.categoryPreferences.map((entry) => `${entry.strength} ${entry.category}`) });
+  } catch (error) {
+    results.push({ name: item.name, passed: false, error: error instanceof Error ? error.message : String(error) });
+  }
 }
 
-console.log(JSON.stringify({ baseUrl, passed: results.length, cases: results }, null, 2));
+const passed = results.filter((result) => result.passed).length;
+console.log(JSON.stringify({ baseUrl, passed, failed: results.length - passed, cases: results }, null, 2));
+assert.equal(passed, results.length, `${results.length - passed} interpreter acceptance case(s) failed`);
