@@ -51,15 +51,18 @@ test("generic resolved geography and AI semantic terms are enforced without fall
 
 test("planner interpretation endpoint uses Workers AI structured output and resolves arbitrary geography", async () => {
   let modelRequest;
+  const geocodeQueries = [];
   globalThis.fetch = async (url) => {
     const requested = new URL(url);
     assert.equal(requested.hostname, "nominatim.openstreetmap.org");
+    geocodeQueries.push(requested.searchParams.get("q"));
+    if (/Kensington area/i.test(requested.searchParams.get("q"))) return Response.json([]);
     assert.match(requested.searchParams.get("q"), /Kensington, London, UK/i);
     return Response.json([{ display_name: "Kensington, London, United Kingdom", lat: "51.5008", lon: "-0.191",
       boundingbox: ["51.480", "51.520", "-0.230", "-0.150"], type: "suburb" }]);
   };
   const AI = { run: async (_model, request) => { modelRequest = request; return { response: rawIntent({
-    geography: [{ day: 0, role: "SCOPE", relation: "IN", query: "Kensington", label: "Kensington", radiusKm: 3 }],
+    geography: [{ day: 0, role: "SCOPE", relation: "IN", query: "Kensington area", label: "Kensington", radiusKm: 3 }],
     categoryPreferences: [{ category: "RELIGIOUS", strength: "PRIMARY", minStops: 4, maxStops: 6 }],
     experience: { label: "compact church walk", semanticTerms: ["church", "chapel", "cathedral", "abbey"], strictCategory: true, strictConcept: true, compact: true },
     insights: ["compact church walk", "in Kensington"],
@@ -76,6 +79,7 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.equal(payload.intent.geoScopes[0].label, "Kensington");
   assert.deepEqual(payload.intent.geoScopes[0].bounds, { south: 51.48, north: 51.52, west: -0.23, east: -0.15 });
   assert.equal(payload.intent.routeStart, undefined);
+  assert.deepEqual(geocodeQueries, ["Kensington area, London, UK", "Kensington, London, UK"]);
   assert.equal(modelRequest.response_format.type, "json_schema");
   assert.match(modelRequest.messages[1].content, /Kensington area/);
 });

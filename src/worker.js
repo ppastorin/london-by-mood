@@ -164,12 +164,7 @@ async function resolveIntentGeography(intent, env) {
   const memo = new Map();
   for (const item of intent.geography) {
     try {
-      const key = item.query.toLowerCase();
-      let result = memo.get(key);
-      if (!result) {
-        result = await requestGeocode(item.query, env);
-        memo.set(key, result);
-      }
+      const result = await resolveGeographyItem(item, env, memo);
       resolved.push({ ...item, center: { lat: result.lat, lon: result.lon }, bounds: result.bounds,
         featureType: result.type, resolvedLabel: result.label });
     } catch (error) {
@@ -189,6 +184,32 @@ async function resolveIntentGeography(intent, env) {
     unresolvedGeography: unresolved,
     confidence: unresolved.length ? Math.min(intent.confidence, .45) : intent.confidence,
   };
+}
+
+async function resolveGeographyItem(item, env, memo) {
+  // The model supplies both a search query and a concise label. Geocoders may
+  // reject conversational queries such as "Kensington area" while accepting
+  // the model's canonical label, so try both without maintaining place aliases.
+  const candidates = [...new Set([item.query, item.label].map((value) => cleanText(value, 160)).filter(Boolean))];
+  let lastError;
+  for (const candidate of candidates) {
+    const key = candidate.toLowerCase();
+    if (memo.has(key)) {
+      const cached = memo.get(key);
+      if (cached.ok) return cached.value;
+      lastError = cached.error;
+      continue;
+    }
+    try {
+      const result = await requestGeocode(candidate, env);
+      memo.set(key, { ok: true, value: result });
+      return result;
+    } catch (error) {
+      lastError = error;
+      memo.set(key, { ok: false, error });
+    }
+  }
+  throw lastError || new Error("Location could not be resolved");
 }
 
 async function queryPlannerDetails(db, ids) {
