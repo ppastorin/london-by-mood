@@ -274,6 +274,23 @@ test("scheduler omits a venue when the full visit cannot finish before closing",
   assert.match(plan.warnings.join(" "), /omits 1 selected place/);
 });
 
+test("unanchored days visit the earliest-closing selected venue first", () => {
+  const earlyMarket = fixture("early", "Sunday Flower Market", "SHOPPING", 51.53, -.07, {
+    accessType: "TIMETABLED", hoursStatus: "VERIFIED",
+    openingPeriods: [{ dayOfWeek: 0, opensAt: "08:00", closesAt: "14:00" }],
+  });
+  const lateMarket = fixture("late", "Covered Market", "SHOPPING", 51.51, -.08, {
+    accessType: "TIMETABLED", hoursStatus: "VERIFIED",
+    openingPeriods: [{ dayOfWeek: 0, opensAt: "10:00", closesAt: "18:00" }],
+  });
+  const plan = buildPlan([lateMarket, earlyMarket], {
+    days: 1, startDate: "2026-10-11", startTime: "10:00", endTime: "18:00", pace: "relaxed", transport: "mixed",
+    categories: ["SHOPPING"], primaryCategory: "SHOPPING",
+    experience: { semanticTerms: ["markets"], strictCategory: true, strictConcept: true },
+  });
+  assert.deepEqual(plan.days[0].stops.map((stop) => stop.place.id), ["early", "late"]);
+});
+
 test("walking estimates include a conservative street-network allowance", () => {
   const leg = estimateTravel({ lat: 51.5, lon: -.20 }, { lat: 51.5, lon: -.17 }, "walking");
   assert.equal(leg.mode, "Walk");

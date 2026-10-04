@@ -222,7 +222,7 @@ export function buildPlan(places, rawInput) {
     }
     const selected = selectDay(pool, dailyMustHaves, input, area, date, used);
     if (!selected.length) {
-      warnings.push(`Day ${index + 1} has no suitable curated stops.`);
+      warnings.push(`Day ${index + 1} has no suitable published stops.`);
       continue;
     }
     const schedule = scheduleDay(selected, input, date);
@@ -352,7 +352,7 @@ function selectDay(pool, locked, input, area, date, used) {
     if (!next) break;
     selected.push(next);
   }
-  return routeOrder(selected, input.startTime, input);
+  return routeOrder(selected, input.startTime, input, date);
 }
 
 function selectAnchoredDay(pool, locked, input, area, date, used) {
@@ -377,7 +377,7 @@ function selectAnchoredDay(pool, locked, input, area, date, used) {
     if (!next) break;
     selected.push(next);
   }
-  return routeOrder(selected, input.startTime, input);
+  return routeOrder(selected, input.startTime, input, date);
 }
 
 function selectRouteDay(pool, locked, input, area, date, used) {
@@ -396,7 +396,7 @@ function selectRouteDay(pool, locked, input, area, date, used) {
     if (!next) break;
     selected.push(next);
   }
-  return routeOrder(selected, input.startTime, input);
+  return routeOrder(selected, input.startTime, input, date);
 }
 
 function seedScore(place, pool, input, area, date, radius) {
@@ -440,7 +440,7 @@ function scorePlace(place, input, area, date) {
   return score;
 }
 
-function routeOrder(places, startTime, input = {}) {
+function routeOrder(places, startTime, input = {}, date = input.startDate) {
   if (places.length < 2) return places;
   if (input.routeStart && input.routeEnd) {
     return [...places].sort((a, b) => routeMetrics(a, input.routeStart, input.routeEnd).position
@@ -450,6 +450,8 @@ function routeOrder(places, startTime, input = {}) {
   if (input.routeEnd) return nearestNeighborOrder(places, input.routeEnd).reverse();
   const early = timeToMinutes(startTime) < 600;
   const first = [...places].sort((a, b) => {
+    const closingDifference = closingMinute(a, date) - closingMinute(b, date);
+    if (closingDifference) return closingDifference;
     if (early) {
       const accessDifference = Number(EARLY_ACCESS.has(b.planning?.accessType)) - Number(EARLY_ACCESS.has(a.planning?.accessType));
       if (accessDifference) return accessDifference;
@@ -464,6 +466,11 @@ function routeOrder(places, startTime, input = {}) {
     ordered.push(remaining.shift());
   }
   return ordered;
+}
+
+function closingMinute(place, date) {
+  const closesAt = availabilityForDate(place, date).closesAt;
+  return closesAt ? timeToMinutes(closesAt) : Number.POSITIVE_INFINITY;
 }
 
 function nearestNeighborOrder(places, origin) {
