@@ -70,6 +70,9 @@ function applyInterpretation(interpretation) {
   if (interpretation.pace && !touched.has("pace")) document.querySelector("#pace").value = interpretation.pace;
   if (interpretation.transport && !touched.has("transport")) document.querySelector("#transport").value = interpretation.transport;
   if (interpretation.familiarity && !touched.has("familiarity")) document.querySelector("#familiarity").value = interpretation.familiarity;
+  if (interpretation.preferredWeekdays?.length && !touched.has("start-date")) {
+    document.querySelector("#start-date").value = nearestPreferredDate(document.querySelector("#start-date").value, interpretation.preferredWeekdays);
+  }
   if (!touched.has("area-1")) document.querySelector("#area-1").value = "ANY";
   if (!touched.has("area-2")) document.querySelector("#area-2").value = "ANY";
   if (!touched.has("avoid-core")) document.querySelector("#avoid-core").checked = Boolean(interpretation.avoidCore);
@@ -157,7 +160,7 @@ async function loadPlaces() {
     .then(async (response) => {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || `Planner data returned ${response.status}`);
-      if (!payload.places?.length) throw new Error("No curated planner places are available in this sandbox.");
+      if (!payload.places?.length) throw new Error("No published planner places are available in this sandbox.");
       return payload.places;
     }).catch((error) => { placesPromise = null; throw error; });
   return placesPromise;
@@ -168,13 +171,13 @@ function renderPlan(plan) {
     results.innerHTML = `<div class="error-state"><h2>No coherent plan yet.</h2><p>${escapeHtml(plan.warnings[0] || "Try broadening the areas or categories.")}</p></div>`;
     return;
   }
-  const summary = `${plan.days.length} ${plan.days.length === 1 ? "day" : "days"} · ${plan.days.reduce((sum, day) => sum + day.stops.length, 0)} curated stops · ${transportLabel(plan.input.transport)}`;
+  const summary = `${plan.days.length} ${plan.days.length === 1 ? "day" : "days"} · ${plan.days.reduce((sum, day) => sum + day.stops.length, 0)} stops · ${transportLabel(plan.input.transport)}`;
   results.innerHTML = `
     <div class="results-header"><div><p class="eyebrow">Your recommended plan</p><h2>London, arranged into good days</h2></div><p>${escapeHtml(summary)}</p></div>
     ${plan.warnings.length ? `<div class="warning-box"><strong>Before you go</strong>${plan.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
     ${plan.input.transport === "walking" ? "" : `<p class="route-map-note">The complete Google Maps itinerary opens in walking mode so every stop remains in sequence. Use the Tube or bus for the longer legs identified in the schedule.</p>`}
     <div class="day-list">${plan.days.map(renderDay).join("")}</div>
-    <p class="method-note">The first increment uses curated factual confidence, official-source availability, geographic cohesion and your stated preferences. It does not make bookings or silently assume uncertain opening hours.</p>
+    <p class="method-note">Verified entries are preferred, but V1 can also use the wider published catalogue. Provisional stops are clearly marked and must be checked before travelling.</p>
   `;
   results.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -194,16 +197,20 @@ function renderStop(stop, index) {
   const place = stop.place;
   const check = stop.availability.status === "check";
   const description = place.hook || place.description || "A curated London Advanced stop.";
-  const sourceUrl = place.officialUrl || place.planning?.sourceUrl;
+  const sourceUrl = place.planning?.validationUrl || place.officialUrl || place.planning?.sourceUrl || place.mapUrl;
+  const verified = place.planning?.recommendationTier === "VERIFIED";
+  const caveats = place.planning?.caveats || [];
+  const sourceIsMap = sourceUrl === place.mapUrl;
   return `<li class="stop-card">
     <div class="time-column"><strong>${escapeHtml(stop.startTime)}</strong>${stop.legMode === "start" ? `<span>Start</span>`
       : stop.legUrl ? `<a href="${escapeAttribute(stop.legUrl)}" target="_blank" rel="noopener">${escapeHtml(stop.legMode)} · ${stop.travelMinutes} min ↗</a>`
       : `<span>${escapeHtml(stop.legMode)} · ${stop.travelMinutes} min</span>`}</div>
     <div class="stop-body">
-      <div class="stop-topline"><span class="category-label">${escapeHtml(CATEGORY_LABELS[place.category] || place.category)}</span><span class="confidence-label">${escapeHtml(place.planning.dataConfidence)} confidence</span></div>
+      <div class="stop-topline"><span class="category-label">${escapeHtml(CATEGORY_LABELS[place.category] || place.category)}</span><span class="confidence-label ${verified ? "verified" : "provisional"}">${verified ? "Verified" : "Check details"}</span></div>
       <h4>${escapeHtml(place.name)}</h4><p>${escapeHtml(description)}</p>
       <div class="stop-facts"><span>${escapeHtml(stop.startTime)}–${escapeHtml(stop.endTime)}</span><span class="${check ? "needs-check" : ""}">${check ? "⚠ " : ""}${escapeHtml(stop.availability.label)}</span></div>
-      <div class="stop-links"><a href="${escapeAttribute(place.mapUrl)}" target="_blank" rel="noopener">Map</a><a href="${escapeAttribute(sourceUrl)}" target="_blank" rel="noopener">Official source</a></div>
+      ${caveats.length ? `<ul class="stop-caveats">${caveats.map((caveat) => `<li>${escapeHtml(caveat)}</li>`).join("")}</ul>` : ""}
+      <div class="stop-links"><a href="${escapeAttribute(place.mapUrl)}" target="_blank" rel="noopener">Map</a>${sourceIsMap ? "" : `<a href="${escapeAttribute(sourceUrl)}" target="_blank" rel="noopener">Check access and opening times</a>`}</div>
     </div>
   </li>`;
 }
@@ -260,5 +267,18 @@ function activeGeoScopes(scopes, days) {
 }
 function splitInput(value) { return String(value || "").split(/[,;\n]/).map((item) => item.trim()).filter(Boolean); }
 function promptValue(control, inferred, current) { return touched.has(control) || inferred === undefined ? current : inferred; }
+function nearestPreferredDate(value, weekdays) {
+  const preferred = new Set(weekdays.map(Number).filter((day) => day >= 0 && day <= 6));
+  const base = new Date(`${value}T12:00:00Z`);
+  if (!preferred.size || Number.isNaN(base.getTime())) return value;
+  const today = new Date();
+  const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 12));
+  for (const offset of [0, -1, 1, -2, 2, -3, 3, 4, 5, 6, 7]) {
+    const candidate = new Date(base);
+    candidate.setUTCDate(candidate.getUTCDate() + offset);
+    if (candidate >= todayUtc && preferred.has(candidate.getUTCDay())) return candidate.toISOString().slice(0, 10);
+  }
+  return value;
+}
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[character]); }
 function escapeAttribute(value) { return escapeHtml(value); }

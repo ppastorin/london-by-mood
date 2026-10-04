@@ -36,6 +36,7 @@ try {
   await applySql(db, await readFile("data/enrichment/generated/batch-2-candidates.sql", "utf8"));
   await applySql(db, await readFile("data/enrichment/generated/bermondsey-putney-corridor.sql", "utf8"));
   await applySql(db, await readFile("data/enrichment/generated/market-planner-candidates.sql", "utf8"));
+  await applySql(db, await readFile("data/enrichment/generated/market-v1-coverage.sql", "utf8"));
   await applySql(db, await readFile("data/enrichment/generated/city-church-planner-candidates.sql", "utf8"));
 
   const health = await mf.dispatchFetch("http://local.test/health");
@@ -94,9 +95,10 @@ try {
   const plannerResponse = await mf.dispatchFetch("http://local.test/api/planner/places?limit=1200");
   const plannerPayload = await plannerResponse.json();
   assert.equal(plannerResponse.status, 200, JSON.stringify(plannerPayload));
-  assert.ok(plannerPayload.count >= 50, `Expected a useful curated pool, received ${plannerPayload.count}`);
-  assert.ok(plannerPayload.places.every((place) => ["MEDIUM", "HIGH"].includes(place.planning.dataConfidence)));
-  assert.ok(plannerPayload.places.every((place) => place.officialUrl));
+  assert.equal(plannerPayload.schemaVersion, 2);
+  assert.equal(plannerPayload.count, publicPayload.count + 1, "Every published place, including the integration fixture, must reach Planner V1");
+  assert.ok(plannerPayload.places.every((place) => place.mapUrl && place.planning.validationUrl));
+  assert.equal(plannerPayload.coverage.verified + plannerPayload.coverage.checkBeforeTravel, plannerPayload.count);
   const detailedIntent = interpretPrompt("I want to spend two full days during the week, one west of Hyde Park and the second east of Holborn. I like small museums, parks and quirky things. I have already visited all the major destinations. I like walking, but I am confident to jump on a tube. I start very early and go back after dinner.");
   const detailedPlan = buildPlan(plannerPayload.places, { ...detailedIntent, startDate: "2026-10-05" });
   assert.equal(detailedPlan.days.length, 2);
@@ -168,12 +170,12 @@ try {
 
   const marketIntent = interpretPrompt("I want to spend one day going through the best, non-touristic markets in London. I can do it on a Saturday or a Sunday and I can take the tube between places.");
   const marketPlan = buildPlan(plannerPayload.places, { ...marketIntent, startDate: "2026-10-10" });
-  const marketNames = new Set(["Camden Passage", "Alfies Antique Market", "Primrose Hill Food Market", "Shepherd's Bush Market", "Victoria Park Market", "Wood Street Indoor Market", "Maltby Street Market", "Netil Market", "Broadway Market"]);
   assert.equal(marketIntent.marketFocus, true);
   assert.equal(marketIntent.weekendFlexible, true);
   assert.equal(marketPlan.days.length, 1);
   assert.ok(marketPlan.days[0].stops.length >= 4);
-  assert.ok(marketPlan.days[0].stops.every((stop) => marketNames.has(stop.place.name)));
+  assert.ok(marketPlan.days[0].stops.every((stop) => /market/i.test(`${stop.place.name} ${stop.place.description} ${stop.place.hook}`)),
+    JSON.stringify(marketPlan.days[0].stops.map((stop) => stop.place.name)));
   assert.ok(marketPlan.days[0].stops.every((stop) => stop.place.name !== "Shepherd Market"));
   assert.ok(marketPlan.days[0].stops.every((stop) => stop.place.name !== "Victoria Park Market"));
   assert.ok(marketPlan.days[0].stops.slice(1).every((stop) => new URL(stop.legUrl).searchParams.get("travelmode") === "transit"));
@@ -182,8 +184,22 @@ try {
   assert.equal(sundayMarketPlan.days.length, 1);
   assert.ok(sundayMarketPlan.days[0].stops.length >= 4,
     JSON.stringify(sundayMarketPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`)));
-  assert.ok(sundayMarketPlan.days[0].stops.every((stop) => marketNames.has(stop.place.name)));
+  assert.ok(sundayMarketPlan.days[0].stops.every((stop) => /market/i.test(`${stop.place.name} ${stop.place.description} ${stop.place.hook}`)));
   assert.ok(sundayMarketPlan.days[0].stops.every((stop) => !["Alfies Antique Market", "Primrose Hill Food Market", "Shepherd's Bush Market", "Wood Street Indoor Market"].includes(stop.place.name)));
+
+  const eastMarketIntent = {
+    days: 1, categories: ["SHOPPING"], primaryCategory: "SHOPPING",
+    categoryPreferences: [{ category: "SHOPPING", strength: "PRIMARY", minStops: 2, maxStops: 6 }],
+    experience: { semanticTerms: ["markets"], strictCategory: true, strictConcept: true },
+    geoScopes: [{ day: 0, relation: "EAST_OF", label: "East London", radiusKm: 15,
+      center: { label: "Trafalgar Square", lat: 51.50845, lon: -0.12845 } }],
+  };
+  const eastSaturday = buildPlan(plannerPayload.places, { ...eastMarketIntent, startDate: "2026-10-10", pace: "balanced", transport: "mixed" });
+  const eastSunday = buildPlan(plannerPayload.places, { ...eastMarketIntent, startDate: "2026-10-11", pace: "balanced", transport: "mixed" });
+  assert.ok(eastSaturday.days[0].stops.length >= 3,
+    JSON.stringify({ stops: eastSaturday.days[0].stops.map((stop) => stop.place.name), warnings: eastSaturday.warnings }));
+  assert.ok(eastSunday.days[0].stops.length >= 3,
+    JSON.stringify({ stops: eastSunday.days[0].stops.map((stop) => stop.place.name), warnings: eastSunday.warnings }));
 
   const revisions = await db.prepare("SELECT action FROM place_revisions WHERE place_id = ? ORDER BY revision_id").bind(createdPayload.id).all();
   assert.deepEqual(revisions.results.map((row) => row.action), ["create", "publish"]);
@@ -229,6 +245,8 @@ try {
     victoriaExample: victoriaPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
     marketExample: marketPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
     sundayMarketExample: sundayMarketPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
+    eastSaturdayMarketExample: eastSaturday.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
+    eastSundayMarketExample: eastSunday.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
   }));
 } finally {
   await mf.dispose();

@@ -36,20 +36,25 @@ Explicitly changed controls override inferred prompt values. The controls cover:
 - West End and high-traffic museum exclusions;
 - must-have and leave-out place names.
 
-## Selection and access guardrails
+## Selection and evidence policy
 
 The planner endpoint is separate from the backward-compatible public POI API.
-It admits only published places that have:
+Planner V1 exposes every published place in that API rather than silently
+discarding entries whose research is incomplete. This prevents a thin verified
+subset from creating false "no results" responses. Selection still ranks the
+strongest evidence first:
 
-- medium or high factual confidence;
-- specific place copy;
-- a healthy official/authoritative source;
-- an access type other than `PRIVATE_NO_PUBLIC_ACCESS`.
+- verified records with specific copy, usable access data and an official or
+  authoritative source receive the strongest preference;
+- lower-confidence or incomplete records remain eligible as `CHECK` leads;
+- every `CHECK` lead carries explicit caveats and a validation link;
+- private, appointment-only, event-only and customer-only places are presented
+  only with the corresponding access warning, never as ordinary walk-in visits.
 
-`planner_ready` places receive a ranking advantage. Medium/high-confidence
-places that still lack complete structured hours can appear provisionally, but
-the interface marks them with a check notice and links directly to the official
-source. It never presents an unknown opening time as confirmed.
+The validation link prefers the approved source or official website and falls
+back to the existing map link when no such source has been researched yet. The
+fallback is disclosed; it is not labelled as an official source. The planner
+never presents an unknown opening time as confirmed.
 
 Recurring hours and date exceptions are returned only by the planner endpoint.
 A known date closure excludes the place. A date exception takes precedence over
@@ -76,10 +81,16 @@ not consume inference again. Menu choices remain authoritative.
 ## Itinerary behaviour
 
 After interpretation, selection is deterministic and does not ask the model to
-invent or rank venues. It scores the curated data for prompt/category fit, factual readiness, returning
+invent or rank venues. It scores the catalogue for prompt/category fit, factual readiness, returning
 visitor suitability and the requested area, then applies a geographic-cohesion
 penalty and category-diversity penalty. The chosen stops are ordered by a simple
 nearest-neighbour pass.
+
+Broad areas such as East, West, North and South London are interpreted by the
+AI as directional geographic constraints around a stable central reference,
+not passed verbatim to the geocoder where they can be confused with a business
+or venue name. A narrow primary concept such as markets remains a hard concept
+filter, while singular/plural variants are matched generically.
 
 Travel time is a conservative local estimate. Mixed mode uses walking for short
 legs and labels longer jumps as Tube/bus. Google Maps links are generated using
@@ -91,13 +102,20 @@ the existing shared directions helper. No booking is attempted.
 npm run check
 npm test
 npm run test:integration
+npm run test:interpreter:sandbox
+npm run audit:planner:sandbox
 ```
 
 The integration smoke test creates an ephemeral D1 database, loads all 881
 places, applies Batches 1 and 2, checks the feature-flagged page and planner API,
-and generates both agreed acceptance prompts against the real curated pool. It
+and generates the agreed acceptance prompts against the real catalogue. It
 also reruns the existing London by Mood, Smart Navigation, editor and import
 cycles to protect backward compatibility.
+
+The deployed audit scans all published entries, reports evidence and access
+gaps, confirms that every place has a map/validation link, and checks raw East
+London Saturday and Sunday market coverage. These audit gaps are a research
+backlog, not a reason to hide the record from V1.
 
 ## Deliberate limits of Increment 1
 

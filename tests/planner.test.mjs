@@ -54,6 +54,21 @@ test("a market-led weekend prompt stays distinct from a mixed itinerary with one
   assert.ok(day.stops.slice(1).every((stop) => !new URL(stop.legUrl).searchParams.has("waypoints")));
 });
 
+test("plural AI concepts match singular place names and a single candidate is still returned", () => {
+  const market = fixture("only", "East Market", "SHOPPING", 51.53, -.06, {
+    dataConfidence: "LOW", plannerReady: false, hoursStatus: "UNKNOWN", recommendationTier: "CHECK",
+    caveats: ["Opening days and times are not fully verified; check before travelling."],
+  });
+  const plan = buildPlan([market], {
+    days: 1, startDate: "2026-10-10", pace: "balanced", transport: "walking", categories: ["SHOPPING"],
+    primaryCategory: "SHOPPING", categoryPreferences: [{ category: "SHOPPING", strength: "PRIMARY", minStops: 2, maxStops: 5 }],
+    experience: { semanticTerms: ["markets"], strictCategory: true, strictConcept: true },
+  });
+  assert.equal(plan.days.length, 1);
+  assert.deepEqual(plan.days[0].stops.map((stop) => stop.place.id), ["only"]);
+  assert.ok(plan.warnings.some((warning) => /provisional catalogue lead/i.test(warning)));
+});
+
 test("west of South Kensington is a hard geographic constraint", () => {
   const prompt = "I would like a plan for one day in west London, west of South Kensington. I like walking, nice areas and buildings, maybe some gardens and parks, and possibly an interesting museum, not the big ones. I like walking";
   const intent = interpretPrompt(prompt);
@@ -265,7 +280,7 @@ test("walking estimates include a conservative street-network allowance", () => 
   assert.ok(leg.minutes >= 35);
 });
 
-test("appointment-only and event-only places are not inserted unless explicitly required", () => {
+test("appointment-only places remain available but are clearly marked for validation", () => {
   const normal = [
     fixture("area", "West Area", "AREA", 51.5, -.21), fixture("park", "West Park", "PARK", 51.501, -.22),
     fixture("museum", "West Museum", "MUSEUM", 51.502, -.23),
@@ -274,7 +289,10 @@ test("appointment-only and event-only places are not inserted unless explicitly 
   const plan = buildPlan([...normal, appointment], {
     days: 1, startDate: "2026-10-05", areas: ["WEST_SOUTH_KENSINGTON"], pace: "relaxed", transport: "walking",
   });
-  assert.ok(plan.days[0].stops.every((stop) => stop.place.id !== "appointment"));
+  const provisional = plan.days[0].stops.find((stop) => stop.place.id === "appointment");
+  assert.ok(provisional);
+  assert.equal(provisional.availability.status, "check");
+  assert.match(provisional.availability.label, /Appointment required/i);
   const required = buildPlan([...normal, appointment], {
     days: 1, startDate: "2026-10-05", areas: ["WEST_SOUTH_KENSINGTON"], pace: "relaxed", transport: "walking",
     mustHaves: "Appointment Tower",
@@ -291,7 +309,7 @@ test("date exceptions override recurring hours", () => {
   assert.equal(availabilityForDate(place, "2026-10-12").label, "10:00–17:00");
 });
 
-test("planner creates distinct west/east days and never selects low-confidence or private places", () => {
+test("planner creates distinct west/east days while keeping the full published catalogue eligible", () => {
   const places = [
     fixture("w1", "West Park", "PARK", 51.51, -.23), fixture("w2", "West Curiosity", "ODDITY", 51.50, -.22),
     fixture("w3", "West Museum", "MUSEUM", 51.515, -.20), fixture("w4", "West Street", "AREA", 51.505, -.19),
@@ -309,7 +327,23 @@ test("planner creates distinct west/east days and never selects low-confidence o
   assert.ok(plan.days[0].stops.every((stop) => stop.place.lon < -.165));
   assert.ok(plan.days[1].stops.every((stop) => stop.place.lon > -.118));
   assert.ok(plan.days.every((day) => new URL(day.routeUrl).hostname === "www.google.com"));
-  assert.ok(plan.days.flatMap((day) => day.stops).every((stop) => !["bad", "private"].includes(stop.place.id)));
+  assert.equal(plan.candidateCount, 10);
+});
+
+test("private and appointment-only catalogue leads remain visible with explicit access checks", () => {
+  const places = [
+    fixture("private", "Private Modernist House", "BUILDING", 51.52, -.07, {
+      dataConfidence: "LOW", plannerReady: false, accessType: "PRIVATE_NO_PUBLIC_ACCESS", hoursStatus: "UNKNOWN",
+      recommendationTier: "CHECK", caveats: ["No public interior access is confirmed; treat this as an exterior view only."],
+    }),
+    fixture("appointment", "Appointment Hall", "BUILDING", 51.521, -.069, {
+      dataConfidence: "LOW", plannerReady: false, accessType: "APPOINTMENT_ONLY", hoursStatus: "UNKNOWN",
+      recommendationTier: "CHECK", caveats: ["Access may require an appointment."],
+    }),
+  ];
+  const plan = buildPlan(places, { days: 1, startDate: "2026-10-10", pace: "relaxed", transport: "walking", categories: ["BUILDING"] });
+  assert.deepEqual(plan.days[0].stops.map((stop) => stop.place.id).sort(), ["appointment", "private"]);
+  assert.ok(plan.days[0].stops.every((stop) => stop.availability.status === "check"));
 });
 
 function fixture(id, name, category, lat, lon, planning = {}) {

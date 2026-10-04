@@ -47,6 +47,24 @@ const cases = [
     },
   },
   {
+    name: "Saturday markets in East London",
+    prompt: "A one day itinerary across the best markets in east london on a Saturday",
+    check(intent) {
+      assert.equal(intent.primaryCategory, "SHOPPING"); assert.equal(intent.experience.strictConcept, true);
+      assert.deepEqual(intent.preferredWeekdays, [6]);
+      assert.ok(intent.geoScopes.some((scope) => scope.relation === "EAST_OF" && /East London/i.test(scope.label)));
+    },
+  },
+  {
+    name: "Sunday markets in East London",
+    prompt: "A one day itinerary across the best markets in east london on a Sunday",
+    check(intent) {
+      assert.equal(intent.primaryCategory, "SHOPPING"); assert.equal(intent.experience.strictConcept, true);
+      assert.deepEqual(intent.preferredWeekdays, [0]);
+      assert.ok(intent.geoScopes.some((scope) => scope.relation === "EAST_OF" && /East London/i.test(scope.label)));
+    },
+  },
+  {
     name: "City church walk",
     prompt: "A nice compact one day long walk across the best churches in the City",
     check(intent) {

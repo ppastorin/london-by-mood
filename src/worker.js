@@ -102,31 +102,46 @@ async function listPlannerPlaces(url, env) {
   const filters = parsePlaceFilters(url.searchParams, true);
   filters.limit = Math.min(filters.limit, 1200);
   const places = await queryPlaces(env.DB, filters);
-  const candidates = places.filter((place) => {
-    const planning = place.planning || {};
-    return planning.descriptionQuality === "SPECIFIC"
-      && ["MEDIUM", "HIGH"].includes(planning.dataConfidence)
-      && planning.accessType !== "PRIVATE_NO_PUBLIC_ACCESS";
-  });
-  const details = await queryPlannerDetails(env.DB, candidates.map((place) => place.id));
-  const ready = candidates.flatMap((place) => {
+  const details = await queryPlannerDetails(env.DB, places.map((place) => place.id));
+  const ready = places.map((place) => {
     const detail = details.get(place.id);
-    if (!detail?.sourceUrl) return [];
-    return [{
+    const sourceUrl = detail?.sourceUrl || place.officialUrl || "";
+    const caveats = plannerCaveats(place, detail);
+    return {
       ...place,
-      officialUrl: place.officialUrl || detail.sourceUrl,
+      officialUrl: place.officialUrl || sourceUrl,
       planning: {
         ...place.planning,
-        sourceUrl: detail.sourceUrl,
-        sourceAuthority: detail.sourceAuthority,
-        openingPeriods: detail.openingPeriods,
-        openingExceptions: detail.openingExceptions,
+        sourceUrl,
+        sourceAuthority: detail?.sourceAuthority || "",
+        openingPeriods: detail?.openingPeriods || [],
+        openingExceptions: detail?.openingExceptions || [],
+        validationUrl: sourceUrl || place.mapUrl,
+        recommendationTier: caveats.length ? "CHECK" : "VERIFIED",
+        caveats,
       },
-    }];
+    };
   });
-  return json({ ok: true, schemaVersion: 1, generatedAt: new Date().toISOString(), count: ready.length, places: ready }, 200, {
+  return json({ ok: true, schemaVersion: 2, generatedAt: new Date().toISOString(), count: ready.length,
+    coverage: { verified: ready.filter((place) => place.planning.recommendationTier === "VERIFIED").length,
+      checkBeforeTravel: ready.filter((place) => place.planning.recommendationTier === "CHECK").length }, places: ready }, 200, {
     "Cache-Control": "private, max-age=60",
   });
+}
+
+function plannerCaveats(place, detail) {
+  const planning = place.planning || {};
+  const caveats = [];
+  if (planning.dataConfidence === "LOW") caveats.push("This entry has not yet received a full factual review.");
+  if (["GENERIC", "MISSING", "UNREVIEWED"].includes(planning.descriptionQuality)) caveats.push("The description is provisional.");
+  if (!detail?.sourceUrl && !place.officialUrl) caveats.push("No official visitor source is linked yet; use the map link to verify current details.");
+  if (["UNKNOWN", "STALE", "CANDIDATE"].includes(planning.hoursStatus)) caveats.push("Opening days and times are not fully verified; check before travelling.");
+  if (planning.bookingMode === "UNKNOWN") caveats.push("Booking requirements are not confirmed.");
+  if (planning.accessType === "PRIVATE_NO_PUBLIC_ACCESS") caveats.push("No public interior access is confirmed; treat this as an exterior view only.");
+  else if (planning.accessType === "APPOINTMENT_ONLY") caveats.push("Access may require an appointment.");
+  else if (planning.accessType === "EVENT_ONLY") caveats.push("Interior access may be limited to advertised events.");
+  else if (planning.accessType === "CUSTOMER_ONLY") caveats.push("Access may be limited to customers or ticket holders.");
+  return [...new Set(caveats)];
 }
 
 async function interpretPlannerRequest(request, env, ctx) {

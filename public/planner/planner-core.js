@@ -159,8 +159,12 @@ export function interpretPrompt(value) {
 export function buildPlan(places, rawInput) {
   const input = normalizeInput(rawInput);
   const warnings = [];
-  const basePool = places.filter((place) => eligible(place, input));
-  if (!basePool.length) return { days: [], warnings: ["No curated places match these filters yet."], input };
+  const eligiblePlaces = places.filter((place) => eligible(place, input));
+  const basePool = dedupeCandidates(eligiblePlaces);
+  if (basePool.length < eligiblePlaces.length) {
+    warnings.push(`${eligiblePlaces.length - basePool.length} duplicate catalogue ${eligiblePlaces.length - basePool.length === 1 ? "record was" : "records were"} consolidated before planning.`);
+  }
+  if (!basePool.length) return { days: [], warnings: ["No published places match these filters yet."], input };
   const used = new Set();
   const mustHaves = resolveMustHaves(places, input.mustHaves, warnings);
   const days = [];
@@ -177,7 +181,7 @@ export function buildPlan(places, rawInput) {
     if (area !== "ANY") {
       pool = areaPool;
       if (areaPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${areaPool.length} curated places inside the requested area; the planner will not substitute places elsewhere in London.`);
+        warnings.push(`Day ${index + 1} has only ${areaPool.length} catalogue places inside the requested area; the planner will not substitute places elsewhere in London.`);
       }
     }
     if (geoScopes.length) {
@@ -185,35 +189,35 @@ export function buildPlan(places, rawInput) {
       pool = geographicPool;
       if (geographicPool.length < Math.min(3, PACE_STOPS[input.pace])) {
         const requested = geoScopes.map((scope) => scopeLabel(scope)).join(" and ");
-        warnings.push(`Day ${index + 1} has only ${geographicPool.length} curated ${geographicPool.length === 1 ? "place" : "places"} ${requested}; the planner will not substitute another part of London.`);
+        warnings.push(`Day ${index + 1} has only ${geographicPool.length} catalogue ${geographicPool.length === 1 ? "place" : "places"} ${requested}; the planner will not substitute another part of London.`);
       }
     }
     if (input.routeStart && input.routeEnd) {
       const corridorPool = pool.filter((place) => routeFit(place, input));
       pool = corridorPool;
       if (corridorPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${corridorPool.length} curated places inside the requested route corridor; the planner will not add unrelated detours.`);
+        warnings.push(`Day ${index + 1} has only ${corridorPool.length} catalogue places inside the requested route corridor; the planner will not add unrelated detours.`);
       }
     }
     if (input.marketFocus) {
       const marketPool = pool.filter((place) => marketExperience(place) && marketDayCompatible(place, date));
       pool = marketPool;
       if (marketPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${marketPool.length} curated market ${marketPool.length === 1 ? "experience" : "experiences"} compatible with the selected date; the planner will not replace them with unrelated places.`);
+        warnings.push(`Day ${index + 1} has only ${marketPool.length} market ${marketPool.length === 1 ? "experience" : "experiences"} compatible with the selected date; the planner will not replace them with unrelated places.`);
       }
     }
     if (input.experience.strictCategory && input.primaryCategory) {
       const categoryPool = pool.filter((place) => place.category === input.primaryCategory);
       pool = categoryPool;
       if (categoryPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${categoryPool.length} curated ${CATEGORY_LABELS[input.primaryCategory]?.toLowerCase() || "matching places"} within the requested geography.`);
+        warnings.push(`Day ${index + 1} has only ${categoryPool.length} catalogue ${CATEGORY_LABELS[input.primaryCategory]?.toLowerCase() || "matching places"} within the requested geography.`);
       }
     }
     if (input.experience.strictConcept && input.experience.semanticTerms.length) {
       const conceptPool = pool.filter((place) => semanticFit(place, input.experience.semanticTerms));
       pool = conceptPool;
       if (conceptPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${conceptPool.length} curated ${input.experience.label || "concept-matching"} ${conceptPool.length === 1 ? "place" : "places"} in scope.`);
+        warnings.push(`Day ${index + 1} has only ${conceptPool.length} catalogue ${input.experience.label || "concept-matching"} ${conceptPool.length === 1 ? "place" : "places"} in scope.`);
       }
     }
     const selected = selectDay(pool, dailyMustHaves, input, area, date, used);
@@ -248,14 +252,21 @@ export function buildPlan(places, rawInput) {
     });
   }
   if (days.some((day) => day.provisionalCount)) {
-    warnings.push("Some venues have an official source but incomplete structured hours. Check the linked source before travelling.");
+    warnings.push("Some stops have incomplete or unverified access details. Use each validation link before travelling.");
+  }
+  const caveatedStops = days.flatMap((day) => day.stops).filter((stop) => stop.place.planning?.caveats?.length).length;
+  if (caveatedStops) {
+    warnings.push(`${caveatedStops} ${caveatedStops === 1 ? "stop is" : "stops are"} included as provisional catalogue leads with explicit caveats.`);
   }
   return { days, warnings: unique(warnings), input, candidateCount: basePool.length };
 }
 
 export function availabilityForDate(place, date) {
   const planning = place.planning || {};
-  if (planning.accessType === "PRIVATE_NO_PUBLIC_ACCESS") return { status: "closed", label: "No public access" };
+  if (planning.accessType === "PRIVATE_NO_PUBLIC_ACCESS") return { status: "check", label: "Exterior only — no public access confirmed" };
+  if (["APPOINTMENT_ONLY", "EVENT_ONLY", "CUSTOMER_ONLY"].includes(planning.accessType) || planning.bookingMode === "REQUIRED") {
+    return { status: "check", label: bookingLabel(planning) };
+  }
   if (planning.hoursStatus === "NOT_APPLICABLE" || EARLY_ACCESS.has(planning.accessType)) {
     return { status: "available", label: planning.accessType === "EXTERIOR_ONLY" ? "Exterior stop" : "Open access" };
   }
@@ -313,10 +324,7 @@ function normalizeInput(input) {
 }
 
 function eligible(place, input) {
-  const planning = place.planning || {};
-  if (!["MEDIUM", "HIGH"].includes(planning.dataConfidence)) return false;
-  if (planning.descriptionQuality !== "SPECIFIC" || ["PRIVATE_NO_PUBLIC_ACCESS", "APPOINTMENT_ONLY", "EVENT_ONLY"].includes(planning.accessType)) return false;
-  if (!place.officialUrl && !planning.sourceUrl) return false;
+  if (!Number.isFinite(Number(place.lat)) || !Number.isFinite(Number(place.lon)) || !place.name) return false;
   const searchable = normalText(`${place.name} ${place.description} ${place.hook}`);
   if (input.avoidTerms.some((term) => searchable.includes(normalText(term)))) return false;
   if (input.avoidCore && inWestEndCore(place)) return false;
@@ -403,8 +411,8 @@ function scoreForCluster(place, anchor, selected, input, area, date) {
 }
 
 function scorePlace(place, input, area, date) {
-  let score = place.planning?.plannerReady ? 28 : 8;
-  score += place.planning?.dataConfidence === "HIGH" ? 14 : 8;
+  let score = place.planning?.recommendationTier === "VERIFIED" ? 34 : place.planning?.plannerReady ? 28 : 8;
+  score += place.planning?.dataConfidence === "HIGH" ? 14 : place.planning?.dataConfidence === "MEDIUM" ? 8 : 0;
   const categoryRule = input.categoryPreferences.find((item) => item.category === place.category);
   if (categoryRule) score += ({ PRIMARY: 48, REQUIRED: 38, PREFERRED: 26, OPTIONAL: 10 }[categoryRule.strength] || 0);
   else if (input.categories.includes(place.category)) score += 26;
@@ -705,10 +713,38 @@ function scopeLabel(scope) {
 
 function semanticMatches(place, terms) {
   const searchable = normalText(`${place.name} ${place.description} ${place.hook} ${place.accessNotes}`);
-  return terms.reduce((count, term) => count + Number(searchable.includes(normalText(term))), 0);
+  return terms.reduce((count, term) => count + Number(termVariants(term).some((variant) => searchable.includes(variant))), 0);
 }
 
 function semanticFit(place, terms) { return semanticMatches(place, terms) > 0; }
+
+function termVariants(value) {
+  const term = normalText(value).trim();
+  if (!term) return [];
+  const variants = [term];
+  if (term.endsWith("ies") && term.length > 4) variants.push(`${term.slice(0, -3)}y`);
+  if (term.endsWith("es") && term.length > 3) variants.push(term.slice(0, -2));
+  if (term.endsWith("s") && term.length > 2) variants.push(term.slice(0, -1));
+  return unique(variants.filter((variant) => variant.length > 2));
+}
+
+function dedupeCandidates(places) {
+  const selected = new Map();
+  for (const place of places) {
+    const key = `${normalText(place.name).trim()}|${Number(place.lat).toFixed(3)}|${Number(place.lon).toFixed(3)}`;
+    const current = selected.get(key);
+    if (!current || evidenceRank(place) > evidenceRank(current)) selected.set(key, place);
+  }
+  return [...selected.values()];
+}
+
+function evidenceRank(place) {
+  const planning = place.planning || {};
+  return Number(planning.recommendationTier === "VERIFIED") * 100
+    + ({ HIGH: 30, MEDIUM: 20, LOW: 10 }[planning.dataConfidence] || 0)
+    + Number(planning.descriptionQuality === "SPECIFIC") * 5
+    + Number(Boolean(place.officialUrl || planning.sourceUrl));
+}
 
 function categoryRepeatPenalty(place, selected, input) {
   const repeats = selected.filter((item) => item.category === place.category).length;
@@ -772,7 +808,9 @@ function inWestEndCore(place) {
 
 function bookingLabel(planning) {
   if (planning.bookingMode === "REQUIRED") return "Booking and hours: check official source";
-  if (["EVENT_ONLY", "APPOINTMENT_ONLY"].includes(planning.accessType)) return "Dates/times: check official source";
+  if (planning.accessType === "APPOINTMENT_ONLY") return "Appointment required: check official source";
+  if (planning.accessType === "EVENT_ONLY") return "Event dates/times: check official source";
+  if (planning.accessType === "CUSTOMER_ONLY") return "Customer or ticket-holder access: check official source";
   return "Opening times: check official source";
 }
 
