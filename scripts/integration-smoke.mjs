@@ -192,7 +192,9 @@ try {
     categoryPreferences: [{ category: "SHOPPING", strength: "PRIMARY", minStops: 2, maxStops: 6 }],
     experience: { semanticTerms: ["markets"], strictCategory: true, strictConcept: true },
     geoScopes: [{ day: 0, relation: "EAST_OF", label: "East London", radiusKm: 15,
-      center: { label: "Trafalgar Square", lat: 51.50845, lon: -0.12845 } }],
+      center: { label: "Trafalgar Square", lat: 51.50845, lon: -0.12845 } },
+    { day: 0, relation: "NORTH_OF", label: "East London", radiusKm: 15,
+      center: { label: "London Bridge", lat: 51.50788, lon: -0.08773 } }],
   };
   const eastSaturday = buildPlan(plannerPayload.places, { ...eastMarketIntent, startDate: "2026-10-10", pace: "balanced", transport: "mixed" });
   const eastSunday = buildPlan(plannerPayload.places, { ...eastMarketIntent, startDate: "2026-10-11", pace: "balanced", transport: "mixed" });

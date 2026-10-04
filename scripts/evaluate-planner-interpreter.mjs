@@ -53,6 +53,7 @@ const cases = [
       assert.equal(intent.primaryCategory, "SHOPPING"); assert.equal(intent.experience.strictConcept, true);
       assert.deepEqual(intent.preferredWeekdays, [6]);
       assert.ok(intent.geoScopes.some((scope) => scope.relation === "EAST_OF" && /East London/i.test(scope.label)));
+      assert.ok(intent.geoScopes.some((scope) => scope.relation === "NORTH_OF" && /East London/i.test(scope.label)));
     },
   },
   {
@@ -62,6 +63,7 @@ const cases = [
       assert.equal(intent.primaryCategory, "SHOPPING"); assert.equal(intent.experience.strictConcept, true);
       assert.deepEqual(intent.preferredWeekdays, [0]);
       assert.ok(intent.geoScopes.some((scope) => scope.relation === "EAST_OF" && /East London/i.test(scope.label)));
+      assert.ok(intent.geoScopes.some((scope) => scope.relation === "NORTH_OF" && /East London/i.test(scope.label)));
     },
   },
   {

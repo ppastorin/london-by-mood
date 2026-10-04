@@ -87,10 +87,12 @@ penalty and category-diversity penalty. The chosen stops are ordered by a simple
 nearest-neighbour pass.
 
 Broad areas such as East, West, North and South London are interpreted by the
-AI as directional geographic constraints around a stable central reference,
-not passed verbatim to the geocoder where they can be confused with a business
-or venue name. A narrow primary concept such as markets remains a hard concept
-filter, while singular/plural variants are matched generically.
+AI as compound directional geographic constraints around stable reference
+points, not passed verbatim to the geocoder where they can be confused with a
+business or venue name. Compound scopes prevent an East London request, for
+example, from leaking into places south of the Thames. A narrow primary concept
+such as markets remains a hard concept filter, while singular/plural variants
+are matched generically.
 
 Travel time is a conservative local estimate. Mixed mode uses walking for short
 legs and labels longer jumps as Tube/bus. Google Maps links are generated using

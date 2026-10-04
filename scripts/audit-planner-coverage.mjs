@@ -15,7 +15,7 @@ const by = (places, key) => Object.fromEntries([...groupBy(places, (place) => ke
 const duplicateGroups = [...groupBy(catalogue.places, (place) => `${normal(place.name)}|${Number(place.lat).toFixed(3)}|${Number(place.lon).toFixed(3)}`).values()]
   .filter((rows) => rows.length > 1).map((rows) => ({ name: rows[0].name, ids: rows.map((place) => place.id) }));
 const weekendMarkets = (day) => planner.places.filter((place) => place.category === "SHOPPING" && /\bmarket\b/i.test(`${place.name} ${place.description} ${place.hook}`)
-  && Number(place.lon) > -0.124 && (place.planning.openingPeriods.some((period) => Number(period.dayOfWeek) === day)
+  && Number(place.lon) > -0.1285 && Number(place.lat) > 51.5078 && (place.planning.openingPeriods.some((period) => Number(period.dayOfWeek) === day)
     || !["VERIFIED", "NOT_APPLICABLE"].includes(place.planning.hoursStatus)));
 
 const report = {
