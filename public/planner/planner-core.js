@@ -256,7 +256,7 @@ export function buildPlan(places, rawInput) {
   }
   const caveatedStops = days.flatMap((day) => day.stops).filter((stop) => stop.place.planning?.caveats?.length).length;
   if (caveatedStops) {
-    warnings.push(`${caveatedStops} ${caveatedStops === 1 ? "stop is" : "stops are"} included as provisional catalogue leads with explicit caveats.`);
+    warnings.push(`${caveatedStops} provisional catalogue ${caveatedStops === 1 ? "lead is" : "leads are"} included with explicit caveats.`);
   }
   return { days, warnings: unique(warnings), input, candidateCount: basePool.length };
 }
