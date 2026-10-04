@@ -2,6 +2,13 @@ const TABLES = Object.freeze({
   places: "id",
   place_time_affinity: "place_id",
   place_stations: "place_id, position",
+  place_sources: "source_id",
+  place_experiences: "id",
+  place_opening_periods: "period_id",
+  place_opening_exceptions: "exception_id",
+  place_review_issues: "issue_id",
+  enrichment_batches: "batch_code",
+  enrichment_batch_places: "batch_code, place_id",
 });
 
 export default {

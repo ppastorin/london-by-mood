@@ -23,6 +23,13 @@ test("Google Maps URL rejects a tenth stop", () => {
   assert.throws(() => buildGoogleMapsUrl({ start: { lat: 51.4, lon: -.2 }, end: { lat: 51.6, lon: 0 }, stops }), /up to 9/);
 });
 
+test("Google Maps URL supports an explicit transit mode", () => {
+  const url = new URL(buildGoogleMapsUrl({
+    start: { lat: 51.5, lon: -.2 }, end: { lat: 51.52, lon: -.1 }, travelMode: "transit",
+  }));
+  assert.equal(url.searchParams.get("travelmode"), "transit");
+});
+
 test("new selections are inserted in their natural route order", () => {
   const placesById = new Map([
     ["a", { id: "a", routePosition: 2 }],

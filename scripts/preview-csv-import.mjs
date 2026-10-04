@@ -8,8 +8,11 @@ if (!csvPath) throw new Error("Usage: node scripts/preview-csv-import.mjs /path/
 const mf = new Miniflare(convertV4MiniflareOptions({
   workers: [{
     name: "london-places-csv-preview",
-    modules: true,
-    scriptPath: "src/worker.js",
+    modules: [
+      { type: "ESModule", path: "src/worker.js" },
+      { type: "ESModule", path: "src/data-quality.js" },
+    ],
+    modulesRoot: ".",
     compatibilityDate: "2026-09-03",
     d1Databases: { DB: "london-advanced-places-csv-preview" },
     bindings: { ADMIN_TOKEN: "csv-preview-token" },
@@ -21,6 +24,7 @@ try {
   const db = await mf.getD1Database("DB", "london-places-csv-preview");
   await applySql(db, await readFile("migrations/0001_places.sql", "utf8"));
   await applySql(db, await readFile("migrations/0002_imports.sql", "utf8"));
+  await applySql(db, await readFile("migrations/0003_planner_data_foundation.sql", "utf8"));
   await applySql(db, await readFile("db/seed.sql", "utf8"));
   const csv = await readFile(csvPath, "utf8");
   const response = await mf.dispatchFetch("http://local.test/admin/api/imports/preview", {
@@ -47,6 +51,7 @@ async function applySql(db, source) {
 }
 
 function splitSql(source) {
+  source = source.replace(/^\s*--.*$/gm, "");
   const statements = [];
   let current = "", quoted = false;
   for (let index = 0; index < source.length; index += 1) {

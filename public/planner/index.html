@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>London Advanced · Planner prototype</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/planner/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="London Advanced home">
+      <span class="brand-mark">LA</span>
+      <span><strong>London Advanced</strong><small>Planner · Increment 1</small></span>
+    </a>
+    <span class="prototype-badge">Sandbox prototype</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Beyond the obvious</p>
+        <h1>Shape one or two good London days.</h1>
+        <p>Describe the kind of trip you want, then use a few controls to make dates and practical choices precise.</p>
+      </div>
+      <div class="hero-map" aria-hidden="true"></div>
+    </section>
+
+    <div class="workspace">
+      <form id="planner-form" class="planner-form">
+        <section class="form-section prompt-section">
+          <div class="section-heading">
+            <span>1</span><div><h2>What would make these days yours?</h2><p>A short request is enough. The controls below can carry the detail.</p></div>
+          </div>
+          <label class="sr-only" for="planner-prompt">Trip request</label>
+          <textarea id="planner-prompt" rows="5" placeholder="For example: Two full days, avoiding Piccadilly and Oxford Street. No big museums; I want parks and uncommon places."></textarea>
+          <div class="prompt-actions">
+            <button id="interpret-button" class="secondary-button" type="button">Use details from prompt</button>
+            <button id="example-button" class="text-button" type="button">Load detailed example</button>
+          </div>
+          <div id="prompt-insights" class="insight-list" aria-live="polite"></div>
+          <div id="clarification-panel" class="clarification-panel" hidden></div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-heading">
+            <span>2</span><div><h2>Set the practical frame</h2><p>These selections are authoritative if the prompt says something different.</p></div>
+          </div>
+          <div class="field-grid three">
+            <label>Days
+              <select id="days"><option value="1">One day</option><option value="2" selected>Two days</option></select>
+            </label>
+            <label>First date
+              <input id="start-date" type="date" required>
+            </label>
+            <label>Visitor profile
+              <select id="familiarity"><option value="returning" selected>Returning visitor</option><option value="first">First visit</option></select>
+            </label>
+          </div>
+          <div class="field-grid four">
+            <label>Start <input id="start-time" type="time" value="09:00"></label>
+            <label>Finish <input id="end-time" type="time" value="19:00"></label>
+            <label>Pace
+              <select id="pace"><option value="relaxed">Relaxed</option><option value="balanced" selected>Balanced</option><option value="full">Full</option></select>
+            </label>
+            <label>Getting around
+              <select id="transport"><option value="walking" selected>Mostly walk</option><option value="mixed">Walk + Tube</option><option value="transit">Public transport</option></select>
+            </label>
+          </div>
+          <div class="field-grid two">
+            <label>Day 1 area
+              <select id="area-1" class="area-select"></select>
+            </label>
+            <label id="area-2-label">Day 2 area
+              <select id="area-2" class="area-select"></select>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-heading">
+            <span>3</span><div><h2>Choose the character</h2><p>A mixed day is intentional; selections guide the balance rather than exclude everything else.</p></div>
+          </div>
+          <fieldset>
+            <legend>Prioritise</legend>
+            <div id="category-grid" class="choice-grid"></div>
+          </fieldset>
+          <div class="toggle-row">
+            <label><input id="avoid-core" type="checkbox"> Avoid the Piccadilly / Oxford Street core</label>
+            <label><input id="no-big-museums" type="checkbox"> Exclude large, high-traffic museums</label>
+          </div>
+          <div class="field-grid two">
+            <label>Must include <input id="must-haves" type="text" placeholder="Place names, separated by commas"></label>
+            <label>Leave out <input id="avoid-terms" type="text" placeholder="Areas or place names"></label>
+          </div>
+        </section>
+
+        <button id="generate-button" class="primary-button" type="submit"><span>Build my itinerary</span><small>One recommended plan · official-source checks</small></button>
+        <p class="form-note">No booking or opening-time claim is invented. Places with incomplete structured hours are visibly marked for checking.</p>
+      </form>
+
+      <section id="results-panel" class="results-panel" aria-live="polite">
+        <div class="empty-state">
+          <span class="empty-symbol">↗</span>
+          <h2>A plan that feels like London, not a checklist.</h2>
+          <p>Start with your request. The planner will group carefully curated places into coherent days and prepare a Google Maps route for each.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer><span>Increment 1 · sandbox only</span><span>Curated London Advanced data · no production deployment</span></footer>
+  <script type="module" src="/planner/app.js"></script>
+</body>
+</html>

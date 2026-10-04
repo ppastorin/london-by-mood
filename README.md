@@ -8,6 +8,7 @@ Nothing in this branch is configured for production. `wrangler.jsonc` intentiona
 
 - `/` — London by Mood, now reading `GET /api/pois` from D1.
 - `/smart-navigation/` — rebuilt Smart Navigator, with walking-route detours, live TfL cycle availability, and mobile Google Maps navigation through up to nine selected places.
+- `/planner/` — feature-flagged one-/two-day planner prototype. It is available only when `PLANNER_ENABLED=true` and is `noindex`/`no-store`.
 - `/admin/` — private place capture/editor prototype with draft, publish and archive states.
 - `migrations/0001_places.sql` — normalized D1 schema.
 - `migrations/0002_imports.sql` — durable source identities plus preview/commit batch imports.
@@ -16,6 +17,7 @@ Nothing in this branch is configured for production. `wrangler.jsonc` intentiona
 - `scripts/integration-smoke.mjs` — full D1/API create-edit-publish smoke test.
 - `scripts/preview-csv-import.mjs` — non-mutating local check of a complete My Maps CSV.
 - `docs/D1_MIGRATION_DESIGN.md` — recommendation, alternatives, cutover plan and operating model.
+- `docs/PLANNER_INCREMENT_1.md` — Increment 1 scope, guardrails, interpretation rules and known limits.
 
 The old `google-apps-script/` folder is retained only as a migration reference. It is no longer on the runtime path.
 
@@ -36,6 +38,7 @@ Open:
 - `http://localhost:8787/`
 - `http://localhost:8787/smart-navigation/`
 - `http://localhost:8787/admin/`
+- `http://localhost:8787/planner/` (use `wrangler.dev.jsonc`, where the sandbox flag is enabled)
 
 Use the same temporary token on the admin login screen. Put real secrets in `.dev.vars` or Cloudflare secrets; never commit them.
 

@@ -1,0 +1,29 @@
+{
+  "snapshotGeneratedAt": "2026-09-03T21:41:00.700Z",
+  "totalPlaces": 881,
+  "batches": [
+    {
+      "code": "BATCH-1",
+      "count": 118,
+      "summary": {
+        "officialCandidate": 91,
+        "missingSource": 8,
+        "nonOfficialSource": 19,
+        "specificDescription": 98,
+        "unclearAccess": 13
+      }
+    },
+    {
+      "code": "BATCH-2",
+      "count": 330,
+      "summary": {
+        "officialCandidate": 7,
+        "missingSource": 323,
+        "nonOfficialSource": 0,
+        "specificDescription": 174,
+        "unclearAccess": 26
+      }
+    }
+  ],
+  "combinedUniquePlaces": 448
+}

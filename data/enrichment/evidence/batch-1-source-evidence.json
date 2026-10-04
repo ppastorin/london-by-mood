@@ -1,0 +1,2475 @@
+{
+  "schemaVersion": 1,
+  "batchCode": "BATCH-1",
+  "generatedAt": "2026-10-03T10:24:04.561Z",
+  "complete": true,
+  "attempted": 92,
+  "checked": 92,
+  "ok": 77,
+  "blocked": 11,
+  "broken": 4,
+  "structuredHoursFound": 10,
+  "records": [
+    {
+      "id": "B1",
+      "name": "Trellick Tower",
+      "requestedUrl": "https://trellicktower.com/",
+      "finalUrl": "https://trellicktower.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:15.501Z",
+      "contentHash": "fcb6ab51f059cad12b9cc64a6114273bf8d5e658134c6dd8e18a1a14e643f809",
+      "title": "Trellick Tower",
+      "metaDescription": "Trellick Tower is an iconic and globally recognised symbol of West London architecture, culture, creativity and diversity.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B5",
+      "name": "Westminster Hall",
+      "requestedUrl": "https://tickets.parliament.uk/content/ticket-options",
+      "finalUrl": "https://tickets.parliament.uk/content/ticket-options",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:15.510Z",
+      "contentHash": "9871559e2b21cfcb14fe48873919167dcdd785bfc8b9d6632f2e3936383e0bd8",
+      "title": "UK Parliament Tickets",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B12",
+      "name": "Michelin House",
+      "requestedUrl": "https://historicengland.org.uk/listing/the-list/list-entry/1080656",
+      "finalUrl": "https://historicengland.org.uk/listing/the-list/list-entry/1080656",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:15.511Z",
+      "contentHash": "3d811bf7ab843d54af018ca78ad5d0e2bb3d149bf91694115af82637172c811a",
+      "title": "Michelin House the Main Part Facing the Fulham Road, Non Civil Parish - 1080656 | Historic England",
+      "metaDescription": "List entry 1080656. Grade II Listing: Michelin House the Main Part Facing the Fulham Road. May include summary, reasons for designation and history.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "P11",
+      "name": "Vauxhall City Farm",
+      "requestedUrl": "https://vauxhallcityfarm.org/",
+      "finalUrl": "https://vauxhallcityfarm.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:22.456Z",
+      "contentHash": "cb5ea034c7bd914c721c07b9687e0a6860d2618f507734a9c89a16120d837f6f",
+      "title": "Vauxhall City Farm",
+      "metaDescription": "Vauxhall City Farm is one of the oldest and most central city farms in London being located within earshot of Big Ben and in the shadow of MI6.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "V6",
+      "name": "Oxo Tower",
+      "requestedUrl": "https://oxotowerrestaurant.com/",
+      "finalUrl": "https://oxotowerrestaurant.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 202,
+      "checkedAt": "2026-10-03T10:21:22.768Z",
+      "contentHash": "e46f7ff9fbb179bef1631ba66bada2e5a38cc4dc54e274d5277867af86a47630",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A14",
+      "name": "Shepherd Market",
+      "requestedUrl": "https://www.shepherdmarket.com/",
+      "finalUrl": "https://www.shepherdmarket.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:22.974Z",
+      "contentHash": "52942d8a07fe45561bc5193aa2e8cc65c51a3da29db42342a7cae038a1f4f1a3",
+      "title": "Homepage - Shepherd Market",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B10",
+      "name": "Canonbury Tower",
+      "requestedUrl": "https://islingtonguidedwalks.com/old-walks/canonbury-tower-tours/",
+      "finalUrl": "https://islingtonguidedwalks.com/old-walks/canonbury-tower-tours/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 202,
+      "checkedAt": "2026-10-03T10:21:27.249Z",
+      "contentHash": "ed8329af9506324666a1e9092a408ddf34adb8b9d4d50d9936ba13f3b7333856",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B3",
+      "name": "St Bartholomew's North Wing",
+      "requestedUrl": "https://bartsnorthwing.org.uk/visit/",
+      "finalUrl": "https://bartsnorthwing.org.uk/visit/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:28.168Z",
+      "contentHash": "bbb90aadf809fc42c81e25462a2c5d32e19d96764ffb96c23425ab2c84973bc3",
+      "title": "Visit Barts North Wing – The Great Hall and Hogarth Stair",
+      "metaDescription": "Take a free tour of the Great Hall and Hogarth Stair at Barts North Wing in Smithfield for a fascinating day out in the City of London",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "restored interiors of one of the most impressive historic buildings in London. Opening Times Monday and Tuesday, 10am – 4pm First Sunday of the month, 10am – 4pm Seasonal opening We are open on Bank Holiday Mondays. We will be open the 22nd-23rd December and closed the 28th-29th December. Outside of our regular hours, we are open for special events (music, talks, tours, and more), see our What’s on page for more details. Things to see"
+      ],
+      "error": ""
+    },
+    {
+      "id": "V2",
+      "name": "Stave Hill",
+      "requestedUrl": "https://www.tcv.org.uk/london/urbanecology/urban-ecology-sites/stave-hill-ecological-park/",
+      "finalUrl": "https://www.tcv.org.uk/london/urbanecology/urban-ecology-sites/stave-hill-ecological-park/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:29.132Z",
+      "contentHash": "8fe45b6f160579498d61f257c3458ea70f806b6cafb0579d3215db57808fbb53",
+      "title": "Stave Hill Ecological Park | TCV",
+      "metaDescription": "Stave Hill Ecological Park is managed by TCV&#039;s Urban Ecology team as a nature reserve, educational facility, research area and place of recreation. The Park has been designed and managed to form a mosaic of grassland, woodland, scrub and wetland habitats which support a wide variety of wildlife. This mosaic&hellip;",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "V11",
+      "name": "Peter Jones & Partners",
+      "requestedUrl": "https://www.johnlewis.com/our-shops/peter-jones",
+      "finalUrl": "https://www.johnlewis.com/our-shops/peter-jones",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:31.989Z",
+      "contentHash": "ab5edb70214e8a65fe8b095decb0035ac9b53cfdb366a73dba4fcbc1aa7ab280",
+      "title": "Department Store in Sloane Square | Peter Jones & Partners",
+      "metaDescription": "Visit Peter Jones in Chelsea for stylish shopping, beauty treatments, and relaxing cafés. Join us for events and Click & Collect ease.",
+      "openingHours": [
+        {
+          "day": "Monday",
+          "opens": "10:00",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Friday",
+          "opens": "10:00",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Sunday",
+          "opens": "11:30",
+          "closes": "18:00",
+          "validFrom": "",
+          "validThrough": ""
+        }
+      ],
+      "openingTextCandidates": [
+        "ntre - if you wish to speak to an in-store Partner it's best to visit the shop. Opening times Facilities Directions Footer Tell us how we’re doing Your feedback helps us improve our website Leave feedback Be in the know Get inspiration, new arrivals and the latest offers Sign me up for emails Get the app Seamless shopping at your fingertips Help & Support Customer services Contact us Product support Price promise Buying guides Delivery"
+      ],
+      "error": ""
+    },
+    {
+      "id": "A16",
+      "name": "Walthamstow village",
+      "requestedUrl": "https://v17walthamstow.org/history",
+      "finalUrl": "https://v17walthamstow.org/history",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:33.191Z",
+      "contentHash": "d61033c24a03874d14881edfb6c5cce92ec80bf3c1b0fbfef7900743964f3858",
+      "title": "Walthamstow Village History &mdash; V17 Walthamstow Village Residents' Association",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B2",
+      "name": "Kenwood House",
+      "requestedUrl": "https://www.english-heritage.org.uk/visit/places/kenwood/",
+      "finalUrl": "https://www.english-heritage.org.uk/visit/places/kenwood/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:35.599Z",
+      "contentHash": "355440ad2293fb95fae7d7a9456cdf981badd6ad98de9720cf9b966e8d039395",
+      "title": "Kenwood | English Heritage",
+      "metaDescription": "This outstanding house beside Hampstead Heath was remodelled by Robert Adam between 1764 and 1779. He transformed the original brick building into a majestic villa for the great judge, Lord Mansfield.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "enwood Home Visit Places to Visit Kenwood More Pages Plan Your Visit Prices and Opening times Events History and Collections Group Visits School Visits Things to See and Do Hire Kenwood Photography Competition at Kenwood HeroCarouselBlock > index.cshtml --> House open daily 10am – 5pm (last entry at 4.30pm) See full prices and opening times Address Hampstead Lane, Hampstead, Greater London, NW3 7JR Book your free ticket to Kenwood Book",
+        "html --> House open daily 10am – 5pm (last entry at 4.30pm) See full prices and opening times Address Hampstead Lane, Hampstead, Greater London, NW3 7JR Book your free ticket to Kenwood Book your free ticket to Kenwood Book your free ticket to Kenwood On the edge of Hampstead Heath and surrounded by tranquil landscaped gardens, Kenwood is one of London's hidden gems. The breathtaking interiors and stunning world-class art collection, wh",
+        "d Photography Competition at Kenwood HeroCarouselBlock > index.cshtml --> House open daily 10am – 5pm (last entry at 4.30pm) See full prices and opening times Address Hampstead Lane, Hampstead, Greater London, NW3 7JR Book your free ticket to Kenwood Book your free ticket to Kenwood Book your free ticket to Kenwood On the edge of Hampstead Heath and surrounded by tranquil landscaped gardens, Kenwood is one of London's hidden gems. The b"
+      ],
+      "error": ""
+    },
+    {
+      "id": "LA-2D02CF27",
+      "name": "Syon House",
+      "requestedUrl": "https://syonpark.co.uk/visitor-information/",
+      "finalUrl": "https://syonpark.co.uk/visitor-information/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:36.358Z",
+      "contentHash": "9f177b255f1367371585bd85edc0b125ef237e517c9b4e50898270aad13945e1",
+      "title": "Visitor Information - Syon Park",
+      "metaDescription": "Syon Park opening times, tickets and pricing, group bookings, how to find us, accessibility, FAQS and contact us information.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "private events, and other considerations, so we reserve the right to change our opening hours at short notice. Am I able to make a group booking in advance? Yes, you can. Please note that it is essential that a group booking is made in advance by contacting info@syonpark.co.uk Are there society membership discounts? Are you part of National Trust, English Heritage? No, however we do have partnerships with the Historic Houses Association",
+        "Visitor Information - Syon Park YOUR VISIT VISITOR INFORMATION Opening Times Tickets &#038; Pricing Group Bookings How To Find Us Accessibility FAQs Contact Us SEE AND DO Syon House The Great Conservatory Gardens &#038; Arboretum Parkland &#038; Meadows Ecology &#038; Wildlife Other Activities EAT, SHOP &#038; STAY Visitor Centre Courtyard Restaurant Clocktower Café Wyndhams Butchers Hillier Garden Centre Lakeland Crane",
+        "ontact Us Properties To Let TICKETS BOOK TICKETS YOUR VISIT VISITOR INFORMATION Opening Times Tickets &#038; Pricing Group Bookings How To Find Us Accessibility FAQs Contact Us SEE &#038; DO Syon House The Great Conservatory Gardens &#038; Arboretum Parkland &#038; Meadows Ecology &#038; Wildlife Snakes &#038; Ladders EAT, SHOP &#038; STAY Visitor Centre Courtyard Restaurant Clocktower Café Wyndhams Butchers Hillier Garden Centre Crane",
+        "istory Syon House Contact Us Properties to Let BOOK TICKETS Visitor Information OPENING TIMES We look forward to welcoming you to Syon Park. Please click on the date below for your visit and it will show you the opening times for that day. TICKETS & PRICING Syon House, Gardens and Great Conservatory BOOK TICKETS ⋄ BOOK ONLINE AND SAVE ⋄ Daily Admission Prices Online On the Door During the season, the house is open on Mondays and Tuesday",
+        "on Park. Please click on the date below for your visit and it will show you the opening times for that day. TICKETS & PRICING Syon House, Gardens and Great Conservatory BOOK TICKETS ⋄ BOOK ONLINE AND SAVE ⋄ Daily Admission Prices Online On the Door During the season, the house is open on Mondays and Tuesdays for guided tours only, up to 90 minutes. First Tour 10.30am Last Tour 2.00pm Sundays and Bank Holidays for self-guided entry from"
+      ],
+      "error": ""
+    },
+    {
+      "id": "B8",
+      "name": "Wilton's Music Mall",
+      "requestedUrl": "https://wiltons.org.uk/visit-us/find-contact/",
+      "finalUrl": "https://wiltons.org.uk/visit-us/find-contact/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:36.876Z",
+      "contentHash": "dad03822ef2bfaa431b216c47d770d9312b67455b13dca5d583dbfba023860b8",
+      "title": "Find & Contact - Wilton&#039;s Music Hall",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "text] => ) ) [1] => Array ( [acf_fc_layout] => wysiwyg [tab_title] => [copy] => Opening Hours The bar is open from 5.30pm on days with performances and from 1pm on days with matinees. Please note the building is occasionally closed due to private hire. Well behaved dogs are welcome in our bars, but only assistance dogs are allowed into performances in the auditorium. For information on access and facilities please click here Find Your W",
+        "lton&#8217;s Music Hall, 1 Graces Alley (pedestrian access only) London, E1 8JB Opening Hours The bar is open from 5.30pm on days with performances and from 1pm on days with matinees. Please note the building is occasionally closed due to private hire. Well behaved dogs are welcome in our bars, but only assistance dogs are allowed into performances in the auditorium. For information on access and facilities please click here Find Your W"
+      ],
+      "error": ""
+    },
+    {
+      "id": "B9",
+      "name": "Ham House and Garden",
+      "requestedUrl": "https://www.nationaltrust.org.uk/visit/london/ham-house-and-garden",
+      "finalUrl": "https://www.nationaltrust.org.uk/visit/london/ham-house-and-garden",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:39.706Z",
+      "contentHash": "2a93c48bc1e46aa50513993f965e4465bca7aa885d03c38f41c492ae93fdb383",
+      "title": "Ham House and Garden | London | National Trust",
+      "metaDescription": "The National Trust’s Ham House is a rare and atmospheric 17th-century house on the River Thames in Richmond, London.",
+      "openingHours": [
+        {
+          "day": "Saturday",
+          "opens": "11:30",
+          "closes": "15:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Sunday",
+          "opens": "11:30",
+          "closes": "15:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Monday",
+          "opens": "11:30",
+          "closes": "15:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "11:30",
+          "closes": "15:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "11:30",
+          "closes": "15:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Thursday",
+          "opens": "11:30",
+          "closes": "15:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Friday",
+          "opens": "11:30",
+          "closes": "15:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Sunday",
+          "opens": "10:00",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Monday",
+          "opens": "10:00",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Friday",
+          "opens": "10:00",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "17:00",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Sunday",
+          "opens": "10:00",
+          "closes": "17:00",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Monday",
+          "opens": "10:00",
+          "closes": "17:00",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "17:00",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "17:00",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "17:00",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Friday",
+          "opens": "10:00",
+          "closes": "17:00",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:30",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Sunday",
+          "opens": "10:30",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Monday",
+          "opens": "10:30",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:30",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:30",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:30",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Friday",
+          "opens": "10:30",
+          "closes": "16:30",
+          "validFrom": "2026-10-03",
+          "validThrough": "2026-11-01"
+        },
+        {
+          "day": "Monday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-11-25"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-11-25"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-11-25"
+        },
+        {
+          "day": "Thursday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-11-25"
+        },
+        {
+          "day": "Friday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-11-25"
+        },
+        {
+          "day": "Monday",
+          "opens": "10:00",
+          "closes": "15:30",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "15:30",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "15:30",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "15:30",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Friday",
+          "opens": "10:00",
+          "closes": "15:30",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "15:30",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Sunday",
+          "opens": "10:00",
+          "closes": "15:30",
+          "validFrom": "2026-11-02",
+          "validThrough": "2026-12-31"
+        }
+      ],
+      "openingTextCandidates": [
+        "lection of decorative cabinets from 17 October to 1 November 2026, during house opening hours, 11.30–3.30. Article Christmas at Ham House and Garden Enjoy the festive season at Ham House and Garden from 28 November 2026 to 3 January 2027. For Christmas 2026, we invite you to The Robin&#x27;s Tale, inspired by a newly conserved lacquer screen. Follow our jolly robin as he flies from room to room on as adventure to reunite the phoenix wit",
+        "unique 17th-century treasure trove Ham Street, Ham, Richmond, Surrey, TW10 7RS Opening times Prices See on map The North front and forecourt of Ham House, Surrey | © National Trust Images/Chris Davies Important notice Local parking is limited due to an event within the area (3 October 2026). Visitor information Things to see and do About Ham House and Garden Opening times October 2026 November 2026 December 2026 M T W T F S S 1 2 3 4 5",
+        "ober 2026). Visitor information Things to see and do About Ham House and Garden Opening times October 2026 November 2026 December 2026 M T W T F S S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Open Closed Opening times for 3 October 2026 Asset Opening time House 11:30 - 15:30 Coffee shop 10:00 - 16:30 Garden 10:00 - 17:00 Shop 10:30 - 16:30 Second-hand bookshop 10:00 - 16:30 Last entry is 30 minut",
+        "9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Open Closed Opening times for 3 October 2026 Asset Opening time House 11:30 - 15:30 Coffee shop 10:00 - 16:30 Garden 10:00 - 17:00 Shop 10:30 - 16:30 Second-hand bookshop 10:00 - 16:30 Last entry is 30 minutes before closing and last orders are 10 minutes before the coffee shop closes. Prices Free entry for National Trust members. Under 5s free. A valid membership card",
+        "2 23 24 25 26 27 28 29 30 31 Open Closed Opening times for 3 October 2026 Asset Opening time House 11:30 - 15:30 Coffee shop 10:00 - 16:30 Garden 10:00 - 17:00 Shop 10:30 - 16:30 Second-hand bookshop 10:00 - 16:30 Last entry is 30 minutes before closing and last orders are 10 minutes before the coffee shop closes. Prices Free entry for National Trust members. Under 5s free. A valid membership card or entry ticket is required for entry."
+      ],
+      "error": ""
+    },
+    {
+      "id": "P7",
+      "name": "Morden Hall Park",
+      "requestedUrl": "https://www.nationaltrust.org.uk/visit/london/morden-hall-park",
+      "finalUrl": "https://www.nationaltrust.org.uk/visit/london/morden-hall-park",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:41.224Z",
+      "contentHash": "2eb5cc817a00042286d59535aca54a1dab67e541e76fefac4f3836140d6a6e42",
+      "title": "Morden Hall Park | London | National Trust",
+      "metaDescription": "Explore the former deer park that runs along the River Wandle at the National Trust&#x27;s Morden Hall Park in London.",
+      "openingHours": [
+        {
+          "day": "Wednesday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Thursday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Friday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Saturday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Sunday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Monday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "",
+          "closes": "",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "09:00",
+          "closes": "18:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Thursday",
+          "opens": "09:00",
+          "closes": "18:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Friday",
+          "opens": "09:00",
+          "closes": "18:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Saturday",
+          "opens": "09:00",
+          "closes": "18:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Sunday",
+          "opens": "09:00",
+          "closes": "18:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Monday",
+          "opens": "09:00",
+          "closes": "18:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "09:00",
+          "closes": "18:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-30"
+        },
+        {
+          "day": "Thursday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-30"
+        },
+        {
+          "day": "Friday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-30"
+        },
+        {
+          "day": "Saturday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-30"
+        },
+        {
+          "day": "Monday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-30"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-30"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Thursday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Friday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Saturday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Sunday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Monday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "09:00",
+          "closes": "17:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-09-30"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Friday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Sunday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Monday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-23",
+          "validThrough": "2026-12-31"
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-26",
+          "validThrough": "2026-12-27"
+        },
+        {
+          "day": "Sunday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-26",
+          "validThrough": "2026-12-27"
+        },
+        {
+          "day": "Monday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-26",
+          "validThrough": "2026-12-27"
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-26",
+          "validThrough": "2026-12-27"
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-26",
+          "validThrough": "2026-12-27"
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "15:00",
+          "validFrom": "2026-09-26",
+          "validThrough": "2026-12-27"
+        }
+      ],
+      "openingTextCandidates": [
+        "e city at the heart of the community. Morden Hall Road, Morden, London, SM4 5JD Opening times See on map Snuff Mill and the River Wandle in Morden Hall Park | © National Trust Images/Andrew Butler Visitor information Things to see and do About Morden Hall Park Opening times October 2026 November 2026 December 2026 M T W T F S S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Open Closed Opening times",
+        "s/Andrew Butler Visitor information Things to see and do About Morden Hall Park Opening times October 2026 November 2026 December 2026 M T W T F S S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Open Closed Opening times for 3 October 2026 Asset Opening time Parkland Open all day Car Park 09:00 - 17:00 Garden centre 09:00 - 17:00 Potting Shed Café 09:00 - 16:00 Rose garden 09:00 - 17:00 Second-hand",
+        "9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Open Closed Opening times for 3 October 2026 Asset Opening time Parkland Open all day Car Park 09:00 - 17:00 Garden centre 09:00 - 17:00 Potting Shed Café 09:00 - 16:00 Rose garden 09:00 - 17:00 Second-hand bookshop 10:00 - 15:00 Stableyard café 10:00 - 15:00 Last orders in the Stableyard cafe are taken 15 minutes before closing time. All park toilets are locked 30 minu",
+        "2 23 24 25 26 27 28 29 30 31 Open Closed Opening times for 3 October 2026 Asset Opening time Parkland Open all day Car Park 09:00 - 17:00 Garden centre 09:00 - 17:00 Potting Shed Café 09:00 - 16:00 Rose garden 09:00 - 17:00 Second-hand bookshop 10:00 - 15:00 Stableyard café 10:00 - 15:00 Last orders in the Stableyard cafe are taken 15 minutes before closing time. All park toilets are locked 30 minutes before closing time. Facilities Boo",
+        "efore closing time. Facilities Bookshop Second-hand bookshop in the Stableyard, open daily 10.00am-3.00pm. For large donations, please email: mhpbookshop@nationaltrust.org.uk Café Potting Shed Café with indoor and outdoor seating. Stableyard Café open weekend and during school holidays only. Car park Limited Pay & Display Car Park. First 1.5 hours are free, beyond that there is an hourly charge. JustPark: location code 80629 (or call 07",
+        "onal Trust&#x27;s only garden centre has an extensive outdoor plant sales area. Open daily 9am-5pm. (Closed 25, 26 December, 1 January and Easter Sunday). Shop The National Trust&#x27;s only garden centre stocking gifts, local products and gardening accessories. Open daily, 9am-5pm (Closed 25, 26 December, 1 January and Easter Sunday). Toilet Toilets and baby changing facilities are located in the Stableyard, Snuff Mill, Garden Centre a",
+        ";s only garden centre stocking gifts, local products and gardening accessories. Open daily, 9am-5pm (Closed 25, 26 December, 1 January and Easter Sunday). Toilet Toilets and baby changing facilities are located in the Stableyard, Snuff Mill, Garden Centre and Potting Shed Café. Accessible toilet located in the Snuff Mill, Garden Centre and Potting Shed Café. All toilets have automatic hand driers. All park toilets are locked 30 minutes",
+        "ributes to vital maintenance and conservation work in the park. The bookshop is open daily from 10am to 3pm. Small donations can be accepted at the bookshop. Follow the link for details regarding larger donations. Article The Garden Centre at Morden Hall Park Shop for plants, seeds, pots, gardening equipment, toys and games, gifts and homewares at the National Trust’s first garden centre, with all profits supporting our work. Article Ga"
+      ],
+      "error": ""
+    },
+    {
+      "id": "P2",
+      "name": "Chiswick House and Gardens",
+      "requestedUrl": "https://chiswickhouseandgardens.org.uk/",
+      "finalUrl": "https://chiswickhouseandgardens.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:42.302Z",
+      "contentHash": "b761dcbd163d57133cc1df2a98bb347a65acd7c45edfcaa3ebf97fea7c2620fc",
+      "title": "Chiswick House & Gardens",
+      "metaDescription": "Discover Lord Burlington&#039;s 18th century villa with classical landscapes and 65 acres of gardens in West London.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "What’s On Book a school visit Support us Menu Support us Close Plan your visit Opening times and tickets Getting here Eat, drink, shop Visit Chiswick House Visit the Kitchen Garden Group visits and tours Visiting with kids Access Dogs What’s On Community &#038; Schools The Learning Hub &#038; Yard Book a School Visit Our Community Programme Black Chiswick through History Artists’ Studios Biodiversity &#038; Nature Biodiversity &#038; N",
+        "roam and teeming with nature, stories and activities. Scroll to discover Garden Opening Times Open every day, 7am to dusk Growing Together Our thriving community programme, centred in our beautiful Kitchen Garden, helps people come together to explore nature, create art, and learn together about growing flowers and food. Together, we can help tackle problems like poor mental and physical health, loneliness and limited access to green sp"
+      ],
+      "error": ""
+    },
+    {
+      "id": "P12",
+      "name": "Clissold Park",
+      "requestedUrl": "https://hackney.gov.uk/clissold-park",
+      "finalUrl": "https://hackney.gov.uk/clissold-park",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "BROKEN",
+      "httpStatus": null,
+      "checkedAt": "2026-10-03T10:21:45.461Z",
+      "contentHash": "",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": "The operation was aborted due to timeout"
+    },
+    {
+      "id": "R12",
+      "name": "St Stephen Walbrook",
+      "requestedUrl": "https://www.ststephenwalbrook.net/",
+      "finalUrl": "https://www.ststephenwalbrook.net/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:45.706Z",
+      "contentHash": "77e325cd2f34b0073d91f7a89738c690448fe079ca283ba848e839f259fdf29c",
+      "title": "Home",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "V7",
+      "name": "One Tree Hill",
+      "requestedUrl": "https://www.royalparks.org.uk/get-in-touch/media-centre/news-press-releases/enhancing-historic-viewpoint-one-tree-hill",
+      "finalUrl": "https://www.royalparks.org.uk/get-in-touch/media-centre/news-press-releases/enhancing-historic-viewpoint-one-tree-hill",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:47.079Z",
+      "contentHash": "fc0f899d3bda6aeb8cf965d659e124057f3f8cc705eb25b6dc1f8eb7613c32e5",
+      "title": "Enhancing the historic viewpoint at One Tree Hill | The Royal Parks",
+      "metaDescription": "We are delivering an exciting project to improve access to One Tree Hill and enhance the seating area.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "V8",
+      "name": "Sawyer's Hill",
+      "requestedUrl": "https://www.richmondparklondon.co.uk/walks/bestviewpoints.html",
+      "finalUrl": "https://www.richmondparklondon.co.uk/walks/bestviewpoints.html",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:50.388Z",
+      "contentHash": "9d9bfd0013b74c1eadd79d31b45876c1f9abe311e25e8f77f0b86cba02d5ebdd",
+      "title": "Walk to the best viewpoints in Richmond Park, London",
+      "metaDescription": "Walking route to the best views in Richmond Park, London. A walk taking in the best viewpoints around Richmond Park.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "V12",
+      "name": "Ce' la vi rooftop",
+      "requestedUrl": "https://ldn.celavi.com/",
+      "finalUrl": "https://ldn.celavi.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:52.262Z",
+      "contentHash": "18dccb690814eb0cf6628ef49472edb3fefb466c45a9c56d49a280fb0917cb25",
+      "title": "Rooftop Bar & Restaurant in Paddington, London | CÉ LA VI",
+      "metaDescription": "Savour iconic views & modern Asian rooftop dining at CÉ LA VI London, a vibrant restaurant & bar in Paddington perfect for an elevated rooftop lunch or dinner.",
+      "openingHours": [
+        {
+          "day": "Monday",
+          "opens": "12:00",
+          "closes": "00:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Tuesday",
+          "opens": "12:00",
+          "closes": "00:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Sunday",
+          "opens": "12:00",
+          "closes": "00:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Wednesday",
+          "opens": "12:00",
+          "closes": "00:30",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Thursday",
+          "opens": "12:00",
+          "closes": "01:30",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Friday",
+          "opens": "12:00",
+          "closes": "01:30",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Saturday",
+          "opens": "12:00",
+          "closes": "01:30",
+          "validFrom": "",
+          "validThrough": ""
+        }
+      ],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B6",
+      "name": "Severndroog Castle",
+      "requestedUrl": "https://severndroogcastle.org.uk/visit/",
+      "finalUrl": "https://severndroogcastle.org.uk/visit/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:54.390Z",
+      "contentHash": "f86fb267b4723bdcd9b5c21e2e694080719fa30b0c7261c36a56afcb49abdde8",
+      "title": "Plan Your Visit | Severndroog Castle",
+      "metaDescription": "Everything you need to plan your visit to Severndroog Castle: opening times, access information, and visitor FAQs.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "e, planning your visit to Severndroog Castle is easy and rewarding. get tickets opening times Tea Room : Thu – Sun | 9.00am &#8211; 3.30pm Viewing Platform and Galleries : Sunday | 10.00am &#8211; 3.00pm (last entry 2.45pm) Tea room A delightful café experience within the Castle’s historic walls. Click the link below learn more Tea room VIEWING PLATFORM Enjoy spectacular panoramic views across London and seven surrounding counties from",
+        "he castle’s viewing platform, perched high above the trees The Viewing Platform opening times Tea Room : Thu – Sun | 9.00am &#8211; 3.30pm Viewing Platform and Galleries : Sunday | 10.00am &#8211; 3.00pm (last entry 2.45pm) tea room A delightful café experience within the Castle’s historic walls. Click the link below to learn more tea Room viewing Platform Enjoy spectacular panoramic views across London and seven surrounding counties fr"
+      ],
+      "error": ""
+    },
+    {
+      "id": "P10",
+      "name": "Stepney City Farm",
+      "requestedUrl": "https://stepneycityfarm.org/",
+      "finalUrl": "https://stepneycityfarm.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:57.090Z",
+      "contentHash": "d19d93915756fc6f47937de8b95a74aafc1ccad898ff4b5e7023f147075a4ab2",
+      "title": "About - Stepney City Farm - Meet Farm Animals and Grow Food",
+      "metaDescription": "Stepney City Farm is a 4.5 acre working farm; a rural oasis in the heart of Tower Hamlets. We offer the chance to meet farm animals and learn how to grow food",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A5",
+      "name": "Mount Street Gardens",
+      "requestedUrl": "https://naturesacred.org/sacred_place/mount-street-gardens/",
+      "finalUrl": "https://naturesacred.org/sacred_place/mount-street-gardens/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:21:58.745Z",
+      "contentHash": "8e88550b598a7d5e108ff572247c565932b4da95e1ef6f4fec521e24a2708be9",
+      "title": "Mount Street Gardens - Nature Sacred",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A15",
+      "name": "Princelet st",
+      "requestedUrl": "https://www.thespitalfieldstrust.com/",
+      "finalUrl": "https://www.thespitalfieldstrust.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:00.463Z",
+      "contentHash": "56a4df4c6ea5e5e6e2e702ca67f1d0852a08146ef9416b974895655a1b3946ef",
+      "title": "The Spitalfields Trust",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A2",
+      "name": "Coloured Houses",
+      "requestedUrl": "https://www.hillgatevillage.com/the-facts",
+      "finalUrl": "https://www.hillgatevillage.com/the-facts",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:01.971Z",
+      "contentHash": "ac70504e85eb9926d2faf36b319cbdf7ead64288fb9e23d2f9bc4676d6aeb15d",
+      "title": "History of Hillgate Village &mdash; Hillgate Village",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A8",
+      "name": "Roupell Street",
+      "requestedUrl": "https://www.lera.org.uk/",
+      "finalUrl": "https://www.lera.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:03.987Z",
+      "contentHash": "eb32a8f9a9453e6a74f017dcb4b62d8e227f590de776d957aa8d7c0ab07e626f",
+      "title": "Roupell Street Conservation Area &#8211; Lambeth Estate Residents Association",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B11",
+      "name": "Boston Manor House",
+      "requestedUrl": "https://bostonmanorhouse.org/visit-us/",
+      "finalUrl": "https://bostonmanorhouse.org/visit-us/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:04.520Z",
+      "contentHash": "16f9ab677c96b3c65fcea1ceed7174aab21b30d9b6d2a144590b89aff4a8d53f",
+      "title": "Visit us - Boston Manor House",
+      "metaDescription": "Opening times Boston Manor House is open to the public all year round from noon until 5 pm. Entry to the House is Free. Seasonal Opening The House is closed on Good Friday & Easter Sunday as well as December 24–26 & January 1. We will also be open on&hellip;",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "ase note: Card payments only. Café The Manor Kitchen is now open as usual. Cafe Opening Hours: Monday Closed Tuesday &#8211; Saturday 10:30 &#8211; 16:00 Sunday 10:30 &#8211; 16:00 Menu Boston Manor Park Boston Manor Park is the largest green open space in Brentford with 34 acres of historic park, woodland, lake and meadow and is the setting for the fantastic Grade I listed Boston Manor House. The beautiful grounds gently slope down to",
+        "ccessibility options Search Search for: Search &times; Home / Visit us Visit us Opening times Boston Manor House is open to the public all year round from noon until 5 pm. Entry to the House is Free. Monday Closed Tuesday &#8211; Sunday 12 pm &#8211; 5 pm Bank Holiday Mondays 12 pm &#8211; 5 pm Seasonal Opening The House is closed on Good Friday & Easter Sunday as well as December 24–26 & January 1. We will also be open on all Bank Holi",
+        "oston Manor House Boston Manor Rd, Brentford TW8 9JX Find us on Google Maps Our opening times    what3words gather.royal.chef Email bostonmanorhouse@hounslow.gov.uk Privacy policy Accessibility statement Accessing this website &copy; 2026 London Borough of Hounslow. Website built by Surface Impression . These options can change the way this website looks, which may help you to use it more easily. Accessibility options   Display contrast"
+      ],
+      "error": ""
+    },
+    {
+      "id": "P5",
+      "name": "The Rookery Gardens",
+      "requestedUrl": "https://www.lambeth.gov.uk/parks/rookery-streatham",
+      "finalUrl": "https://www.lambeth.gov.uk/parks/rookery-streatham",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 403,
+      "checkedAt": "2026-10-03T10:22:06.289Z",
+      "contentHash": "93c24f424a903a16f849461362ad657618eb2c1e913ee65ac7fc29904818a232",
+      "title": "ERROR: The request could not be satisfied",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "R1",
+      "name": "Brompton Cemetery",
+      "requestedUrl": "https://www.royalparks.org.uk/visit/parks/brompton-cemetery",
+      "finalUrl": "https://www.royalparks.org.uk/visit/parks/brompton-cemetery",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:09.002Z",
+      "contentHash": "95d036d2d7acf1bb1b271621b6748e38bcfd22c893a7ddba534b8adcf9223846",
+      "title": "Brompton Cemetery | The Royal Parks",
+      "metaDescription": "The Grade I listed Brompton Cemetery in West London is the well-loved resting place of over 200,000 people and a haven for wildlife.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "R8",
+      "name": "Nunhead Cemetery",
+      "requestedUrl": "https://www.fonc.org.uk/",
+      "finalUrl": "https://www.nunheadcemetery.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "REDIRECTED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:10.033Z",
+      "contentHash": "ff14c73e5dd8feeadbb58a8a761fe428a9187c96076215f903601fce17faaf8d",
+      "title": "Welcome to Nunhead Cemetery",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "Road gate – all are less than 10 minutes walk to the respective cemetery gates. Opening Times The cemetery is open to the public daily (including weekends). November to March: 8.30am–4.00pm March: 8.30am–5.00pm April to September: 8.30am–7.00pm October: 8.30am–5.00pm Please note these times are subject to alteration. Guided Tours Tours are free to join, and booking is not required (unless stated). Sun 11 October, 2.15pm: Crypt & Chapel"
+      ],
+      "error": ""
+    },
+    {
+      "id": "V3",
+      "name": "King Henry's Mound",
+      "requestedUrl": "https://www.royalparks.org.uk/visit/parks/richmond-park/king-henrys-mound",
+      "finalUrl": "https://www.royalparks.org.uk/visit/parks/richmond-park/king-henrys-mound",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:10.302Z",
+      "contentHash": "0ee5c7a899c392d73ef74b44ebe6ae6fb666c308d6299dbc91e0e11343186562",
+      "title": "King Henry&#039;s Mound | The Royal Parks",
+      "metaDescription": "King Henry’s Mound is believed to be a pre-historic burial chamber and offers panoramic views of the Thames Valley and St. Paul’s Cathedral. Find out more.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "P3",
+      "name": "Isabella Plantation",
+      "requestedUrl": "https://www.royalparks.org.uk/visit/parks/richmond-park/isabella-plantation",
+      "finalUrl": "https://www.royalparks.org.uk/visit/parks/richmond-park/isabella-plantation",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:12.993Z",
+      "contentHash": "daa4fecfaa666e7d393f7ea92418cc4a0a1b5c0c1bb21771ec9063345815c298",
+      "title": "Isabella Plantation | The Royal Parks",
+      "metaDescription": "The Isabella Plantation is a 40 acre woodland garden set within a Victorian woodland plantation planted in the 1830s. Find out more.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "the Isabella Plantation History of the Isabella Plantation Visitor information Opening hours The Isabella Plantation is open all year round (see Richmond Park opening hours) with the exception of a small number of early closures during April/May. There are two toilet blocks within the garden, one near Still Pond, and one by Peg's Pond gate. The toilet at Still Pond is open between April and November, the toilet at Peg's Pond gate is op",
+        "Opening hours The Isabella Plantation is open all year round (see Richmond Park opening hours) with the exception of a small number of early closures during April/May. There are two toilet blocks within the garden, one near Still Pond, and one by Peg's Pond gate. The toilet at Still Pond is open between April and November, the toilet at Peg's Pond gate is open year round. Both have wheelchair accessible cubicles. There is a baby change"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R3",
+      "name": "Greek Orthodox Cathedral of the Divine Wisdom",
+      "requestedUrl": "https://www.stsophia.org.uk/",
+      "finalUrl": "https://www.stsophia.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:13.072Z",
+      "contentHash": "2d33969ae03e21b43ab000dc5f7cb5d579c8a492ea9ce8616503c058a2374e6f",
+      "title": "St. Sophia’s Greek Orthodox Cathedral",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "Sunday Eucharist 9.15am – 12.15pm Saturday Vespers 5.30pm &#8211; 6.15pm Daily Opening Hour s 10am &#8211; 2pm Mondays, Tuesdays, Thursdays & Fridays Wednesday afternoons for the Holy Supplication (see monthly schedule) English Liturgy The First and Third Saturday of each month 10am-11am With Fellowship and Refreshments in the Crypt After the Service (unless otherwise stated). Next English Liturgy : Saturday 3rd October Coffee and Refr",
+        "the Crypt: Sunday 13 September Please check our monthly schedule for Cathedral opening times For information and guidance on Baptisms, Weddings and Memorial Services Copyright © 2026. St. Sophia&#8217;s Greek Orthodox Cathedral. All Rights Reserved. THE GREEK CATHEDRAL TRUST FUND. Charity Registered in England & Wales No. 265710. St. Sophia&#8217;s Greek Orthodox Cathedral, Moscow Road, Bayswater, London W2 4LQ. Please contact Toroyo f"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R4",
+      "name": "Buddhapadipa Temple",
+      "requestedUrl": "https://buddhapadipa.com/",
+      "finalUrl": "https://buddhapadipa.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:13.428Z",
+      "contentHash": "ae3dc1f456104f4dd25cb4fafd448916d44675c8c9ebb29d335fb60c7e98552a",
+      "title": "THE BUDDHAPADIPA TEMPLE LONDON UNITED KINGDOM",
+      "metaDescription": "The Buddhapadipa Temple London United Kingdom - Official Website",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A4",
+      "name": "Parkland Walk",
+      "requestedUrl": "https://www.parkland-walk.org.uk/",
+      "finalUrl": "https://www.parkland-walk.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:16.951Z",
+      "contentHash": "c71ff4aea733f695fda393eb5eb91febeba67c7075a15aad37e4728d4ea3a3ff",
+      "title": "FRIENDS OF THE PARKLAND WALK &#8211; A site all about the Parkland Walk",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A13",
+      "name": "Original site of the Globe Theatre",
+      "requestedUrl": "https://www.shakespearesglobe.com/discover/shakespeares-world/the-globe/",
+      "finalUrl": "https://www.shakespearesglobe.com/discover/shakespeares-world/the-globe/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:18.103Z",
+      "contentHash": "09ee819d754300d08c82f06ac542df658a6ffe483e9b0542364848208feda178",
+      "title": "The Globe | Shakespeare&#039;s Globe",
+      "metaDescription": "Many of Shakespeare&#039;s plays were first performed at the Globe, although his plays were performed at other theatres and many playwrights wrote for the Globe.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "e It 4 - 25 October 2026 SEE MORE EVENTS VISIT  &ndash;  Plan your visit Access OPENING HOURS Food & Drink Getting here GROUPS FAMILIES WATCH  &ndash;  Stream Shakespeare plays online DISCOVER  &ndash;  Explore Shakespeare and our theatres BLOGS & FEATURES SHAKESPEARE'S PLAYS ABOUT US JOBS & OPPORTUNITIES GLOBE THEATRE SAM WANAMAKER PLAYHOUSE LEARN  &ndash;  Courses, resources and educational visits for all ages Courses Primary Schools"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R6",
+      "name": "Ukrainian Catholic Cathedral",
+      "requestedUrl": "https://parish.rcdow.org.uk/ukrainianchurch/about-the-parish/",
+      "finalUrl": "https://parish.rcdow.org.uk/ukrainianchurch/about-the-parish/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:21.251Z",
+      "contentHash": "469e48ce8709352e795dc45b881fd947ae548b1f7e58ba8da9b200d3a45db47a",
+      "title": "About the Parish &#8211; Roman Catholic Parish of Ukrainian Cathedral",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "S7",
+      "name": "Victoria Park Market",
+      "requestedUrl": "https://victoriaparkmarket.com/",
+      "finalUrl": "https://victoriaparkmarket.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:22.781Z",
+      "contentHash": "a4389dddb08f8293fe8e3a2a71172daf7c58fdf046aa34d6c27543ebc49ca78f",
+      "title": "VICTORIA PARK MARKET",
+      "metaDescription": "",
+      "openingHours": [
+        {
+          "raw": ", , , , , , Su 10:00-15:00"
+        }
+      ],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "S6",
+      "name": "Shepherd's Bush Market",
+      "requestedUrl": "https://shepherdsbushmarket.org/",
+      "finalUrl": "https://shepherdsbushmarket.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:23.457Z",
+      "contentHash": "0d125cbb2124c9835d363bd45dacf3a130cd918ba6e9c074bb6b4c3b03c42d6f",
+      "title": "Shepherd&#039;s Bush Market - Homepage - 110 Years of History : Shepherd&#039;s Bush Market",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "S Plan your visit Trader directory About us Contact us The Future Apply to Film OPENING TIMES Mon, Tue, Wed Thur, Fri, Sat: 9am–6pm See hours for individual shops FOLLOW US Instagram Twitter Facebook ©2026 YC SHEPHERDS BUSH (MARKET) LTD PRIVACY POLICY TERMS SITE CREDIT INFO@SHEPHERDSBUSHMARKET.ORG Stay up-to-date on our latest news and insights. Sign up for our newsletter and join our community today! Subscribe &#x2715; Add a new locati"
+      ],
+      "error": ""
+    },
+    {
+      "id": "S2",
+      "name": "Japan House",
+      "requestedUrl": "https://www.japanhouselondon.uk/",
+      "finalUrl": "https://www.japanhouselondon.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:25.377Z",
+      "contentHash": "12d3f4b546cd00c9c96bf4df2d23858eb26ceece1a6efb762e97f528e6407bb5",
+      "title": "Japan House London &#8211; The Cultural Home of Japan in London",
+      "metaDescription": "Visit the cultural home of Japan on Kensington High Street, with free exhibitions and events featuring the very best of Japanese art, design, food and technology.",
+      "openingHours": [
+        {
+          "day": "Monday",
+          "opens": "10:00",
+          "closes": "20:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "20:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "20:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "20:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Friday",
+          "opens": "10:00",
+          "closes": "20:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "20:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Sunday",
+          "opens": "12:00",
+          "closes": "18:00",
+          "validFrom": "",
+          "validThrough": ""
+        }
+      ],
+      "openingTextCandidates": [
+        "rink About Us Support Us Address 101-111 Kensington High Street, London, W8 5SA Opening hours Monday to Saturday: 10:00–20:00 Sundays & Bank Holidays: 12:00–18:00 Admission is free A small number of events require a participation fee Get Directions Plan your visit What&#039;s On Browse our exciting exhibitions and events programme, including talks, workshops and film screenings Kyotographie: Kawada Kikuji x Iwane Ai: Read more Tradition",
+        "ess Area Venue Hire Jobs Address 101-111 Kensington High Street, London, W8 5SA Opening hours Monday to Saturday: 10:00–20:00 Sundays & Bank Holidays: 12:00–18:00 Contact us Visit Instagram Facebook Threads YouTube LinkedIn Japan São Paulo Los Angeles Privacy Policy Terms & Conditions Accessibility Cookie Policy © Japan House London Cookie Preferences"
+      ],
+      "error": ""
+    },
+    {
+      "id": "B7",
+      "name": "London Scottish House",
+      "requestedUrl": "https://www.londonscottishhouse.org/museum",
+      "finalUrl": "https://www.londonscottishhouse.org/museum",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:27.522Z",
+      "contentHash": "83de10cd327039e36d350fb646e58b7b3cd9a17f53bfb152f00def23f9ea645d",
+      "title": "Museum - London Scottish House",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "V1",
+      "name": "Alexandra Palace",
+      "requestedUrl": "https://www.alexandrapalace.com/",
+      "finalUrl": "https://www.alexandrapalace.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:28.285Z",
+      "contentHash": "e496c637c4209874d8b82b209d2a63102be58049930558c385a31a02808b52cd",
+      "title": "Forever Yours Ally Pally x Fun For All The Family",
+      "metaDescription": "Enjoy a fantastic day out with panoramic views of London or an extraordinary event in our iconic venue. It&#039;s Your Ally Pally, Discover It Today.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "Search What are you looking for? Close Search: Search You might be looking for… OPENING HOURS PARKING SPORT LIVE EVENTS BLOG Top results All results Alexandra Palace Home Page FIREWORKS & DRONE FESTIVAL Book Now Play video Whatever next? See all events for kids 3 Oct - 5 Dec 2026 Palace Performing Arts Info & Tickets 8 - 11 Oct 2026 Knit + Stitch Info & Tickets free 10 - 11 Oct 2026 Open Studios Info & Tickets 16 - 18 Oct 2026 Vegan Lif",
+        "ly --> Skip to content What’s on Visit Visitor Information Get Here Car Parking Opening Times Accessible Ticketing Accessibility Security Accommodation Attractions Summit Go Ape Boating Lake Things to do All Activities Upgrade Your Visit Book now Theatre What’s On Food &#038; Drink The Story FAQs The Ice Rink Book a Skate Learn to Skate What’s On Ice Hockey East Court Find Out More The Park Explore Outdoor Summer Season Food And Drink A",
+        "sletter Sign Up Search What’s on Visit Visitor Information Get Here Car Parking Opening Times Accessible Ticketing Accessibility Security Upgrade your visit Accommodation The Ice Rink Book a Skate Learn to Skate Ice Hockey What’s On Attractions Summit Go Ape Boating Lake Things to do All activities Theatre What’s on Food &#038; Drink The Story FAQs East Court Find out more The Park Explore Summer Season Food And Drink All Venues Phoenix"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R5",
+      "name": "St Pancras Old Church",
+      "requestedUrl": "https://stpancrasoldchurch.posp.co.uk/",
+      "finalUrl": "https://stpancrasoldchurch.posp.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:31.450Z",
+      "contentHash": "e039c839e18f50d573b7527bbbaa59d6f90315c2a15f2c45ca42b5171def7ba6",
+      "title": "Home - St Pancras Old Church",
+      "metaDescription": "St Pancras Old Chuch is an ancient parish church is animated by the prayer and worship that has been offered on this site for over a thousand years. Our life as Catholic Anglicans flows from the celebration of the Mass, both on Sundays and throughout the week, into hospitality, community engagement and loving service. Whether you come here for worship; to explore the Christian faith; to admire the building; to explore the rich history of this site; to attend one of our many concerts; or simply to enjoy the peace and beauty of this place: whoever you are and whatever brings you here, you are we",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "rch About What is Anglo-Catholicism? Who is St Pancras? Who’s Who Photo Gallery Opening Times Baptisms, Weddings and Funerals Children &#038; Young People Space to Hire Concerts Worship Mass Times Morning Prayer What is Benediction? Donate Donate Now History Church History Churchyard History Family History News Weekly Newsletter Sign Up Welcome to St Pancras Old Church This ancient Parish Church is animated by the prayer and worship tha"
+      ],
+      "error": ""
+    },
+    {
+      "id": "P9",
+      "name": "Dalston Eastern Curve Garden",
+      "requestedUrl": "https://dalstongarden.org/",
+      "finalUrl": "https://dalstongarden.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:31.565Z",
+      "contentHash": "ea06967bb09e5cf31916e91a21d4f4aa5b514e68aae1141d6e072401a929188f",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "e you here this month! The Garden and Cafe are open all year round, however our opening times change seasonally so please make sure to check below: October opening times: Mondays: 1-8pm Tuesdays: 2-8pm Wednesdays: 1-8pm *Please note we will be closed until 5pm on Wednesday 14 October* Thursdays: 1-10pm Fridays: 1-10pm Saturdays: 12noon &#8211; 10pm Sundays: 12noon &#8211; 8pm Please note that in the event of bad weather, we may close ea",
+        "our opening times change seasonally so please make sure to check below: October opening times: Mondays: 1-8pm Tuesdays: 2-8pm Wednesdays: 1-8pm *Please note we will be closed until 5pm on Wednesday 14 October* Thursdays: 1-10pm Fridays: 1-10pm Saturdays: 12noon &#8211; 10pm Sundays: 12noon &#8211; 8pm Please note that in the event of bad weather, we may close earlier than advertised. As a social enterprise, we generate all of the income"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R2",
+      "name": "Kensal Green Cemetery",
+      "requestedUrl": "https://www.kensalgreencemetery.com/",
+      "finalUrl": "https://www.kensalgreencemetery.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:32.602Z",
+      "contentHash": "9e353c5adcbe8cff29b0a25c7034ebfc0dc57e0eb547e081c5e5dfbe913a7aa3",
+      "title": "Kensal Green Cemetery &#8211; and West London Crematorium",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "R10",
+      "name": "Lincoln’s Inn Chapel",
+      "requestedUrl": "https://www.lincolnsinn.org.uk/about-us/chapel/",
+      "finalUrl": "https://www.lincolnsinn.org.uk/about-us/chapel/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:35.847Z",
+      "contentHash": "7f2733726d6d3f97f1759aa88611fa36a79982427af10c665d05462dc7c8eaf2",
+      "title": "Chapel - Lincoln&#039;s Inn",
+      "metaDescription": "Welcome to Lincoln&#039;s Inn Chapel, consecrated in 1623. A place of worship serving members, staff and visitors with quiet reflection, music and community.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "ers and Barristers Legal Research FAQs Researchers Using the Library Map &#038; Opening Hours Library Services Collections Catalogue Document Supply Library Training About the Archive Tales from the Archive Rare Books and Manuscripts Online Researching Past Members Listening Inn podcast The Estate Back to previous level The Estate Commercial Lettings Residential Lettings Facilities Management Projects Information for Chambers & Commerci"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R11",
+      "name": "The King’s Chapel of the Savoy",
+      "requestedUrl": "https://www.royalchapelsavoy.org/",
+      "finalUrl": "https://www.royalchapelsavoy.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:37.053Z",
+      "contentHash": "a93ba7a94b65d5e7f6990ca252762b22c034b65b6d4291d71e719335893ce9dc",
+      "title": "Home - The King&#039;s Chapel of the SavoyThe King&#039;s Chapel of the Savoy",
+      "metaDescription": "The Queen&#039;s Chapel of the Savoy is the private chapel of the Queen. Join the congregation Sundays at 11, or visit Mon-Thurs for insights into London’s history",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "harist October 25, 2026 - 11:00 am Bible Sunday &#8211; 11am Chapel Matins News Opening hours this week The chapel is now closed for Court Leave due to the restoration and refurbishment of the chapel&#8217;s organ and the redecoration of the chapel&#8217;s interior. The chapel will resume services on Sunday 11th October. If you have any enquiries related to the chapel; please contact the Chapel Steward, Richard Buck:&hellip; Opening hou",
+        "related to the chapel; please contact the Chapel Steward, Richard Buck:&hellip; Opening hours Monday to Thursday 9am-4pm Friday & Saturday Closed Sunday (worship only) 9am-1pm The chapel is open to the public. On occasions there will be mid-week activities that preclude casual visits, please telephone in advance if you are planning to make a special journey. The King's Chapel of the Savoy Savoy Hill, London WC2R 0DA Map 020 7836 7221 Fo"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M7",
+      "name": "The Foundling Museum",
+      "requestedUrl": "https://foundlingmuseum.org.uk/",
+      "finalUrl": "https://foundlingmuseum.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:38.534Z",
+      "contentHash": "afaa1b3b3d273801fc8013a30017b93d80353262b245be9d3f5c48c3ff0d482e",
+      "title": "Homepage - Foundling Museum",
+      "metaDescription": "Discover the Foundling Museum, one of London&#039;s most interesting museums, including our art collection and 18th-century music displays.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "Museum 40 Brunswick Square London WC1N 1AZ +44 (0)20 7841 3600 Email enquiries Opening hours Monday Closed Tuesday 10am - 5pm Wednesday 10am - 5pm Thursday 10am - 5pm Friday 10am - 5pm Saturday 10am - 5pm Sunday 11am - 5pm Check closures before booking. Other resources Work With Us Contact Us Our Team Accessibility Sustainability Terms & Conditions Privacy Notice We are an independent charity © 2026 Foundling Museum charity registratio"
+      ],
+      "error": ""
+    },
+    {
+      "id": "S8",
+      "name": "Alfies Antique Market",
+      "requestedUrl": "https://alfiesantiques.com/",
+      "finalUrl": "https://alfiesantiques.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:39.754Z",
+      "contentHash": "42391986a9261dfb0a5cf290c0ac14e59ee63b2a05151a604cdd1e7f911fde6b",
+      "title": "Alfies Antique Market",
+      "metaDescription": "Welcome to the famous Alfies Antique Market, London’s biggest indoor antiques and vintage market. Explore the delights of this four-floor art deco-style building.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "S9",
+      "name": "Maison Assouline",
+      "requestedUrl": "https://eu.assouline.com/pages/maison?srsltid=AfmBOopOKjheYdt4fZhk0xICHci_NjG9srnlImSDqTPqZJOaGccQtvLD",
+      "finalUrl": "https://eu.assouline.com/pages/maison?srsltid=AfmBOopOKjheYdt4fZhk0xICHci_NjG9srnlImSDqTPqZJOaGccQtvLD",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:41.457Z",
+      "contentHash": "65734162596a65de71d7a8e797db5909dbb845468a87c96aa799bc5922c47a9c",
+      "title": "Maison Assouline - Flagship London Bookstore | ASSOULINE FR",
+      "metaDescription": "Discover exclusive luxury books and coffee-table books from Assouline. Shop our selection of high-end publications and have them delivered to your door. Complimentary Shipping in the E.U. on orders over €200",
+      "openingHours": [
+        {
+          "day": "Monday",
+          "opens": "10:30",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:30",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:30",
+          "closes": "19:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:30",
+          "closes": "21:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Friday",
+          "opens": "10:30",
+          "closes": "21:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:30",
+          "closes": "21:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Sunday",
+          "opens": "12:00",
+          "closes": "18:00",
+          "validFrom": "",
+          "validThrough": ""
+        }
+      ],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A6",
+      "name": "Camden Passage",
+      "requestedUrl": "https://www.camdenpassageislington.co.uk/",
+      "finalUrl": "https://www.camdenpassageislington.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:43.044Z",
+      "contentHash": "3ff6bd1d86f7c410aa128c048bb6fe864759f086ecb98a55cffe07376d76b4c1",
+      "title": "Home - Camden Passage, Islington",
+      "metaDescription": "Camden Passage in the London borough of Islington is a picturesque car free street filled with antique, vintage and contemporary shops, outdoor markets, cafes, restaurants & bars.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "M6",
+      "name": "The Cartoon Museum",
+      "requestedUrl": "https://www.cartoonmuseum.org/",
+      "finalUrl": "https://www.cartoonmuseum.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:43.379Z",
+      "contentHash": "687fb8a587304485ea163b8a1a82f806ed61d5c0692786533992595fbf2768eb",
+      "title": "The Cartoon Museum",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "M17",
+      "name": "Eltham Palace",
+      "requestedUrl": "https://www.english-heritage.org.uk/visit/places/eltham-palace-and-gardens/",
+      "finalUrl": "https://www.english-heritage.org.uk/visit/places/eltham-palace-and-gardens/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:47.153Z",
+      "contentHash": "fae3b8812e67b2e82cda6f9662bc0977c7a289cae547b19709133b5fc17870ac",
+      "title": "Eltham Palace and Gardens | English Heritage",
+      "metaDescription": "Visit Eltham Palace to experience millionaire life in an art deco mansion",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "Places to Visit Eltham Palace and Gardens More Pages Plan Your Visit Prices and Opening times Events History and Stories School Visits Group Visits Hire Eltham Palace Things to see and do Family Property Guide HeroCarouselBlock > index.cshtml --> Open daily, 10am - 5pm (last entry at 4.30pm) See full prices and opening times Address Court Yard, Eltham, Greenwich, London, SE9 5NP for Sat Nav Book early to save up to 15% Book early to sav",
+        "ex.cshtml --> Open daily, 10am - 5pm (last entry at 4.30pm) See full prices and opening times Address Court Yard, Eltham, Greenwich, London, SE9 5NP for Sat Nav Book early to save up to 15% Book early to save up to 15% Book early to save up to 15% In 1936, eccentric millionaires Stephen and Virginia Courtauld decided to build their magnificent art deco mansion right next to the medieval Great Hall of Eltham Palace - creating a masterpie",
+        "Things to see and do Family Property Guide HeroCarouselBlock > index.cshtml --> Open daily, 10am - 5pm (last entry at 4.30pm) See full prices and opening times Address Court Yard, Eltham, Greenwich, London, SE9 5NP for Sat Nav Book early to save up to 15% Book early to save up to 15% Book early to save up to 15% In 1936, eccentric millionaires Stephen and Virginia Courtauld decided to build their magnificent art deco mansion right next"
+      ],
+      "error": ""
+    },
+    {
+      "id": "V5",
+      "name": "Caledonian Park Clock Tower",
+      "requestedUrl": "https://callypark.london/",
+      "finalUrl": "https://callypark.london/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:47.423Z",
+      "contentHash": "f6b7b337a9082b829b586244f7a9fe0857fb7128456d4815d05667d81efb4958",
+      "title": "Caledonian Park",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "M1",
+      "name": "The Photographers' Gallery",
+      "requestedUrl": "https://thephotographersgallery.org.uk/",
+      "finalUrl": "https://thephotographersgallery.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:47.705Z",
+      "contentHash": "a6fab5071f34214c605d976cdb9307e72ed2db5ff3b8a4ef091374d5fb197f93",
+      "title": "Homepage | The Photographers Gallery",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "for all the latest news, events, exhibitions and special offers Sign up General opening times Monday - Wednesday 10.30–18.00 Thursday & Friday 10.30–20.00 Saturday 10.30–18.00 Sunday & bank holidays 11.00–18.00 Find us 16-18 Ramillies Street, London W1F7LW Nearest station: Oxford Circus Plan your visit Who we are and what we do Home for the next generation of photography About us Contact us Work with us Terms & Conditions Privacy & Cook"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M18",
+      "name": "Museum of the Home",
+      "requestedUrl": "https://museumofthehome.org.uk/",
+      "finalUrl": "https://museumofthehome.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:51.213Z",
+      "contentHash": "cf1b6f0b4aabcf81e6379b9fdbda36aa6526c78affde628cf2b75759c55d15d1",
+      "title": "Home - Museum of the Home",
+      "metaDescription": "We are the only Museum of the Home in the world, revealing and rethinking the ways we live in order to live better together.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "nue hire Support us Our supporters Become a Patron Volunteer Shop Donate Search Opening hours Open 10am to 5pm, every Tuesday to Sunday (and Bank Holiday Mondays). Entry is free. No booking is required to visit. Plan your visit Accessibility We are committed to ensuring an accessible experience for all our visitors. Step-free access is available to the Museum and to our galleries. Read more Support us We are a free museum, registered ch"
+      ],
+      "error": ""
+    },
+    {
+      "id": "S11",
+      "name": "Poetry Pharmacy",
+      "requestedUrl": "https://poetrypharmacy.co.uk/",
+      "finalUrl": "https://poetrypharmacy.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:51.474Z",
+      "contentHash": "9055c3bce2b1b1873da49ac619b9113d5c527c96f47e3d952444055312872f01",
+      "title": "Poetry Pharmacy &ndash; The Poetry Pharmacy",
+      "metaDescription": "Welcome to the world's first walk-in Poetry Pharmacy: a haven of curated poetry, books, and poetic prescriptions designed to nurture your emotional wellbeing.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "M16",
+      "name": "The Charterhouse",
+      "requestedUrl": "https://thecharterhouse.org/",
+      "finalUrl": "https://thecharterhouse.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:51.918Z",
+      "contentHash": "1c821034a0543b0610ec17c62716e134d7dd78ffa8e458aa3f0463a4c60ccdbd",
+      "title": "Homepage - The Charterhouse",
+      "metaDescription": "The Charterhouse has been living the nation’s history since 1348. In that time it has served as a monastery, private mansion, boys school and an almshouse. % %",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "patisserie, and live piano music. Festive Afternoon Teas | Luxury Dining Public opening hours The museum display, shop and chapel are free to visit during opening hours, and visitors can book onto guided tours to see more of our historic buildings and rooms. We are open 10.30am to 4.30pm, Tuesday &#8211; Saturday. Two tours run daily at 11am and at 2.15pm. Find out more Tickets & prices Our tours range from £18 &#8211; £30 . Further inf",
+        "blic opening hours The museum display, shop and chapel are free to visit during opening hours, and visitors can book onto guided tours to see more of our historic buildings and rooms. We are open 10.30am to 4.30pm, Tuesday &#8211; Saturday. Two tours run daily at 11am and at 2.15pm. Find out more Tickets & prices Our tours range from £18 &#8211; £30 . Further information on our special seasonal events and lectures including ticket price"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R7",
+      "name": "All Hallows by the Tower",
+      "requestedUrl": "https://www.ahbtt.org.uk/",
+      "finalUrl": "https://www.ahbtt.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:57.075Z",
+      "contentHash": "8a7b114e5e65f2f67e4178fb0f3da000ef4d7c5e639cc1aa523aacd531475412",
+      "title": "All Hallows by the Tower",
+      "metaDescription": "All Hallows by the Tower is the oldest church in the City of London and a living church serving today&#039;s City community.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "ng times: Monday - Friday: 8am - 5pm Saturday: 10am - 5pm Sunday: 12.30pm - 5pm Opening times may vary due to staff availability. Group tours of more than five people must book in advance via the church office. Footer Text Header Text Footer Text Header Text Footer Text Header Text Footer Text Header Text Footer Text Header Text Footer Text Header Text Subscribe to our weekly newsletter * indicates required Email Address * First Name La"
+      ],
+      "error": ""
+    },
+    {
+      "id": "R9",
+      "name": "Fitzrovia Chapel",
+      "requestedUrl": "https://www.fitzroviachapel.org/",
+      "finalUrl": "https://www.fitzroviachapel.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:57.107Z",
+      "contentHash": "7ef3e6fb04309cfabeaaa05a3ceb85ce0eb1f46caabc0ba3a159ec3f98f21b4c",
+      "title": "The Fitzrovia Chapel &#8211; A unique treasure in the heart of London",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "7;s on Visit us Learn Cultural programme History Weddings Venue hire Contact us Opening times How to find us About us Take a tour Donate Volunteer Privacy Policy Cookie Policy WELCOME More about the chapel The Fitzrovia Chapel is an enchanting jewel of Byzantine inspired architecture located in the heart of the Fitzrovia community. As the former chapel of the Middlesex Hospital, it is a place of meaning, memory and sanctuary for many. T",
+        "le foundation. A place to celebrate, to wonder, to explore and to sit. Visit us Opening times How to find us Contact us Opening times How to find us Contact us Take a tour Schools &#038; groups Accessibility Take a tour Schools &#038; groups Accessibility JOIN OUR MAILING LIST Sign up to receive e-mail updates on our events and more: subscribe You can change your preferences or opt out of hearing from us at any time using the unsubscrib",
+        "wonder, to explore and to sit. Visit us Opening times How to find us Contact us Opening times How to find us Contact us Take a tour Schools &#038; groups Accessibility Take a tour Schools &#038; groups Accessibility JOIN OUR MAILING LIST Sign up to receive e-mail updates on our events and more: subscribe You can change your preferences or opt out of hearing from us at any time using the unsubscribe link in our emails. Read our privacy n"
+      ],
+      "error": ""
+    },
+    {
+      "id": "V4",
+      "name": "Horniman Gardens",
+      "requestedUrl": "https://www.horniman.ac.uk/event/gardens/",
+      "finalUrl": "https://www.horniman.ac.uk/event/gardens/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:22:57.579Z",
+      "contentHash": "25a5bb42392ef3372ce1004180dafbdfa6b52bcc0d4f8ffb7e386ad139414b40",
+      "title": "Gardens - Horniman Museum and Gardens",
+      "metaDescription": "With stunning views across London, our 16 acres Gardens are perfect for spotting wildlife, architectural treasures, or just a good place to unwind.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "Gardens. Amazing views out over a sunlit London from the Horniman. Sarah Dates Open daily (Closed 31 October, 25 December) Times 7.15am (Monday - Saturday) or 8am (Sunday and Bank Holidays) until 6.30pm Tickets Free Location Gardens Perfect for Everyone ACCESS Assistance animals welcome Seating available Social prescription Wheelchair accessible Bloomberg Connects Do you know what the oldest tree in the Gardens is? Or why our walrus la",
+        "99;&#46;&#117;&#107; Continue exploring Display Free Sunken and Display Gardens Open daily (except 25 December) Monday - Saturday: 7.15am - sunset Sunday: 8am - sunset The Sunken and Display Gardens were built in 1936, and are overlooked&hellip; Find out more Walk Gardens Walk Walking is one of the simplest exercises we can do; even 10-minute&hellip; Find out more Display Free Grasslands Garden Open daily (except 25 December) Monday - S",
+        "we can do; even 10-minute&hellip; Find out more Display Free Grasslands Garden Open daily (except 25 December) Monday - Saturday: 7.15am - Sunset Sunday: 8am - sunset The Grasslands Garden celebrates critically threatened wild landscapes. It has&hellip; Find out more Activity Nature Challenge: Exploring Trees You can also have a look at the family learning resources that&hellip; Find out more Display Butterfly House Open daily (Closed",
+        "he family learning resources that&hellip; Find out more Display Butterfly House Open daily (Closed 24-26 December) 10.30am – 4pm (last entry 3.30pm) The specially-planted habitat is the perfect place to experience butterflies free-flying all&hellip; Find out more Book now Display Free Animal Walk Open Daily (except 24-26 December) 12:30pm &ndash; 4pm Home to goats, sheep, guinea pigs, rabbits, chickens and alpacas, the Animal&hellip; Fi",
+        "erflies free-flying all&hellip; Find out more Book now Display Free Animal Walk Open Daily (except 24-26 December) 12:30pm &ndash; 4pm Home to goats, sheep, guinea pigs, rabbits, chickens and alpacas, the Animal&hellip; Find out more About the Horniman The Horniman connects us all with global cultures and the natural environment, encouraging us to shape a positive future for the world we all share. People Plans, policies and reporting O"
+      ],
+      "error": ""
+    },
+    {
+      "id": "P8",
+      "name": "Camley Street Natural Park",
+      "requestedUrl": "https://www.wildlondon.org.uk/nature-reserves/camley-street-natural-park",
+      "finalUrl": "https://www.wildlondon.org.uk/nature-reserves/camley-street-natural-park",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:01.370Z",
+      "contentHash": "a1913e7faae1c44bdae0738e0a92036ae1fdda30b0a5e5264c6523da91397f87",
+      "title": "Camley Street Natural Park | London Wildlife Trust",
+      "metaDescription": "Camley Street Natural Park is a unique urban nature reserve, surrounded by significant new development in a bustling part of central London - between King&#039;s Cross and St Pancras, open daily.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "lets Cafe/refreshments Accessible toilet Baby changing facilities When to visit Opening times October - March: 10am – 4pm April - September: 10am - 5pm Please note the reserve and cafe will be closed from 2pm on Sunday 4th October Best time to visit Any time About the reserve The site was once a coal drop for the railways into nearby King’s Cross Railway Station, which was demolished in the 1960s. It had been colonised by nature so the",
+        "n a bustling part of central London - between King&#039;s Cross and St Pancras, open daily. Location 12 Camley Street London N1C 4PW Know before you go Access The area around the new visitor centre and main path down to the pond dipping platform has accessible surfaces, whilst other footpaths around the site are surfaced in woodchip. The visitor centre is fully accessible, including an accessible toilet. There are steep steps with handr"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M14",
+      "name": "Heath Robinson Museum",
+      "requestedUrl": "https://www.heathrobinsonmuseum.org/",
+      "finalUrl": "https://www.heathrobinsonmuseum.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 202,
+      "checkedAt": "2026-10-03T10:23:02.231Z",
+      "contentHash": "370a0419d481d7b6aedd40fdb43d2145e68426ecefb1809715190a4a42aa1ba3",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "M12",
+      "name": "Crystal Palace Museum",
+      "requestedUrl": "https://www.crystalpalaceparktrust.org/pages/crystal-palace-museum",
+      "finalUrl": "https://www.crystalpalaceparktrust.org/pages/crystal-palace-museum",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BROKEN",
+      "httpStatus": null,
+      "checkedAt": "2026-10-03T10:23:02.434Z",
+      "contentHash": "",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": "The operation was aborted due to timeout"
+    },
+    {
+      "id": "M3",
+      "name": "Two Temple Place",
+      "requestedUrl": "https://twotempleplace.org/",
+      "finalUrl": "https://twotempleplace.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:06.058Z",
+      "contentHash": "f6d202f04b7b6a3713eda4ba515d72263217bde73128d0f69471ea37621fca90",
+      "title": "Two Temple Place",
+      "metaDescription": "Two Temple Place is one of London’s hidden architectural gems. Completed in 1895, this stunning neo-Gothic mansion was built for William Waldorf Astor as his London Estate Office. It hosts exhibitions and is available for exclusive hire. The building is owned by the charity The Bulldog Trust.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "M10",
+      "name": "Bentley Priory Museum",
+      "requestedUrl": "https://bentleypriorymuseum.org.uk/",
+      "finalUrl": "https://bentleypriorymuseum.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:06.065Z",
+      "contentHash": "3f1b08cfcbf2975156844846bcccfaa85801389770362ed404ec9d1dedf0914e",
+      "title": "Welcome to Bentley Priory Museum - Bentley Priory Museum",
+      "metaDescription": "As Headquarters Fighter Command, Bentley Priory\nplayed a pivotal role during the Battle of Britain in 1940.\nDiscover how the Battle of Britain was won.     \nAs Headquarters Fighter Command,\nBentley Priory played a pivotal role\nduring the Battle of Britain in 1940.\nDiscover how the Battle of",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "riencing issues with our phone lines Toggle Navigation What’s On Calendar Visit Opening Hours &#038; Admission Annual Membership Accessibility How to find us Group Visits Cafe Contact Us Discover About History of Bentley Priory Governance Volunteering Donations Legacies Battle of Britain The One: ACM Dowding The Few: Battle of Britain Aircrew The Many: Those on the Ground Battle of Britain Timeline Battle of Britain Heritage Trail Famil",
+        "ring the Battle of Britain in 1940. Discover how the Battle of Britain was won. Opening Hours Admission Find Us Schools Groups Families Battle of Britain Collection Volunteer Hire Donations Legacies About Bentley Priory Bentley Priory Museum tells the fascinating story of the beautiful Grade II* listed country house, focusing on its role as Headquarters Fighter Command during the Battle of Britain. Explore the important stories of ‘The",
+        "ctory allowing Britain’s darkest hour to also be her Finest Hour. Find out more Opening Hours 020 8950 5526 Contact Us Battle of Britain Toggle Navigation The One: ACM Sir Hugh Dowding The Few: Battle of Britain Aircrew The Many: Those on the ground Battle of Britain Timeline Battle of Britain Heritage Trail About Us Toggle Navigation About Bentley Priory Bentley Priory Collection Donations Legacies Volunteering General Links Toggle Nav"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M8",
+      "name": "Florence Nightingale Museum",
+      "requestedUrl": "https://www.florence-nightingale.co.uk/",
+      "finalUrl": "https://www.florence-nightingale.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:10.422Z",
+      "contentHash": "9236112a61cfe55d5a9804c7d0d32888d5c9204237a8c770938900d5cc48733f",
+      "title": "Florence Nightingale Museum London &#8211; Visit the Florence Nightingale Museum in London and discover the world&#039;s most important collection of material relating to the founder of modern nursing, a celebrated English social reformer a",
+      "metaDescription": "Welcome to the Florence Nightingale Museum \r\nThe Florence Nightingale Museum celebrates the life and work of the best known figure in nursing history. \r\n\r\nThe Florence Nightingale Museum is open Tuesday - Sunday from 10:00am until 5:00pm (with last entry at 4:30pm).",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "nour Wall of Honour Legacies Adopt an Object Venue Hire Shop Contact Loading... Opening Hours Tuesday to Sunday, 10am to 5pm. Last entry is at 4:30pm. Museum tickets are available to buy on the door. Adopt an Object Support us today by choosing one of our key objects to adopt for 12 months! Find Out More Healing Spaces: Healthcare Design Past, Present and Future New Exhibition - Now Open! Schools and Groups We run a popular schools and",
+        "upporters. T: +44 (0)20 7188 4400 E: info@florence-nightingale.co.uk Contact us Opening times Tuesday &#8211; Sunday 10am &#8211; 5pm (Last Entry 4:30pm) Extended Openings Every Last Thursday of the Month 10:00am &#8211; 8:00pm Where to find us Florence Nightingale Museum St Thomas’ Hospital, Lambeth Palace Road, London, SE1 7EP   We are located at parking level in the grounds of St Thomas&#8217; Hospital, a short walk from the Houses o"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M13",
+      "name": "Petrie Museum of Egyptian Archaeology",
+      "requestedUrl": "https://www.ucl.ac.uk/museums-collections/petrie-museum-egyptian-and-sudanese-archaeology",
+      "finalUrl": "https://www.ucl.ac.uk/engage/museums-collections/petrie-museum-egyptian-and-sudanese-archaeology",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "REDIRECTED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:11.127Z",
+      "contentHash": "2e1026e45b32668331c5796a7e980237c7a491632d4da5a570c6ee28f53aeb12",
+      "title": "Petrie Museum of Egyptian and Sudanese Archaeology | Engage",
+      "metaDescription": "The Petrie Museum is home to one of the world&#039;s largest and most important collections of Egyptian and Sudanese archaeology, telling the stories of people who lived in the Nile Valley in the past.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "each Museums and collections Petrie Museum of Egyptian and Sudanese Archaeology Opening times Tuesday to Saturday, 1pm to 5pm. Entry is free. Visit us Find us Malet Place, University College London, London, WC1E 6BT View map Visit us Welcome to the Petrie Museum Explore the museum and discover the artefacts that tell us about the lives of the of people who lived in the Nile Valley in the past. Free admission, no booking required. Plan y"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M4",
+      "name": "Wimbledon Windmill Museum",
+      "requestedUrl": "https://www.wimbledonwindmill.org.uk/",
+      "finalUrl": "https://www.wimbledonwindmill.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:17.067Z",
+      "contentHash": "0c680bed609f0a4f749f660f68779a54b528d6f0ac1f06a566aa62b0f628d8c6",
+      "title": "Home | Wimbledon Windmill",
+      "metaDescription": "A museum about Windmills - within a heritage windmill with its own quirky history. Exhibits for young and old, covering windmills, milling, local history and the Scouting movement. Opened in 1976",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "12th/13th 17th/18th ​21st/22nd 26th/27th 2 PM SATURDAY & SUNDAY Windmill Museum Opening Hours Sundays, 11am&ndash;5pm, during British Summertime (this year until Sunday 25 October 2026) ​ Admission is free Donations are at your discretion (but very gratefully received!) and can be provided as cash, card, or via this page . ​ Please check our Facebook or Instagram for any unforeseen changes. ​​​​ Group Tours & School Visits Outside these"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M5",
+      "name": "Home of Charles Darwin",
+      "requestedUrl": "https://www.english-heritage.org.uk/visit/places/home-of-charles-darwin-down-house/",
+      "finalUrl": "https://www.english-heritage.org.uk/visit/places/home-of-charles-darwin-down-house/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:17.435Z",
+      "contentHash": "977ad1464de0481ec80b1fd4189855f74a6dd1d7f04cdcac8cb3ba5b30619633",
+      "title": "Home of Charles Darwin - Down House | English Heritage",
+      "metaDescription": "Down House, the home of Charles Darwin. The great scientist’s country-house home and ‘outdoor laboratory’",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "Visit Home of Charles Darwin - Down House More Pages Plan Your Visit Prices and Opening times What's On History Things to See and Do Group Visits School Visits Family Guide HeroCarouselBlock > index.cshtml --> Open daily, 10am - 5pm (last entry at 4pm) See full prices and opening times Address Luxted Road, Downe, Kent, BR6 7JT Book advance tickets and save 15% Book advance tickets and save 15% Book advance tickets and save 15% Down Hous",
+        "index.cshtml --> Open daily, 10am - 5pm (last entry at 4pm) See full prices and opening times Address Luxted Road, Downe, Kent, BR6 7JT Book advance tickets and save 15% Book advance tickets and save 15% Book advance tickets and save 15% Down House is best known as the home of Charles Darwin. Darwin lived here with his family for 40 years, worked on his revolutionary theories, and wrote On the Origin of Species &ndash; the book which sh",
+        "Do Group Visits School Visits Family Guide HeroCarouselBlock > index.cshtml --> Open daily, 10am - 5pm (last entry at 4pm) See full prices and opening times Address Luxted Road, Downe, Kent, BR6 7JT Book advance tickets and save 15% Book advance tickets and save 15% Book advance tickets and save 15% Down House is best known as the home of Charles Darwin. Darwin lived here with his family for 40 years, worked on his revolutionary theorie"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M2",
+      "name": "William Morris Gallery",
+      "requestedUrl": "https://wmgallery.org.uk/",
+      "finalUrl": "https://wmgallery.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:20.102Z",
+      "contentHash": "dce2ccea3073b1956dffe76875029e05d9e4efd8c8780036b07268bdac1d1699",
+      "title": "Home - William Morris Gallery",
+      "metaDescription": "Home to the world’s most significant collection of William Morris’ work. Sharing the rich artistic and social legacy of Morris. Free.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "yd Park, Forest Road Walthamstow London E17 4PP Tel: 0208 496 4390 Get in touch Opening Times Tuesday to Sunday 10am - 5pm Free entry Join the mailing list to receive regular updates from William Morris Gallery. Sign up now instagram facebook twitter youtube Quick links Venue hire Donate Our team and governance Press Get in touch Access Privacy &#038; Cookies Policy Partners --> William Morris Gallery is owned and operated by Waltham Fo"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M9",
+      "name": "Battle of Britain Bunker",
+      "requestedUrl": "https://battleofbritainbunker.co.uk/",
+      "finalUrl": "https://battleofbritainbunker.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:20.904Z",
+      "contentHash": "20d2b42332da625f6085fde5cdf196d88577540616a7f15335331dbf34aef8e1",
+      "title": "Battle of Britain Bunker |",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "and collections and archival work. FIND OUT MORE PLAN YOUR VISIT VISITOR CENTRE OPENING TIMES We are open seven days per week, from 10 to 16:30. Last admission 15:30. ACCESS The exhibition and Visitor Centre is wheelchair accessible, with a lift and a ramp up to the building. There are accessible parking spaces available near the main entrance. We welcome assistance dogs. Visit our About Us & Accessibility page for more information GETT"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M11",
+      "name": "The National Archives",
+      "requestedUrl": "https://www.nationalarchives.gov.uk/",
+      "finalUrl": "https://www.nationalarchives.gov.uk/",
+      "sourceAuthority": "PUBLIC_AUTHORITY",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 403,
+      "checkedAt": "2026-10-03T10:23:22.042Z",
+      "contentHash": "81fe27d92dee308a5d92c1b099acf8b90356be96a80889c642e65f529ea0bf07",
+      "title": "ERROR: The request could not be satisfied",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "B4",
+      "name": "Granada Bingo Hall",
+      "requestedUrl": "https://www.buzzbingo.com/club/tooting.html",
+      "finalUrl": "https://www.buzzbingo.com/club/tooting.html",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:24.541Z",
+      "contentHash": "fda476a29ae1bf9c46d11f7a4d701f6c5eb2b291ec8752d5b49b2c49a111bd87",
+      "title": "Play Bingo & Slots in Tooting: Buzz Bingo Clubs | Buzz Bingo",
+      "metaDescription": "Oh hi, you&#039;re right near us! Come out to play at Buzz Bingo Tooting • Bingo and slots • Food and drinks • No need to book, just pop in and play!",
+      "openingHours": [
+        {
+          "day": "Monday",
+          "opens": "00:00",
+          "closes": "23:59",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "04:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "04:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "04:00",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Friday",
+          "opens": "00:00",
+          "closes": "23:59",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Saturday",
+          "opens": "00:00",
+          "closes": "23:59",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Sunday",
+          "opens": "00:00",
+          "closes": "23:59",
+          "validFrom": "",
+          "validThrough": ""
+        }
+      ],
+      "openingTextCandidates": [
+        "o.com Find us on Facebook Find us on Instagram Take a Look Inside Show Club Map Opening Times View All Today: 24 Hours Monday: 24 Hours Tuesday: 10:00 am - 4:00 am Wednesday: 10:00 am - 4:00 am Thursday: 10:00 am - 4:00 am Friday: 24 Hours Sunday: 24 Hours View times and prices Select a Day M onday T uesday W ednesday T hursday F riday S aturday S unday Session Time Paper Touchpad MORNING 11:00 TO 11:45 Paper Ticket £1.50 Paper Tickets"
+      ],
+      "error": ""
+    },
+    {
+      "id": "S1",
+      "name": "Hurlingham Books",
+      "requestedUrl": "https://hurlinghambooks.com/",
+      "finalUrl": "https://hurlinghambooks.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:25.879Z",
+      "contentHash": "4d32ab8301b8eb4c3e867a92f986d097f44692850e54156407b94497259590e0",
+      "title": "Hurlingham Books",
+      "metaDescription": "hurlingham books bookshop based in fulham london",
+      "openingHours": [
+        {
+          "raw": ", , , , , , "
+        }
+      ],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "S10",
+      "name": "Wood Street Indoor Market",
+      "requestedUrl": "https://www.woodstreetindoormarket.co.uk/",
+      "finalUrl": "https://woodstreetindoormarket.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:26.024Z",
+      "contentHash": "595beaef27c7202d21eecf8240539546e6bb8fd2c0867bbcbea7623fac489263",
+      "title": "Wood Street Indoor Market | 36 little shops in Walthamstow, E17",
+      "metaDescription": "An independent indoor market of 36 small shops around one horseshoe corridor in Walthamstow E17, two minutes from Wood Street station. Open Tuesday to Saturday.",
+      "openingHours": [
+        {
+          "day": "Tuesday",
+          "opens": "10:00",
+          "closes": "17:30",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Wednesday",
+          "opens": "10:00",
+          "closes": "17:30",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Thursday",
+          "opens": "10:00",
+          "closes": "17:30",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Friday",
+          "opens": "10:00",
+          "closes": "17:30",
+          "validFrom": "",
+          "validThrough": ""
+        },
+        {
+          "day": "Saturday",
+          "opens": "10:00",
+          "closes": "17:30",
+          "validFrom": "",
+          "validThrough": ""
+        }
+      ],
+      "openingTextCandidates": [
+        "lthamestates.co.uk The market is managed by Walthams, who handle all enquiries. Opening hours Tuesday to Saturday 10.00 to 5.30 Closed Sunday and Monday Individual shops set their own days. Check a shop&rsquo;s page before a special trip. Plan your visit Explore The Shops Market Map What’s On Visit Our Story Join the Market Contact &copy; 2026 Wood Street Indoor Market. Trading since 1955. Privacy Cookies Accessibility Made on Wood Stre",
+        "nd the counter, so most keep their own days and hours inside the market&rsquo;s opening times. Ring ahead if you are making the trip for one in particular. UNIT A5/6 Moroccan crafts Moroccan Corner Discover a taste of Moroccan craftsmanship at Moroccan Corner. This small, independent shop offers Moroccan artisan goods and crafts. Explore what Moroccan Corner has to offer at Wood Street Indoor Market. Step inside &rarr; UNIT A9 Records &"
+      ],
+      "error": ""
+    },
+    {
+      "id": "M15",
+      "name": "Museum of the Order of Saint John",
+      "requestedUrl": "https://museumstjohn.org.uk/",
+      "finalUrl": "https://museumstjohn.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:28.812Z",
+      "contentHash": "226ee6dd33fe3d6a5a13bf07782602b720746d9f2863218c744c0669c915422c",
+      "title": "The Museum of the Order of St John",
+      "metaDescription": "A hidden jewel which tells the unique story of an ancient religious military Order. Their gatehouse and secret gardens are available for event hire.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A1",
+      "name": "Eel Pie Island",
+      "requestedUrl": "https://www.eelpieislandartists.co.uk/",
+      "finalUrl": "https://www.eelpieislandartists.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:30.765Z",
+      "contentHash": "b925ed20d0d4b17d2a41516dff7d36e2932cd6d7a7034e7fa195112e551c01c0",
+      "title": "OPEN STUDIOS | Eelpieartists",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "O14",
+      "name": "Trinity Buoy Lighthouse",
+      "requestedUrl": "https://www.trinitybuoywharf.com/",
+      "finalUrl": "https://www.trinitybuoywharf.com/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:33.278Z",
+      "contentHash": "532a6117d99de62613f5a8e2340fabf5c22ead8ef283ae3b925d09a252a6ea94",
+      "title": "Home - Trinity Buoy Wharf",
+      "metaDescription": "Trinity Buoy Wharf is a centre for arts and cultural activities located on the River Thames.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "O6",
+      "name": "St. Augustine's Tower",
+      "requestedUrl": "https://www.staugustinestower.org/",
+      "finalUrl": "https://www.staugustinestower.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:33.811Z",
+      "contentHash": "41be51b08701ba5aa679c6c30874b361e5cdde84df8448bf9bd7914a09ec7eb9",
+      "title": "ST AUGUSTINES TOWER | Explore History Today",
+      "metaDescription": "Visit Hackney",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "he City We’re open to visit on the last Sunday of every month (except December) Opening times 2pm - 4.30pm Admission Free (no booking required) Visit the Tower St John‘s Church Gardens Mare Street Hackney London E8 1HT View Google Map here what3words sleep.exist.charmingly Train Hackney Central Station Mildmay Line Hackney Downs Station Weaver Line Bus 242, 253, 254, 48, 55, 106, 38, 30, 276 All stop nearby Access There is a ramp to acc"
+      ],
+      "error": ""
+    },
+    {
+      "id": "O15",
+      "name": "Crystal Palace Subway",
+      "requestedUrl": "https://www.crystalpalaceparktrust.org/pages/crystal-palace-subway",
+      "finalUrl": "https://www.crystalpalaceparktrust.org/pages/crystal-palace-subway",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BROKEN",
+      "httpStatus": null,
+      "checkedAt": "2026-10-03T10:23:36.596Z",
+      "contentHash": "",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": "The operation was aborted due to timeout"
+    },
+    {
+      "id": "O4",
+      "name": "Barbican Conservatory",
+      "requestedUrl": "https://www.barbican.org.uk/search?search=conservatory",
+      "finalUrl": "https://www.barbican.org.uk/search?search=conservatory",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:39.060Z",
+      "contentHash": "410d9000d4252995618017dfa327b7bd16f178161834ba517b63ad978241fc8e",
+      "title": "Search | Barbican",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "ndar Your visit General info Box office & ticketing info Contact us New on sale Opening hours Getting here Car parking Families Cloakrooms Toilets Safety & Security Zero Tolerance During your visit Free things to do Library Shops Conservatory Eat & drink Barbican Kitchen Barbican Bar & Grill Martini bar Foyer bars and cafe Urban Baristas at the Cinema Cafe Accessibility Access Scheme Accessible events Access guides Accessible facilities"
+      ],
+      "error": ""
+    },
+    {
+      "id": "O5",
+      "name": "Brixton Windmill",
+      "requestedUrl": "https://www.brixtonwindmill.org/",
+      "finalUrl": "https://www.brixtonwindmill.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:39.298Z",
+      "contentHash": "cbe871bcc261cdeb2504dd49eba24a7c62dd2183670ed93ffcf416e43204ed48",
+      "title": "Welcome to Brixton Windmill & Education Centre",
+      "metaDescription": "Book a tour of our 200 year old windmill in Brixton, join our baking and milling workshops, buy gifts and hire our venue for your event.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "P6",
+      "name": "The Phoenix Garden",
+      "requestedUrl": "https://www.thephoenixgarden.org/",
+      "finalUrl": "https://www.thephoenixgarden.org/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:43.872Z",
+      "contentHash": "218b7c31f5a796603e88ec380fe94bae93fc3140d5e6f0bd2f799e8de15d75be",
+      "title": "Phoenix Garden",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "etreat from the stresses of the city and a valuable habitat for urban wildlife. OPENING HOURS Daily: Dawn &#8211; Dusk, Seven days a week These are our standard opening hours, however, they are subject to change. Phoenix Garden Established in 1984, The Phoenix Garden is Located in St Giles behind the Phoenix Theatre, within the London Borough of Camden, nestled between the busy Soho and Covent Garden areas. The Garden is located just of",
+        "PENING HOURS Daily: Dawn &#8211; Dusk, Seven days a week These are our standard opening hours, however, they are subject to change. Phoenix Garden Established in 1984, The Phoenix Garden is Located in St Giles behind the Phoenix Theatre, within the London Borough of Camden, nestled between the busy Soho and Covent Garden areas. The Garden is located just off St Giles Passage and Stacey Street, north of Shaftesbury Avenue and east of Cha"
+      ],
+      "error": ""
+    },
+    {
+      "id": "S4",
+      "name": "The Junk Shop",
+      "requestedUrl": "https://www.junkshoplondon.co.uk/",
+      "finalUrl": "https://www.junkshoplondon.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:44.671Z",
+      "contentHash": "2e727d6e64768e6b1a87742ee4618aeab842c9107e94a964dd09427b064733bb",
+      "title": "The Junk Shop | House Clearances with Heart – Done the Junk Shop Way | 9 Greenwich South Street, London SE10 8NW, UK",
+      "metaDescription": "A Greenwich Original Since 1954\nStep inside the Junk Shop, where every corner tells a story and no two visits are the same. Nestled in the heart of Greenwich, London, our shop is a haven for treasure hunters, vintage lovers, Homemade Cake and curious souls alike",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "P1",
+      "name": "Crossbones Garden",
+      "requestedUrl": "https://crossbones.org.uk/",
+      "finalUrl": "https://crossbones.org.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BLOCKED",
+      "httpStatus": 202,
+      "checkedAt": "2026-10-03T10:23:49.061Z",
+      "contentHash": "649982e208b4832d57c50ceb98a693b966dd0a35a2ceabb33744f10bb8372aff",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "P4",
+      "name": "Crystal Palace Dinosaurs",
+      "requestedUrl": "https://www.crystalpalaceparktrust.org/pages/crystal-palace-dinosaurs",
+      "finalUrl": "https://www.crystalpalaceparktrust.org/pages/crystal-palace-dinosaurs",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "BROKEN",
+      "httpStatus": null,
+      "checkedAt": "2026-10-03T10:23:49.560Z",
+      "contentHash": "",
+      "title": "",
+      "metaDescription": "",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": "The operation was aborted due to timeout"
+    },
+    {
+      "id": "O9",
+      "name": "God's Own Junkyard",
+      "requestedUrl": "https://www.godsownjunkyard.co.uk/",
+      "finalUrl": "https://www.godsownjunkyard.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:51.596Z",
+      "contentHash": "f1b670447dc755ee3eea224524ef24425522265507633961480fdab05033b324",
+      "title": "Gods Own Junkyard",
+      "metaDescription": "Neon artist and light artist, largest stock of vintage neons and signs in europe. Oldest signmakers in London",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "S12",
+      "name": "Hoxton Street Monster Supplies",
+      "requestedUrl": "https://www.monstersupplies.org/",
+      "finalUrl": "https://ministryofstories.org/hoxton-street-monster-supplies/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "REDIRECTED",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:53.610Z",
+      "contentHash": "84e71068a339398d8ecc646b43d6f73db38833c55e9b463be1ecbd87a0c6beba",
+      "title": "Hoxton Street Monster Supplies",
+      "metaDescription": "In 2026, an exciting opportunity for Ministry of Stories to move to a much bigger home, meant sadly saying goodbye to our store.",
+      "openingHours": [],
+      "openingTextCandidates": [],
+      "error": ""
+    },
+    {
+      "id": "A12",
+      "name": "Chislehurst Caves",
+      "requestedUrl": "https://chislehurst-caves.co.uk/",
+      "finalUrl": "https://chislehurst-caves.co.uk/",
+      "sourceAuthority": "OWNER_OPERATOR",
+      "sourceStatus": "OK",
+      "httpStatus": 200,
+      "checkedAt": "2026-10-03T10:23:55.982Z",
+      "contentHash": "2c67f714972d5f0ab0c741e8d246c3b546f6579be2d80a22ffee1d944a123b4f",
+      "title": "home - Chislehurst Caves",
+      "metaDescription": "The caves at Chislehurst in Kent, are a labyrinth of man-made tunnels, that have been carved out over hundreds of years.",
+      "openingHours": [],
+      "openingTextCandidates": [
+        "uiries@chislehurstcaves.co.uk (Wednesday to Sunday) QUICK LINKS PLAN YOUR VISIT Opening hours, Prices, Tour Details, FAQ. FACILITIES Café, Gift Shop, Caves, Parking, Function Room, Accessibility of Facilities AN INTRODUCTION TO THE CAVES A brief hint of the history of the caves. EDUCATIONAL AND GROUP VISITS Details to arrange a Group Visit, Risk Assessment Forms PRIVATE FUNCTIONS AND CHILDREN’S PARTIES Details of facilities available fo",
+        "OCATION FILMING CONTACT US Search for: home Sean King 2026-04-20T10:20:09+01:00 Opening Times Café and Gift Shop Prices Buy Tickets Gallery An Introduction to the Caves – A brief hint of the history of the caves The caves have been carved out over hundreds of years. The caves were dug for chalk used in lime burning and brick making for the Building of London, as well as for flints to fire the tinderboxes and flintlock guns of years ago."
+      ],
+      "error": ""
+    }
+  ]
+}

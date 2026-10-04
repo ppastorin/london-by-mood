@@ -1,6 +1,6 @@
 export const MAX_STOPS = 9;
 
-export function buildGoogleMapsUrl({ start, end, stops = [] }) {
+export function buildGoogleMapsUrl({ start, end, stops = [], travelMode = "walking" }) {
   if (!validPoint(start) || !validPoint(end)) throw new Error("A valid start and destination are required");
   if (!Array.isArray(stops) || stops.length > MAX_STOPS || stops.some((point) => !validPoint(point))) {
     throw new Error(`An itinerary can include up to ${MAX_STOPS} valid stops`);
@@ -10,7 +10,8 @@ export function buildGoogleMapsUrl({ start, end, stops = [] }) {
   url.searchParams.set("api", "1");
   url.searchParams.set("origin", coordinate(start));
   url.searchParams.set("destination", coordinate(end));
-  url.searchParams.set("travelmode", "walking");
+  if (!["walking", "transit", "bicycling", "driving"].includes(travelMode)) throw new Error("Unsupported travel mode");
+  url.searchParams.set("travelmode", travelMode);
   if (stops.length) url.searchParams.set("waypoints", stops.map(coordinate).join("|"));
   url.searchParams.set("dir_action", "navigate");
   return url.href;

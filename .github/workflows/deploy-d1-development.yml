@@ -77,6 +77,9 @@ jobs:
       - name: Apply pending D1 migrations
         run: npx wrangler d1 migrations apply DB --remote --config wrangler.dev.jsonc
 
+      - name: Apply City church planner enrichment
+        run: npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --file data/enrichment/generated/city-church-planner-candidates.sql
+
       - name: Deploy the development Worker
         run: npx wrangler deploy --config wrangler.dev.jsonc
 
@@ -89,6 +92,8 @@ jobs:
           jq -e '.ok == true and .database == "d1"' <<<"${health}" >/dev/null
           places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=2000")"
           jq -e '.ok == true and .count == 881' <<<"${places}" >/dev/null
+          planner_places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/planner/places?limit=1200")"
+          jq -e '[.places[] | select(.category == "RELIGIOUS" and .lat >= 51.508 and .lat <= 51.5235 and .lon >= -0.1125 and .lon <= -0.073 and .planning.dataConfidence == "HIGH")] | length >= 6' <<<"${planner_places}" >/dev/null
           admin_status="000"
           for attempt in 1 2 3 4 5 6; do
             admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' "${base_url}/admin/api/places?limit=1")"

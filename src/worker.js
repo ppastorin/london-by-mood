@@ -1,3 +1,5 @@
+import { accessTypeV2 as normalAccessTypeV2 } from "./data-quality.js";
+
 const LONDON_BOUNDS = Object.freeze({ west: -0.75, south: 51.20, east: 0.45, north: 51.80 });
 const PLACE_BOUNDS = Object.freeze({ west: -1.00, south: 50.80, east: 0.75, north: 52.00 });
 const DEFAULT_LIMIT = 1200;
@@ -8,7 +10,17 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     try {
+      const plannerAsset = url.pathname === "/planner" || url.pathname.startsWith("/planner/");
+      const plannerApi = url.pathname.startsWith("/api/planner/");
+      if ((plannerAsset || plannerApi) && env.PLANNER_ENABLED !== "true") {
+        return plannerApi
+          ? json({ ok: false, error: "Planner prototype is not enabled" }, 404, { "Cache-Control": "no-store" })
+          : new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
+      }
       if (url.pathname === "/health") return health(env);
+      if (url.pathname === "/api/planner/places") {
+        return request.method === "GET" ? await listPlannerPlaces(url, env) : methodNotAllowed("GET");
+      }
       if (url.pathname === "/api/pois" || url.pathname === "/api/places") {
         return request.method === "GET" ? await listPublicPlaces(url, env) : methodNotAllowed("GET");
       }
@@ -79,6 +91,78 @@ async function listPublicPlaces(url, env) {
   return json({ ok: true, schemaVersion: 2, generatedAt: new Date().toISOString(), count: places.length, places }, 200, {
     "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
   });
+}
+
+async function listPlannerPlaces(url, env) {
+  requireDatabase(env);
+  const filters = parsePlaceFilters(url.searchParams, true);
+  filters.limit = Math.min(filters.limit, 1200);
+  const places = await queryPlaces(env.DB, filters);
+  const candidates = places.filter((place) => {
+    const planning = place.planning || {};
+    return planning.descriptionQuality === "SPECIFIC"
+      && ["MEDIUM", "HIGH"].includes(planning.dataConfidence)
+      && planning.accessType !== "PRIVATE_NO_PUBLIC_ACCESS";
+  });
+  const details = await queryPlannerDetails(env.DB, candidates.map((place) => place.id));
+  const ready = candidates.flatMap((place) => {
+    const detail = details.get(place.id);
+    if (!detail?.sourceUrl) return [];
+    return [{
+      ...place,
+      officialUrl: place.officialUrl || detail.sourceUrl,
+      planning: {
+        ...place.planning,
+        sourceUrl: detail.sourceUrl,
+        sourceAuthority: detail.sourceAuthority,
+        openingPeriods: detail.openingPeriods,
+        openingExceptions: detail.openingExceptions,
+      },
+    }];
+  });
+  return json({ ok: true, schemaVersion: 1, generatedAt: new Date().toISOString(), count: ready.length, places: ready }, 200, {
+    "Cache-Control": "private, max-age=60",
+  });
+}
+
+async function queryPlannerDetails(db, ids) {
+  const details = new Map(ids.map((id) => [id, { sourceUrl: "", sourceAuthority: "", openingPeriods: [], openingExceptions: [] }]));
+  for (let start = 0; start < ids.length; start += 80) {
+    const chunk = ids.slice(start, start + 80);
+    const placeholders = chunk.map(() => "?").join(",");
+    const sources = await db.prepare(
+      `SELECT place_id, source_url, authority FROM place_sources
+       WHERE place_id IN (${placeholders}) AND authority IN ('OWNER_OPERATOR','PUBLIC_AUTHORITY','OFFICIAL_PARTNER')
+         AND source_status IN ('OK','REDIRECTED')
+       ORDER BY place_id, is_primary DESC, source_id`,
+    ).bind(...chunk).all();
+    for (const row of sources.results || []) {
+      const detail = details.get(row.place_id);
+      if (detail && !detail.sourceUrl) {
+        detail.sourceUrl = row.source_url;
+        detail.sourceAuthority = row.authority;
+      }
+    }
+    const periods = await db.prepare(
+      `SELECT place_id, day_of_week AS dayOfWeek, sequence, opens_at AS opensAt, closes_at AS closesAt,
+        all_day AS allDay, closed, by_appointment AS byAppointment,
+        valid_from AS validFrom, valid_to AS validTo, last_verified_at AS lastVerifiedAt
+       FROM place_opening_periods WHERE place_id IN (${placeholders}) AND experience_id IS NULL
+       ORDER BY place_id, day_of_week, sequence`,
+    ).bind(...chunk).all();
+    for (const row of periods.results || []) details.get(row.place_id)?.openingPeriods.push(row);
+    const exceptions = await db.prepare(
+      `SELECT place_id, local_date AS date, closed AS isClosed, opens_at AS opensAt, closes_at AS closesAt,
+        note_en AS note, last_verified_at AS lastVerifiedAt
+       FROM place_opening_exceptions WHERE place_id IN (${placeholders}) AND experience_id IS NULL
+       ORDER BY place_id, local_date`,
+    ).bind(...chunk).all();
+    for (const row of exceptions.results || []) {
+      row.isClosed = Boolean(row.isClosed);
+      details.get(row.place_id)?.openingExceptions.push(row);
+    }
+  }
+  return details;
 }
 
 async function listAdminPlaces(url, env) {
@@ -183,6 +267,20 @@ function mapPlace(row, stations = []) {
     confidence: row.mood_confidence, moodBasis: row.mood_basis || "",
     sourceType: row.source_type || "manual", sourceRef: row.source_ref || "",
     source: { type: row.source_type, ref: row.source_ref, row: row.source_row, code: row.source_code_r1 },
+    planning: {
+      dataConfidence: row.data_confidence || "LOW",
+      plannerReady: Boolean(row.planner_ready),
+      accessType: row.access_type_v2 || normalAccessTypeV2(row.access_type),
+      bookingMode: row.booking_mode || "UNKNOWN",
+      admissionType: row.admission_type || "UNKNOWN",
+      accessClarity: row.access_clarity || "UNREVIEWED",
+      descriptionQuality: row.description_quality || "UNREVIEWED",
+      hoursStatus: row.hours_status || "UNKNOWN",
+      hoursLastCheckedAt: row.hours_last_checked_at || null,
+      hoursNextCheckAt: row.hours_next_check_at || null,
+      qualityReviewedAt: row.quality_reviewed_at || null,
+      qualityNotes: row.quality_notes || "",
+    },
     createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
@@ -234,7 +332,12 @@ function buildPlaceWriteStatements(db, p, update) {
     p.visitMinutes, p.bestTime, p.weatherFit, p.visitMode, p.moods.quiet, p.moods.unexpected,
     p.moods.beautiful, p.moods.weird, p.moods.local, p.moods.green, p.moods.atmospheric,
     p.moods.lively, p.reviewed ? 1 : 0, p.confidence, p.moodBasis, p.sourceType, p.sourceRef,
-    p.lastVerified || null, p.status === "published" ? new Date().toISOString() : null];
+    p.lastVerified || null, p.status === "published" ? new Date().toISOString() : null,
+    p.planning.dataConfidence, p.planning.plannerReady ? 1 : 0, p.planning.accessType,
+    p.planning.bookingMode, p.planning.admissionType,
+    p.planning.accessClarity, p.planning.descriptionQuality, p.planning.hoursStatus,
+    p.planning.hoursLastCheckedAt || null, p.planning.hoursNextCheckAt || null,
+    p.planning.qualityReviewedAt || null, p.planning.qualityNotes];
   const main = update
     ? db.prepare(`UPDATE places SET slug=?, name=?, category=?, latitude=?, longitude=?, status=?, description_en=?,
       description_it=?, editorial_hook_en=?, editorial_hook_it=?, official_url=?, guide_url=?, google_maps_url=?,
@@ -242,13 +345,17 @@ function buildPlaceWriteStatements(db, p, update) {
       crowd_scope=?, visit_minutes=?, best_time=?, weather_fit=?, visit_mode=?, mood_quiet=?, mood_unexpected=?,
       mood_beautiful=?, mood_weird=?, mood_local=?, mood_green=?, mood_atmospheric=?, mood_lively=?, mood_reviewed=?,
       mood_confidence=?, mood_basis=?, source_type=?, source_ref=?, last_verified_at=?, published_at=COALESCE(published_at, ?),
+      data_confidence=?, planner_ready=?, access_type_v2=?, booking_mode=?, admission_type=?, access_clarity=?, description_quality=?, hours_status=?,
+      hours_last_checked_at=?, hours_next_check_at=?, quality_reviewed_at=?, quality_notes=?,
       updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(...values, p.id)
     : db.prepare(`INSERT INTO places(id, slug, name, category, latitude, longitude, status, description_en,
       description_it, editorial_hook_en, editorial_hook_it, official_url, guide_url, google_maps_url, price_text,
       access_type, access_notes_en, access_notes_it, opening_hours_json, tourist_intensity, crowd_scope, visit_minutes,
       best_time, weather_fit, visit_mode, mood_quiet, mood_unexpected, mood_beautiful, mood_weird, mood_local,
       mood_green, mood_atmospheric, mood_lively, mood_reviewed, mood_confidence, mood_basis, source_type, source_ref,
-      last_verified_at, published_at) VALUES (?,${values.map(() => "?").join(",")})`).bind(p.id, ...values);
+      last_verified_at, published_at, data_confidence, planner_ready, access_type_v2, booking_mode, admission_type, access_clarity,
+      description_quality, hours_status, hours_last_checked_at, hours_next_check_at, quality_reviewed_at,
+      quality_notes) VALUES (?,${values.map(() => "?").join(",")})`).bind(p.id, ...values);
   const a = p.timeAffinity;
   const affinityValues = [a.mon_thu_00_05, a.mon_thu_06_10, a.mon_thu_10_13, a.mon_thu_13_17,
     a.mon_thu_17_20, a.mon_thu_20_24, a.friday_00_05, a.friday_06_10, a.friday_10_13,
@@ -275,6 +382,7 @@ function validatePlace(input, forcedId) {
   if (!category) throw new Error("Choose a valid category");
   if (!insidePlaceBounds(lat, lon)) throw new Error("Coordinates must be inside the London Advanced collection area");
   const moods = input.moods || {};
+  const planning = input.planning || {};
   const time = { ...defaultTimeAffinity(category), ...(input.timeAffinity || {}) };
   return {
     id: forcedId || cleanText(input.id, 80), slug: cleanText(input.slug, 180), name, category, lat, lon,
@@ -292,6 +400,22 @@ function validatePlace(input, forcedId) {
     reviewed: Boolean(input.reviewed), confidence: ["LOW", "MEDIUM", "HIGH"].includes(input.confidence) ? input.confidence : "LOW",
     moodBasis: cleanText(input.moodBasis, 240), sourceType: cleanText(input.sourceType, 40) || "manual",
     sourceRef: cleanText(input.sourceRef, 500), lastVerified: cleanText(input.lastVerified, 32),
+    planning: {
+      dataConfidence: normalEnum(planning.dataConfidence, ["LOW", "MEDIUM", "HIGH"], "LOW"),
+      plannerReady: Boolean(planning.plannerReady),
+      accessType: normalEnum(planning.accessType, ["ALWAYS_ACCESSIBLE", "TIMETABLED", "SEASONAL",
+        "BOOKING_REQUIRED", "EVENT_ONLY", "APPOINTMENT_ONLY", "EXTERIOR_ONLY", "CUSTOMER_ONLY",
+        "PRIVATE_NO_PUBLIC_ACCESS", "UNKNOWN"], normalAccessTypeV2(input.accessType)),
+      bookingMode: normalEnum(planning.bookingMode, ["NONE", "OPTIONAL", "RECOMMENDED", "REQUIRED", "UNKNOWN"], "UNKNOWN"),
+      admissionType: normalEnum(planning.admissionType, ["FREE", "PAID", "MIXED", "UNKNOWN"], "UNKNOWN"),
+      accessClarity: normalEnum(planning.accessClarity, ["CLEAR", "NEEDS_REVIEW", "UNREVIEWED"], "UNREVIEWED"),
+      descriptionQuality: normalEnum(planning.descriptionQuality, ["SPECIFIC", "GENERIC", "MISSING", "UNREVIEWED"], "UNREVIEWED"),
+      hoursStatus: normalEnum(planning.hoursStatus, ["VERIFIED", "CANDIDATE", "NOT_APPLICABLE", "UNKNOWN", "STALE"], "UNKNOWN"),
+      hoursLastCheckedAt: cleanText(planning.hoursLastCheckedAt, 32),
+      hoursNextCheckAt: cleanText(planning.hoursNextCheckAt, 32),
+      qualityReviewedAt: cleanText(planning.qualityReviewedAt, 32),
+      qualityNotes: cleanText(planning.qualityNotes, 2000),
+    },
     timeAffinity: Object.fromEntries(Object.entries(time).map(([key, value]) => [key, clampInt(value, 0, 100, 50)])),
   };
 }
@@ -657,6 +781,7 @@ function requireDatabase(env) { if (!env.DB) throw new Error("D1 binding DB is n
 async function readJson(request) { try { return await request.json(); } catch { throw new Error("Request body must be valid JSON"); } }
 function normalCategory(value) { const v = String(value || "").trim().toUpperCase(); return CATEGORY_ORDER.includes(v) ? v : ""; }
 function normalStatus(value, fallback) { const v = String(value || "").trim().toLowerCase(); return ["draft", "published", "archived"].includes(v) ? v : fallback; }
+function normalEnum(value, values, fallback) { const v = String(value || "").trim().toUpperCase(); return values.includes(v) ? v : fallback; }
 function cleanText(value, max = 500) { return String(value ?? "").trim().replace(/\u0000/g, "").slice(0, max); }
 function cleanUtf8(value, maxBytes) {
   const cleaned = String(value ?? "").trim().replace(/\u0000/g, "");
@@ -684,6 +809,7 @@ function json(value, status = 200, headers = {}) { return new Response(JSON.stri
 function addSiteHeaders(response, pathname = "/") {
   const headers = new Headers(response.headers);
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isPlanner = pathname === "/planner" || pathname.startsWith("/planner/");
   if (isAdmin) {
     headers.set("X-Frame-Options", "DENY");
     headers.set("Content-Security-Policy", "frame-ancestors 'none'");
@@ -692,6 +818,10 @@ function addSiteHeaders(response, pathname = "/") {
   } else {
     headers.delete("X-Frame-Options");
     headers.set("Content-Security-Policy", "frame-ancestors *");
+  }
+  if (isPlanner) {
+    headers.set("Cache-Control", "no-store");
+    headers.set("X-Robots-Tag", "noindex, nofollow");
   }
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set("X-Content-Type-Options", "nosniff");
