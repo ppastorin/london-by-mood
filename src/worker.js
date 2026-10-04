@@ -1,4 +1,5 @@
 import { accessTypeV2 as normalAccessTypeV2 } from "./data-quality.js";
+import { interpretPlannerIntent, PlannerInterpreterError, PLANNER_INTENT_SCHEMA_VERSION } from "./planner-interpreter.js";
 
 const LONDON_BOUNDS = Object.freeze({ west: -0.75, south: 51.20, east: 0.45, north: 51.80 });
 const PLACE_BOUNDS = Object.freeze({ west: -1.00, south: 50.80, east: 0.75, north: 52.00 });
@@ -20,6 +21,9 @@ export default {
       if (url.pathname === "/health") return health(env);
       if (url.pathname === "/api/planner/places") {
         return request.method === "GET" ? await listPlannerPlaces(url, env) : methodNotAllowed("GET");
+      }
+      if (url.pathname === "/api/planner/interpret") {
+        return request.method === "POST" ? await interpretPlannerRequest(request, env, ctx) : methodNotAllowed("POST");
       }
       if (url.pathname === "/api/pois" || url.pathname === "/api/places") {
         return request.method === "GET" ? await listPublicPlaces(url, env) : methodNotAllowed("GET");
@@ -123,6 +127,68 @@ async function listPlannerPlaces(url, env) {
   return json({ ok: true, schemaVersion: 1, generatedAt: new Date().toISOString(), count: ready.length, places: ready }, 200, {
     "Cache-Control": "private, max-age=60",
   });
+}
+
+async function interpretPlannerRequest(request, env, ctx) {
+  const body = await readJson(request);
+  const prompt = cleanText(body.prompt, 2000);
+  if (prompt.length < 4) return json({ ok: false, error: "Describe the kind of London day you want." }, 400, { "Cache-Control": "no-store" });
+  const answers = cleanAnswerMap(body.answers);
+  const cache = globalThis.caches?.default;
+  const cacheToken = await sha256(`${PLANNER_INTENT_SCHEMA_VERSION}\n${env.PLANNER_AI_MODEL || "default"}\n${prompt}\n${JSON.stringify(answers)}`);
+  const cacheKey = new Request(`${new URL(request.url).origin}/__planner_intent/${cacheToken}`);
+  if (cache) {
+    const hit = await cache.match(cacheKey);
+    if (hit) return json(await hit.json(), 200, { "Cache-Control": "private, max-age=300" });
+  }
+  try {
+    const interpreted = await interpretPlannerIntent(prompt, env, answers);
+    const intent = await resolveIntentGeography(interpreted, env);
+    const payload = { ok: true, intent };
+    const response = json(payload, 200, { "Cache-Control": "private, max-age=300" });
+    if (cache && !intent.unresolvedGeography.length) {
+      ctx.waitUntil(cache.put(cacheKey, json(payload, 200, { "Cache-Control": "public, max-age=604800" })));
+    }
+    return response;
+  } catch (error) {
+    if (error instanceof PlannerInterpreterError) {
+      return json({ ok: false, code: error.code, error: error.message }, error.status, { "Cache-Control": "no-store" });
+    }
+    throw error;
+  }
+}
+
+async function resolveIntentGeography(intent, env) {
+  const resolved = [];
+  const unresolved = [];
+  const memo = new Map();
+  for (const item of intent.geography) {
+    try {
+      const key = item.query.toLowerCase();
+      let result = memo.get(key);
+      if (!result) {
+        result = await requestGeocode(item.query, env);
+        memo.set(key, result);
+      }
+      resolved.push({ ...item, center: { lat: result.lat, lon: result.lon }, bounds: result.bounds,
+        featureType: result.type, resolvedLabel: result.label });
+    } catch (error) {
+      unresolved.push({ ...item, reason: error instanceof Error ? error.message : "Location could not be resolved" });
+    }
+  }
+  const start = resolved.find((item) => item.role === "START");
+  const end = resolved.find((item) => item.role === "END");
+  const scopes = resolved.filter((item) => item.role === "SCOPE");
+  const excludeScopes = resolved.filter((item) => item.role === "EXCLUDE");
+  return {
+    ...intent,
+    routeStart: start ? { label: start.label, ...start.center } : undefined,
+    routeEnd: end ? { label: end.label, ...end.center } : undefined,
+    geoScopes: scopes,
+    excludeGeoScopes: excludeScopes,
+    unresolvedGeography: unresolved,
+    confidence: unresolved.length ? Math.min(intent.confidence, .45) : intent.confidence,
+  };
 }
 
 async function queryPlannerDetails(db, ids) {
@@ -459,6 +525,7 @@ async function requestGeocode(query, env) {
   const target = new URL(env.GEOCODING_API_URL || "https://nominatim.openstreetmap.org/search");
   target.searchParams.set("q", /\blondon\b/i.test(query) ? query : `${query}, London, UK`);
   target.searchParams.set("format", "jsonv2"); target.searchParams.set("limit", "1"); target.searchParams.set("countrycodes", "gb");
+  target.searchParams.set("addressdetails", "1");
   target.searchParams.set("viewbox", `${LONDON_BOUNDS.west},${LONDON_BOUNDS.north},${LONDON_BOUNDS.east},${LONDON_BOUNDS.south}`);
   target.searchParams.set("bounded", "1");
   const upstream = await fetch(target, { headers: { Accept: "application/json", "Accept-Language": "en-GB,en;q=0.8",
@@ -468,7 +535,12 @@ async function requestGeocode(query, env) {
   if (!Array.isArray(matches) || !matches.length) throw new Error("We could not find that place in London");
   const lat = Number(matches[0].lat); const lon = Number(matches[0].lon);
   if (!insideLondonBounds(lat, lon)) throw new Error("That location appears to be outside London");
-  return { label: String(matches[0].display_name || query), lat, lon };
+  const box = Array.isArray(matches[0].boundingbox) ? matches[0].boundingbox.map(Number) : [];
+  const bounds = box.length === 4 && box.every(Number.isFinite)
+    ? { south: box[0], north: box[1], west: box[2], east: box[3] }
+    : undefined;
+  return { label: String(matches[0].display_name || query), lat, lon, bounds,
+    type: cleanText(matches[0].type || matches[0].addresstype, 80) };
 }
 
 async function resolveCapturedPlace(request, env) {
@@ -783,6 +855,18 @@ function normalCategory(value) { const v = String(value || "").trim().toUpperCas
 function normalStatus(value, fallback) { const v = String(value || "").trim().toLowerCase(); return ["draft", "published", "archived"].includes(v) ? v : fallback; }
 function normalEnum(value, values, fallback) { const v = String(value || "").trim().toUpperCase(); return values.includes(v) ? v : fallback; }
 function cleanText(value, max = 500) { return String(value ?? "").trim().replace(/\u0000/g, "").slice(0, max); }
+function cleanAnswerMap(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).slice(0, 3).flatMap(([key, answer]) => {
+    const safeKey = cleanText(key, 60).replace(/[^a-zA-Z0-9_-]/g, "");
+    const safeAnswer = cleanText(answer, 160);
+    return safeKey && safeAnswer ? [[safeKey, safeAnswer]] : [];
+  }));
+}
+async function sha256(value) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 function cleanUtf8(value, maxBytes) {
   const cleaned = String(value ?? "").trim().replace(/\u0000/g, "");
   const encoder = new TextEncoder();

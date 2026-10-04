@@ -1,4 +1,4 @@
-import { AREA_OPTIONS, CATEGORY_LABELS, buildPlan, interpretPrompt } from "./planner-core.js";
+import { AREA_OPTIONS, CATEGORY_LABELS, buildPlan } from "./planner-core.js";
 
 const form = document.querySelector("#planner-form");
 const promptInput = document.querySelector("#planner-prompt");
@@ -9,7 +9,9 @@ const daySelect = document.querySelector("#days");
 const area2Label = document.querySelector("#area-2-label");
 let placesPromise;
 const touched = new Set();
-const geocodeCache = new Map();
+let currentInterpretation;
+let currentPrompt = "";
+let currentAnswers = "{}";
 
 setupOptions();
 setDefaultDate();
@@ -46,25 +48,44 @@ function syncDays() {
   area2Label.hidden = !twoDays;
 }
 
-function applyPrompt() {
-  const interpretation = interpretPrompt(promptInput.value);
-  if (interpretation.days) daySelect.value = String(interpretation.days);
-  if (interpretation.startTime) document.querySelector("#start-time").value = interpretation.startTime;
-  if (interpretation.endTime) document.querySelector("#end-time").value = interpretation.endTime;
-  if (interpretation.pace) document.querySelector("#pace").value = interpretation.pace;
-  if (interpretation.transport) document.querySelector("#transport").value = interpretation.transport;
-  if (interpretation.familiarity) document.querySelector("#familiarity").value = interpretation.familiarity;
-  if (!touched.has("area-1")) document.querySelector("#area-1").value = interpretation.areas?.[0] || "ANY";
-  if (!touched.has("area-2")) document.querySelector("#area-2").value = interpretation.areas?.[1] || "ANY";
+async function applyPrompt() {
+  const button = document.querySelector("#interpret-button");
+  button.disabled = true;
+  insights.innerHTML = `<span class="insight-empty">Interpreting geography, priorities and constraints…</span>`;
+  try {
+    const interpretation = await requestInterpretation(promptInput.value);
+    applyInterpretation(interpretation);
+  } catch (error) {
+    insights.innerHTML = `<span class="insight-empty">${escapeHtml(error.message)}</span>`;
+    clarificationPanel.hidden = true;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function applyInterpretation(interpretation) {
+  if (interpretation.days && !touched.has("days")) daySelect.value = String(interpretation.days);
+  if (interpretation.startTime && !touched.has("start-time")) document.querySelector("#start-time").value = interpretation.startTime;
+  if (interpretation.endTime && !touched.has("end-time")) document.querySelector("#end-time").value = interpretation.endTime;
+  if (interpretation.pace && !touched.has("pace")) document.querySelector("#pace").value = interpretation.pace;
+  if (interpretation.transport && !touched.has("transport")) document.querySelector("#transport").value = interpretation.transport;
+  if (interpretation.familiarity && !touched.has("familiarity")) document.querySelector("#familiarity").value = interpretation.familiarity;
+  if (!touched.has("area-1")) document.querySelector("#area-1").value = "ANY";
+  if (!touched.has("area-2")) document.querySelector("#area-2").value = "ANY";
   if (!touched.has("avoid-core")) document.querySelector("#avoid-core").checked = Boolean(interpretation.avoidCore);
   if (!touched.has("no-big-museums")) document.querySelector("#no-big-museums").checked = Boolean(interpretation.noBigMuseums);
   if (!touched.has("categories")) {
     for (const checkbox of document.querySelectorAll("[name=category]")) checkbox.checked = interpretation.categories.includes(checkbox.value);
   }
   syncDays();
-  insights.innerHTML = interpretation.insights.length
-    ? `<span class="insight-prefix">Understood:</span>${interpretation.insights.map((item) => `<span class="insight-chip">${escapeHtml(item)}</span>`).join("")}`
+  const geographicInsights = (interpretation.geoScopes || []).map((scope) => `${relationLabel(scope.relation)} ${scope.label}`);
+  const insightItems = [...new Set([...(interpretation.insights || []), ...geographicInsights])];
+  insights.innerHTML = insightItems.length
+    ? `<span class="insight-prefix">AI understood:</span>${insightItems.map((item) => `<span class="insight-chip">${escapeHtml(item)}</span>`).join("")}`
     : `<span class="insight-empty">No specific settings found. Use the controls below—the prompt will still guide your request.</span>`;
+  if (interpretation.unresolvedGeography?.length) {
+    insights.innerHTML += `<span class="insight-empty">Could not resolve: ${escapeHtml(interpretation.unresolvedGeography.map((item) => item.label).join(", "))}. Please make the location more precise.</span>`;
+  }
   renderClarification(interpretation);
 }
 
@@ -74,11 +95,19 @@ async function generate(event) {
   button.disabled = true;
   results.innerHTML = `<div class="loading-state"><span></span><h2>Building coherent days…</h2><p>Balancing fit, geography and access confidence.</p></div>`;
   try {
-    const prompt = interpretPrompt(promptInput.value);
-    const routeAnchors = await resolveRouteAnchors(prompt);
+    let prompt = promptInput.value.trim() ? await requestInterpretation(promptInput.value) : emptyInterpretation();
+    const answers = collectClarificationAnswers();
+    if (prompt.clarifications?.length && Object.keys(answers).length) {
+      prompt = await requestInterpretation(promptInput.value, answers, true);
+      applyInterpretation(prompt);
+    }
+    if (prompt.unresolvedGeography?.length) throw new Error(`The AI understood the location, but it could not be resolved on the London map: ${prompt.unresolvedGeography.map((item) => item.label).join(", ")}.`);
     const places = await loadPlaces();
     const checkedCategories = [...document.querySelectorAll("[name=category]:checked")].map((item) => item.value);
-    const indoorChoice = document.querySelector("#indoor-art-clarification")?.value || "allow-one";
+    const menuCategoriesOverride = touched.has("categories");
+    const categoryPreferences = menuCategoriesOverride
+      ? checkedCategories.map((category) => ({ category, strength: "PREFERRED", minStops: 0, maxStops: 6 }))
+      : prompt.categoryPreferences;
     const plan = buildPlan(places, {
       days: promptValue("days", prompt.days, daySelect.value),
       startDate: document.querySelector("#start-date").value,
@@ -88,27 +117,31 @@ async function generate(event) {
       transport: promptValue("transport", prompt.transport, document.querySelector("#transport").value),
       familiarity: promptValue("familiarity", prompt.familiarity, document.querySelector("#familiarity").value),
       areas: [
-        promptValue("area-1", prompt.areas?.[0], document.querySelector("#area-1").value),
-        promptValue("area-2", prompt.areas?.[1], document.querySelector("#area-2").value),
+        document.querySelector("#area-1").value,
+        document.querySelector("#area-2").value,
       ],
-      categories: touched.has("categories") || checkedCategories.length ? checkedCategories : prompt.categories,
+      geoScopes: activeGeoScopes(prompt.geoScopes || [], Number(daySelect.value)),
+      excludeGeoScopes: prompt.excludeGeoScopes || [],
+      categories: menuCategoriesOverride ? checkedCategories : prompt.categories,
+      categoryPreferences,
+      excludedCategories: prompt.excludedCategories,
+      primaryCategory: menuCategoriesOverride ? "" : prompt.primaryCategory,
+      experience: menuCategoriesOverride ? { ...prompt.experience, strictCategory: false, strictConcept: false } : prompt.experience,
       moods: prompt.moods,
       impact: prompt.impact,
       season: prompt.season,
-      routeStart: routeAnchors.start,
-      routeEnd: routeAnchors.end,
+      routeStart: prompt.routeStart,
+      routeEnd: prompt.routeEnd,
       avoidCore: touched.has("avoid-core") ? document.querySelector("#avoid-core").checked : document.querySelector("#avoid-core").checked || prompt.avoidCore,
       noBigMuseums: touched.has("no-big-museums") ? document.querySelector("#no-big-museums").checked : document.querySelector("#no-big-museums").checked || prompt.noBigMuseums,
-      excludeMuseums: prompt.excludeMuseums,
-      outdoorOnly: prompt.outdoorOnly || (prompt.needsIndoorClarification && indoorChoice === "outdoors-only"),
+      excludeMuseums: prompt.excludedCategories?.includes("MUSEUM"),
+      outdoorOnly: prompt.outdoorOnly,
       outdoorPreference: prompt.outdoorPreference,
       crowdSensitive: prompt.crowdSensitive,
       marketFocus: prompt.marketFocus,
-      churchFocus: prompt.churchFocus,
-      compactRoute: prompt.compactRoute,
       weekendFlexible: prompt.weekendFlexible,
-      mustHaves: document.querySelector("#must-haves").value,
-      avoidTerms: document.querySelector("#avoid-terms").value,
+      mustHaves: [...(prompt.mustHaves || []), ...splitInput(document.querySelector("#must-haves").value)],
+      avoidTerms: [...(prompt.avoidTerms || []), ...splitInput(document.querySelector("#avoid-terms").value)],
     });
     renderPlan(plan);
   } catch (error) {
@@ -177,69 +210,55 @@ function renderStop(stop, index) {
 
 function transportLabel(value) { return ({ walking: "mostly walking", mixed: "walking + Tube", transit: "public transport" })[value] || value; }
 function renderClarification(interpretation) {
-  const questions = [];
-  if (interpretation.needsIndoorClarification) questions.push(`
-    <label for="indoor-art-clarification">You asked for a mainly outdoor day with something artistic. May the plan include one indoor museum or gallery?
-      <select id="indoor-art-clarification">
-        <option value="allow-one" selected>Yes — one indoor cultural stop is fine</option>
-        <option value="outdoors-only">No — keep the whole day outdoors</option>
-      </select>
-    </label>`);
-  const selectedDate = document.querySelector("#start-date").value;
-  const selectedDay = new Date(`${selectedDate}T12:00:00Z`).getUTCDay();
-  const weekendChoice = selectedDay === 0 ? "0" : selectedDay === 6 ? "6" : touched.has("start-date") ? "selected-date" : "6";
-  if (interpretation.weekendFlexible) questions.push(`
-    <label for="weekend-day-clarification">Which day should the opening checks and itinerary use?
-      <select id="weekend-day-clarification">
-        ${weekendChoice === "selected-date" ? `<option value="selected-date" selected>Keep selected date (${escapeHtml(selectedDate)})</option>` : ""}
-        <option value="6"${weekendChoice === "6" ? " selected" : ""}>Saturday</option>
-        <option value="0"${weekendChoice === "0" ? " selected" : ""}>Sunday</option>
+  const questions = (interpretation.clarifications || []).map((item) => `
+    <label for="clarification-${escapeAttribute(item.id)}">${escapeHtml(item.question)}
+      ${item.reason ? `<span class="clarification-reason">${escapeHtml(item.reason)}</span>` : ""}
+      <select id="clarification-${escapeAttribute(item.id)}" data-clarification-id="${escapeAttribute(item.id)}">
+        <option value="" selected>Select an answer</option>
+        ${item.options.map((option) => `<option value="${escapeAttribute(option.value)}">${escapeHtml(option.label)}</option>`).join("")}
       </select>
     </label>`);
   clarificationPanel.hidden = !questions.length;
-  clarificationPanel.innerHTML = questions.length ? `<strong>${questions.length === 1 ? "One useful clarification" : "A couple of useful clarifications"}</strong>${questions.join("")}` : "";
-  document.querySelector("#indoor-art-clarification")?.addEventListener("change", (event) => {
-    if (touched.has("categories")) return;
-    const museums = document.querySelector('[name="category"][value="MUSEUM"]');
-    const architecture = document.querySelector('[name="category"][value="BUILDING"]');
-    if (event.target.value === "outdoors-only") {
-      museums.checked = false;
-      architecture.checked = true;
-    } else {
-      museums.checked = true;
-      architecture.checked = false;
-    }
+  clarificationPanel.innerHTML = questions.length ? `<strong>One useful clarification before planning</strong>${questions.join("")}` : "";
+}
+
+async function requestInterpretation(value, answers = {}, force = false) {
+  const prompt = String(value || "").trim();
+  if (!prompt) return emptyInterpretation();
+  const answerKey = JSON.stringify(answers);
+  if (!force && currentInterpretation && currentPrompt === prompt
+    && (currentAnswers === answerKey || (answerKey === "{}" && !currentInterpretation.clarifications?.length))) return currentInterpretation;
+  const response = await fetch("/api/planner/interpret", {
+    method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, answers }),
   });
-  const weekendDay = document.querySelector("#weekend-day-clarification");
-  if (weekendDay && !touched.has("start-date")) setDateToWeekday(Number(weekendDay.value));
-  weekendDay?.addEventListener("change", (event) => {
-    if (event.target.value !== "selected-date") setDateToWeekday(Number(event.target.value));
-  });
-}
-function setDateToWeekday(targetDay) {
-  const dateInput = document.querySelector("#start-date");
-  const date = new Date(`${dateInput.value}T12:00:00Z`);
-  if (!Number.isFinite(date.getTime())) return;
-  date.setUTCDate(date.getUTCDate() + (targetDay - date.getUTCDay() + 7) % 7);
-  dateInput.value = date.toISOString().slice(0, 10);
-}
-async function resolveRouteAnchors(prompt) {
-  const [start, end] = await Promise.all([
-    prompt.routeStartQuery ? resolveAnchor(prompt.routeStartQuery, "starting point") : null,
-    prompt.routeEndQuery ? resolveAnchor(prompt.routeEndQuery, "destination") : null,
-  ]);
-  return { start, end };
-}
-async function resolveAnchor(query, role) {
-  const key = query.toLowerCase();
-  if (geocodeCache.has(key)) return geocodeCache.get(key);
-  const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`, { headers: { Accept: "application/json" } });
   const payload = await response.json();
-  if (!response.ok || !payload.result) throw new Error(`The planner could not resolve ${role} “${query}”. Please use a London district, landmark or postcode.`);
-  const point = { label: query, lat: payload.result.lat, lon: payload.result.lon };
-  geocodeCache.set(key, point);
-  return point;
+  if (!response.ok || !payload.intent) throw new Error(payload.error || `AI interpretation returned ${response.status}`);
+  currentPrompt = prompt;
+  currentAnswers = answerKey;
+  currentInterpretation = payload.intent;
+  return currentInterpretation;
 }
+
+function collectClarificationAnswers() {
+  return Object.fromEntries([...document.querySelectorAll("[data-clarification-id]")]
+    .filter((control) => control.value).map((control) => [control.dataset.clarificationId, control.value]));
+}
+
+function emptyInterpretation() {
+  return { days: Number(daySelect.value), categories: [], categoryPreferences: [], excludedCategories: [], moods: [],
+    avoidTerms: [], mustHaves: [], geoScopes: [], clarifications: [], experience: {}, insights: [] };
+}
+
+function relationLabel(value) {
+  return ({ IN: "in", NEAR: "around", NORTH_OF: "north of", SOUTH_OF: "south of", EAST_OF: "east of", WEST_OF: "west of" })[value] || "near";
+}
+function activeGeoScopes(scopes, days) {
+  return scopes.flatMap((scope) => scope.day === 0
+    ? Array.from({ length: days }, (_, index) => ({ ...scope, day: index + 1 }))
+    : [scope]).filter((scope) => !touched.has(`area-${scope.day}`));
+}
+function splitInput(value) { return String(value || "").split(/[,;\n]/).map((item) => item.trim()).filter(Boolean); }
 function promptValue(control, inferred, current) { return touched.has(control) || inferred === undefined ? current : inferred; }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[character]); }
 function escapeAttribute(value) { return escapeHtml(value); }

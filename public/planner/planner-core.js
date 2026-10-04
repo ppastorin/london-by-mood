@@ -10,7 +10,6 @@ export const AREA_OPTIONS = Object.freeze({
   SOUTH: { label: "South London", center: { lat: 51.475, lon: -0.09 } },
   EAST: { label: "East London", center: { lat: 51.515, lon: -0.02 } },
   WEST: { label: "West London", center: { lat: 51.505, lon: -0.24 } },
-  CITY_OF_LONDON: { label: "City of London / Square Mile", center: { lat: 51.5145, lon: -0.091 } },
   CENTRAL: { label: "Central London", center: { lat: 51.514, lon: -0.12 } },
 });
 
@@ -44,7 +43,6 @@ export function interpretPrompt(value) {
   const westHyde = /west\s+of\s+hyde\s+park/.test(text);
   const westSouthKensington = /west\s+of\s+south\s+kensington/.test(text);
   const eastHolborn = /east\s+of\s+holborn/.test(text);
-  const cityOfLondon = /\b(?:city\s+of\s+london|square\s+mile)\b|\b(?:in|across|around|through|within)\s+the\s+city\b/.test(text);
   if (southThames) {
     result.areas = Array.from({ length: result.days || 1 }, () => "SOUTH_THAMES");
     result.insights.push("south of the Thames");
@@ -54,9 +52,6 @@ export function interpretPrompt(value) {
     if (westHyde) result.insights.push("west of Hyde Park");
     if (westSouthKensington) result.insights.push("west of South Kensington");
     if (eastHolborn) result.insights.push("east of Holborn");
-  } else if (cityOfLondon) {
-    result.areas = Array.from({ length: result.days || 1 }, () => "CITY_OF_LONDON");
-    result.insights.push("City of London / Square Mile");
   } else {
     const namedArea = [
       ["WEST", /\bwest(?:ern)?\s+london\b/], ["EAST", /\beast(?:ern)?\s+london\b/],
@@ -82,14 +77,6 @@ export function interpretPrompt(value) {
   if (result.categories.length === 1 && result.categories[0] === "SHOPPING" && /\bmarkets\b/.test(text)) {
     result.marketFocus = true;
     result.insights.push("market-led day");
-  }
-  if (result.categories.length === 1 && result.categories[0] === "RELIGIOUS" && /\bchurches\b/.test(text)) {
-    result.churchFocus = true;
-    result.insights.push("church-led day");
-  }
-  if (/\b(?:compact|close[- ]together|tightly clustered|tight route)\b/.test(text)) {
-    result.compactRoute = true;
-    result.insights.push("compact route");
   }
   const excludesAllMuseums = /\b(?:no|without|exclude|excluding|avoid|avoiding)\s+(?:any\s+)?museums?\b/.test(text);
   if (excludesAllMuseums) {
@@ -157,10 +144,6 @@ export function interpretPrompt(value) {
     result.transport = "walking";
     result.insights.push("mostly walking");
   }
-  if (/\b(?:day[- ]long|full[- ]day)\s+walk\b/.test(text)) {
-    result.pace = "full";
-    result.insights.push("full walking day");
-  }
   if (/\b(?:very early|start early|early morning)\b/.test(text)) {
     result.startTime = "08:00";
     result.insights.push("early start");
@@ -184,13 +167,25 @@ export function buildPlan(places, rawInput) {
   for (let index = 0; index < input.days; index += 1) {
     const date = addDays(input.startDate, index);
     const area = input.areas[index] || input.areas[0] || "ANY";
-    const dailyMustHaves = mustHaves.filter((place) => !used.has(place.id) && (area === "ANY" || areaFit(place, area)));
+    const geoScopes = input.geoScopes.filter((scope) => scope.day === 0 || scope.day === index + 1);
+    const excludedGeoScopes = input.excludeGeoScopes.filter((scope) => scope.day === 0 || scope.day === index + 1);
+    const dailyMustHaves = mustHaves.filter((place) => !used.has(place.id)
+      && (area === "ANY" || areaFit(place, area)) && geoScopes.every((scope) => geographyFit(place, scope)));
     let pool = basePool.filter((place) => !used.has(place.id) && availabilityForDate(place, date).status !== "closed");
+    if (excludedGeoScopes.length) pool = pool.filter((place) => excludedGeoScopes.every((scope) => !geographyFit(place, scope)));
     const areaPool = pool.filter((place) => area === "ANY" || areaFit(place, area));
     if (area !== "ANY") {
       pool = areaPool;
       if (areaPool.length < Math.min(3, PACE_STOPS[input.pace])) {
         warnings.push(`Day ${index + 1} has only ${areaPool.length} curated places inside the requested area; the planner will not substitute places elsewhere in London.`);
+      }
+    }
+    if (geoScopes.length) {
+      const geographicPool = pool.filter((place) => geoScopes.every((scope) => geographyFit(place, scope)));
+      pool = geographicPool;
+      if (geographicPool.length < Math.min(3, PACE_STOPS[input.pace])) {
+        const requested = geoScopes.map((scope) => scopeLabel(scope)).join(" and ");
+        warnings.push(`Day ${index + 1} has only ${geographicPool.length} curated ${geographicPool.length === 1 ? "place" : "places"} ${requested}; the planner will not substitute another part of London.`);
       }
     }
     if (input.routeStart && input.routeEnd) {
@@ -207,11 +202,18 @@ export function buildPlan(places, rawInput) {
         warnings.push(`Day ${index + 1} has only ${marketPool.length} curated market ${marketPool.length === 1 ? "experience" : "experiences"} compatible with the selected date; the planner will not replace them with unrelated places.`);
       }
     }
-    if (input.churchFocus) {
-      const churchPool = pool.filter((place) => place.category === "RELIGIOUS");
-      pool = churchPool;
-      if (churchPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${churchPool.length} curated ${churchPool.length === 1 ? "church" : "churches"} matching the requested geography and date; the planner will not replace them with unrelated places.`);
+    if (input.experience.strictCategory && input.primaryCategory) {
+      const categoryPool = pool.filter((place) => place.category === input.primaryCategory);
+      pool = categoryPool;
+      if (categoryPool.length < Math.min(3, PACE_STOPS[input.pace])) {
+        warnings.push(`Day ${index + 1} has only ${categoryPool.length} curated ${CATEGORY_LABELS[input.primaryCategory]?.toLowerCase() || "matching places"} within the requested geography.`);
+      }
+    }
+    if (input.experience.strictConcept && input.experience.semanticTerms.length) {
+      const conceptPool = pool.filter((place) => semanticFit(place, input.experience.semanticTerms));
+      pool = conceptPool;
+      if (conceptPool.length < Math.min(3, PACE_STOPS[input.pace])) {
+        warnings.push(`Day ${index + 1} has only ${conceptPool.length} curated ${input.experience.label || "concept-matching"} ${conceptPool.length === 1 ? "place" : "places"} in scope.`);
       }
     }
     const selected = selectDay(pool, dailyMustHaves, input, area, date, used);
@@ -233,7 +235,7 @@ export function buildPlan(places, rawInput) {
       dayNumber: index + 1,
       date,
       area,
-      areaLabel: AREA_OPTIONS[area]?.label || AREA_OPTIONS.ANY.label,
+      areaLabel: geoScopes.length ? geoScopes.map((scope) => scope.label).join(" · ") : AREA_OPTIONS[area]?.label || AREA_OPTIONS.ANY.label,
       routeLabel: routeLabel(input),
       routeStart: input.routeStart,
       routeEnd: input.routeEnd,
@@ -294,13 +296,18 @@ function normalizeInput(input) {
     familiarity: input.familiarity === "first" ? "first" : "returning",
     areas: (input.areas || ["ANY", "ANY"]).map((area) => AREA_OPTIONS[area] ? area : "ANY").slice(0, 2),
     categories: unique(input.categories || []), moods: unique(input.moods || []),
+    categoryPreferences: normalizeCategoryPreferences(input.categoryPreferences),
+    excludedCategories: unique(input.excludedCategories || []),
+    primaryCategory: CATEGORY_LABELS[input.primaryCategory] ? input.primaryCategory : "",
+    experience: normalizeExperience(input.experience),
+    geoScopes: (input.geoScopes || []).map(normalizeGeoScope).filter(Boolean),
+    excludeGeoScopes: (input.excludeGeoScopes || []).map(normalizeGeoScope).filter(Boolean),
     impact: input.impact === "wow" ? "wow" : "",
     season: input.season === "autumn" ? "autumn" : "",
     routeStart: normalizePoint(input.routeStart), routeEnd: normalizePoint(input.routeEnd),
     avoidCore: Boolean(input.avoidCore), noBigMuseums: Boolean(input.noBigMuseums), excludeMuseums: Boolean(input.excludeMuseums),
     outdoorOnly: Boolean(input.outdoorOnly), outdoorPreference: Boolean(input.outdoorPreference), crowdSensitive: Boolean(input.crowdSensitive),
-    marketFocus: Boolean(input.marketFocus), churchFocus: Boolean(input.churchFocus), compactRoute: Boolean(input.compactRoute),
-    weekendFlexible: Boolean(input.weekendFlexible),
+    marketFocus: Boolean(input.marketFocus), weekendFlexible: Boolean(input.weekendFlexible),
     mustHaves: splitTerms(input.mustHaves), avoidTerms: splitTerms(input.avoidTerms),
   };
 }
@@ -315,6 +322,7 @@ function eligible(place, input) {
   if (input.avoidCore && inWestEndCore(place)) return false;
   if (input.noBigMuseums && place.category === "MUSEUM" && Number(place.touristIntensity || 0) >= 55) return false;
   if (input.excludeMuseums && place.category === "MUSEUM") return false;
+  if (input.excludedCategories.includes(place.category)) return false;
   if (input.outdoorOnly && !outdoorFit(place)) return false;
   return true;
 }
@@ -323,13 +331,14 @@ function selectDay(pool, locked, input, area, date, used) {
   if (input.routeStart && input.routeEnd) return selectRouteDay(pool, locked, input, area, date, used);
   if (input.routeStart || input.routeEnd) return selectAnchoredDay(pool, locked, input, area, date, used);
   const desired = PACE_STOPS[input.pace];
-  const selected = uniquePlaces(locked).slice(0, desired);
-  const clusterRadius = input.marketFocus ? 30 : input.compactRoute ? 3.2 : input.transport === "walking" ? 4 : input.transport === "transit" ? 12 : 8;
+  const selected = seedRequiredCategories(pool, uniquePlaces(locked).slice(0, desired), input, area, date, used, desired);
+  const clusterRadius = input.experience.compact ? (input.transport === "walking" ? 3 : 5)
+    : input.marketFocus ? 30 : input.transport === "walking" ? 4 : input.transport === "transit" ? 12 : 8;
   const daySeed = selected[0] || [...pool].sort((a, b) => seedScore(b, pool, input, area, date, clusterRadius) - seedScore(a, pool, input, area, date, clusterRadius))[0];
   if (daySeed && !selected.some((place) => place.id === daySeed.id)) selected.push(daySeed);
   while (selected.length < desired) {
     const anchor = centroid(selected);
-    const next = pool.filter((place) => !used.has(place.id) && !selected.some((chosen) => chosen.id === place.id)
+    const next = pool.filter((place) => !used.has(place.id) && !selected.some((chosen) => chosen.id === place.id) && underCategoryMaximum(place, selected, input)
         && (!daySeed || haversineKm(daySeed.lat, daySeed.lon, place.lat, place.lon) <= clusterRadius))
       .sort((a, b) => scoreForCluster(b, anchor, selected, input, area, date) - scoreForCluster(a, anchor, selected, input, area, date))[0];
     if (!next) break;
@@ -340,20 +349,20 @@ function selectDay(pool, locked, input, area, date, used) {
 
 function selectAnchoredDay(pool, locked, input, area, date, used) {
   const desired = PACE_STOPS[input.pace];
-  const selected = uniquePlaces(locked).slice(0, desired);
+  const selected = seedRequiredCategories(pool, uniquePlaces(locked).slice(0, desired), input, area, date, used, desired);
   const anchor = input.routeStart || input.routeEnd;
   const localRadius = input.transport === "walking" ? 4 : input.transport === "transit" ? 12 : 8;
   const nearby = pool.filter((place) => haversineKm(anchor.lat, anchor.lon, place.lat, place.lon) <= localRadius);
   const candidates = nearby.length >= Math.min(3, desired) ? nearby : pool;
   while (selected.length < desired) {
     const cluster = selected.length ? centroid(selected) : anchor;
-    const next = candidates.filter((place) => !used.has(place.id) && !selected.some((chosen) => chosen.id === place.id))
+    const next = candidates.filter((place) => !used.has(place.id) && !selected.some((chosen) => chosen.id === place.id) && underCategoryMaximum(place, selected, input))
       .map((place) => {
         const anchorDistance = haversineKm(anchor.lat, anchor.lon, place.lat, place.lon);
         const clusterDistance = haversineKm(cluster.lat, cluster.lon, place.lat, place.lon);
-        const repeats = selected.filter((item) => item.category === place.category).length;
+        const repeats = categoryRepeatPenalty(place, selected, input);
         const distanceWeight = input.transport === "walking" ? 9 : input.transport === "transit" ? 3 : 5;
-        return { place, score: scorePlace(place, input, area, date) - anchorDistance * distanceWeight - clusterDistance * 3 - repeats * 8
+        return { place, score: scorePlace(place, input, area, date) - anchorDistance * distanceWeight - clusterDistance * 3 - repeats
           - indoorPreferencePenalty(place, selected, input) };
       })
       .sort((a, b) => b.score - a.score)[0]?.place;
@@ -365,14 +374,14 @@ function selectAnchoredDay(pool, locked, input, area, date, used) {
 
 function selectRouteDay(pool, locked, input, area, date, used) {
   const desired = PACE_STOPS[input.pace];
-  const selected = uniquePlaces(locked).slice(0, desired);
+  const selected = seedRequiredCategories(pool, uniquePlaces(locked).slice(0, desired), input, area, date, used, desired);
   for (let slot = selected.length; slot < desired; slot += 1) {
     const target = desired === 1 ? .5 : slot / (desired - 1);
-    const next = pool.filter((place) => !used.has(place.id) && !selected.some((chosen) => chosen.id === place.id))
+    const next = pool.filter((place) => !used.has(place.id) && !selected.some((chosen) => chosen.id === place.id) && underCategoryMaximum(place, selected, input))
       .map((place) => {
         const route = routeMetrics(place, input.routeStart, input.routeEnd);
-        const repeats = selected.filter((item) => item.category === place.category).length;
-        return { place, score: scorePlace(place, input, area, date) - route.distanceKm * 9 - Math.abs(route.position - target) * 28 - repeats * 8
+        const repeats = categoryRepeatPenalty(place, selected, input);
+        return { place, score: scorePlace(place, input, area, date) - route.distanceKm * 9 - Math.abs(route.position - target) * 28 - repeats
           - indoorPreferencePenalty(place, selected, input) };
       })
       .sort((a, b) => b.score - a.score)[0]?.place;
@@ -388,16 +397,21 @@ function seedScore(place, pool, input, area, date, radius) {
 }
 
 function scoreForCluster(place, anchor, selected, input, area, date) {
-  const distancePenalty = anchor ? haversineKm(anchor.lat, anchor.lon, place.lat, place.lon)
-    * (input.compactRoute ? 11 : input.transport === "walking" ? 7 : 4) : 0;
-  const categoryRepeat = selected.filter((item) => item.category === place.category).length * 8;
+  const distancePenalty = anchor ? haversineKm(anchor.lat, anchor.lon, place.lat, place.lon) * (input.transport === "walking" ? 7 : 4) : 0;
+  const categoryRepeat = categoryRepeatPenalty(place, selected, input);
   return scorePlace(place, input, area, date) - distancePenalty - categoryRepeat - indoorPreferencePenalty(place, selected, input);
 }
 
 function scorePlace(place, input, area, date) {
   let score = place.planning?.plannerReady ? 28 : 8;
   score += place.planning?.dataConfidence === "HIGH" ? 14 : 8;
-  if (input.categories.includes(place.category)) score += 26;
+  const categoryRule = input.categoryPreferences.find((item) => item.category === place.category);
+  if (categoryRule) score += ({ PRIMARY: 48, REQUIRED: 38, PREFERRED: 26, OPTIONAL: 10 }[categoryRule.strength] || 0);
+  else if (input.categories.includes(place.category)) score += 26;
+  if (input.experience.semanticTerms.length) {
+    const matches = semanticMatches(place, input.experience.semanticTerms);
+    score += matches * (input.experience.strictConcept ? 18 : 8);
+  }
   for (const mood of input.moods) score += Number(place.moods?.[mood] || 0) * 5;
   if (input.impact === "wow") {
     const impact = ["beautiful", "unexpected", "atmospheric", "weird"].reduce((sum, mood) => sum + Number(place.moods?.[mood] || 0), 0);
@@ -544,7 +558,6 @@ function areaFit(place, area) {
   if (area === "SOUTH" || area === "SOUTH_THAMES") return southOfThames(place);
   if (area === "EAST") return place.lon > -0.055;
   if (area === "WEST") return place.lon < -0.16;
-  if (area === "CITY_OF_LONDON") return cityOfLondonFit(place);
   if (area === "CENTRAL") return haversineKm(place.lat, place.lon, 51.514, -0.12) < 5;
   return true;
 }
@@ -567,15 +580,6 @@ export function routeMetrics(place, start, end) {
   const rawPosition = (px * dx + py * dy) / lengthSquared;
   const position = clamp(rawPosition, 0, 1);
   return { rawPosition, position, distanceKm: Math.hypot(px - position * dx, py - position * dy) };
-}
-
-function cityOfLondonFit(place) {
-  const lat = Number(place.lat);
-  const lon = Number(place.lon);
-  if (lat < 51.508 || lat > 51.5235 || lon < -.1125 || lon > -.073) return false;
-  // The Square Mile narrows around Smithfield; this excludes Clerkenwell while retaining Great St Bartholomew.
-  if (lon < -.098 && lat > 51.5202) return false;
-  return true;
 }
 
 function southOfThames(place) {
@@ -634,6 +638,103 @@ function marketDayCompatible(place, date) {
   if (saysSaturday && !saysSunday) return weekday === 6;
   if (saysSunday && !saysSaturday) return weekday === 0;
   return true;
+}
+
+function normalizeCategoryPreferences(value) {
+  const allowedStrengths = new Set(["PRIMARY", "REQUIRED", "PREFERRED", "OPTIONAL", "EXCLUDED"]);
+  const preferences = (Array.isArray(value) ? value : []).flatMap((item) => {
+    const category = String(item?.category || "").toUpperCase();
+    const strength = String(item?.strength || "").toUpperCase();
+    if (!CATEGORY_LABELS[category] || !allowedStrengths.has(strength)) return [];
+    const minStops = clamp(Math.trunc(Number(item.minStops) || 0), 0, 6);
+    const maxStops = clamp(Math.trunc(Number(item.maxStops) || 6), minStops, 6);
+    return [{ category, strength, minStops, maxStops }];
+  });
+  return [...new Map(preferences.map((item) => [item.category, item])).values()];
+}
+
+function normalizeExperience(value) {
+  const experience = value && typeof value === "object" ? value : {};
+  return {
+    label: String(experience.label || "").trim().slice(0, 160),
+    semanticTerms: unique((Array.isArray(experience.semanticTerms) ? experience.semanticTerms : [])
+      .map((term) => normalText(term).trim()).filter(Boolean)).slice(0, 10),
+    strictCategory: Boolean(experience.strictCategory),
+    strictConcept: Boolean(experience.strictConcept),
+    compact: Boolean(experience.compact),
+  };
+}
+
+function normalizeGeoScope(value) {
+  const relations = new Set(["IN", "NEAR", "NORTH_OF", "SOUTH_OF", "EAST_OF", "WEST_OF"]);
+  const relation = String(value?.relation || "").toUpperCase();
+  const center = normalizePoint(value?.center);
+  if (!relations.has(relation) || !center) return null;
+  const bounds = value?.bounds && [value.bounds.south, value.bounds.north, value.bounds.west, value.bounds.east].every((item) => Number.isFinite(Number(item)))
+    ? { south: Number(value.bounds.south), north: Number(value.bounds.north), west: Number(value.bounds.west), east: Number(value.bounds.east) }
+    : null;
+  return {
+    day: clamp(Math.trunc(Number(value.day) || 0), 0, 2), relation, center, bounds,
+    label: String(value.label || value.resolvedLabel || center.label).trim().slice(0, 160),
+    radiusKm: clamp(Number(value.radiusKm) || 3, .5, 25), featureType: String(value.featureType || ""),
+  };
+}
+
+function geographyFit(place, scope) {
+  const lat = Number(place.lat); const lon = Number(place.lon);
+  const distance = haversineKm(lat, lon, scope.center.lat, scope.center.lon);
+  if (scope.relation === "NEAR") return distance <= scope.radiusKm;
+  if (scope.relation === "IN") {
+    if (!scope.bounds) return distance <= scope.radiusKm;
+    const padding = Math.min(.018, Math.max(.003, scope.radiusKm / 111));
+    return lat >= scope.bounds.south - padding && lat <= scope.bounds.north + padding
+      && lon >= scope.bounds.west - padding && lon <= scope.bounds.east + padding;
+  }
+  if (distance > scope.radiusKm) return false;
+  if (scope.relation === "NORTH_OF") return lat > scope.center.lat;
+  if (scope.relation === "SOUTH_OF") return lat < scope.center.lat;
+  if (scope.relation === "EAST_OF") return lon > scope.center.lon;
+  if (scope.relation === "WEST_OF") return lon < scope.center.lon;
+  return true;
+}
+
+function scopeLabel(scope) {
+  const relation = ({ IN: "in", NEAR: "around", NORTH_OF: "north of", SOUTH_OF: "south of", EAST_OF: "east of", WEST_OF: "west of" })[scope.relation] || "near";
+  return `${relation} ${scope.label}`;
+}
+
+function semanticMatches(place, terms) {
+  const searchable = normalText(`${place.name} ${place.description} ${place.hook} ${place.accessNotes}`);
+  return terms.reduce((count, term) => count + Number(searchable.includes(normalText(term))), 0);
+}
+
+function semanticFit(place, terms) { return semanticMatches(place, terms) > 0; }
+
+function categoryRepeatPenalty(place, selected, input) {
+  const repeats = selected.filter((item) => item.category === place.category).length;
+  if (place.category === input.primaryCategory) return 0;
+  return repeats * 8;
+}
+
+function underCategoryMaximum(place, selected, input) {
+  const rule = input.categoryPreferences.find((item) => item.category === place.category);
+  if (!rule) return true;
+  return selected.filter((item) => item.category === place.category).length < rule.maxStops;
+}
+
+function seedRequiredCategories(pool, initial, input, area, date, used, desired) {
+  const selected = [...initial];
+  const rules = input.categoryPreferences.filter((item) => ["PRIMARY", "REQUIRED"].includes(item.strength) && item.minStops > 0);
+  for (const rule of rules) {
+    while (selected.length < desired && selected.filter((place) => place.category === rule.category).length < rule.minStops) {
+      const candidate = pool.filter((place) => place.category === rule.category && !used.has(place.id)
+          && !selected.some((chosen) => chosen.id === place.id))
+        .sort((a, b) => scorePlace(b, input, area, date) - scorePlace(a, input, area, date))[0];
+      if (!candidate) break;
+      selected.push(candidate);
+    }
+  }
+  return selected;
 }
 
 function normalizePoint(value) {

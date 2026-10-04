@@ -20,9 +20,10 @@ The prompt can be light, for example:
 > Piccadilly/Oxford St, no big museum, nice and uncommon places.
 
 It can also carry more detail, including day areas, interests, visitor
-familiarity, preferred transport and an early or full-day pattern. The planner
-can infer these values without requiring the user to press the interpretation
-button. The button exists to make the interpretation visible and editable.
+familiarity, preferred transport and an early or full-day pattern. The sandbox
+sends free text to a server-side AI interpreter, which returns a versioned,
+validated intent rather than an itinerary. The interpretation remains visible
+and editable through the controls.
 
 Explicitly changed controls override inferred prompt values. The controls cover:
 
@@ -56,10 +57,26 @@ weekly hours. Early-morning sequences prefer exterior or always-accessible stops
 timetabled venues are not scheduled before 10:00 unless their structured hours
 say otherwise.
 
+## AI interpretation boundary
+
+The interpreter uses the Cloudflare Workers AI binding and JSON-schema output.
+It extracts arbitrary London geography, route anchors, category priorities,
+semantic place-type terms, exclusions, transport, pace and at most one material
+clarification. It has no neighbourhood alias table and does not select venues.
+
+The Worker geocodes the model's location text through the existing bounded
+OpenStreetMap/Nominatim integration. Geographic scopes are represented as a
+resolved boundary, radius or direction. If a scope cannot be resolved, planning
+stops visibly rather than discarding the location.
+
+The browser never receives an AI credential. Successful interpretations are
+cached by prompt, answer set, schema version and model so repeated requests do
+not consume inference again. Menu choices remain authoritative.
+
 ## Itinerary behaviour
 
-The selection is deterministic and does not call an LLM or a paid routing API.
-It scores the curated data for prompt/category fit, factual readiness, returning
+After interpretation, selection is deterministic and does not ask the model to
+invent or rank venues. It scores the curated data for prompt/category fit, factual readiness, returning
 visitor suitability and the requested area, then applies a geographic-cohesion
 penalty and category-diversity penalty. The chosen stops are ordered by a simple
 nearest-neighbour pass.

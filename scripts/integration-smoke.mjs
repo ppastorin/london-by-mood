@@ -10,6 +10,7 @@ const mf = new Miniflare(convertV4MiniflareOptions({
     modules: [
       { type: "ESModule", path: "src/worker.js" },
       { type: "ESModule", path: "src/data-quality.js" },
+      { type: "ESModule", path: "src/planner-interpreter.js" },
     ],
     modulesRoot: ".",
     compatibilityDate: "2026-09-03",
@@ -184,16 +185,6 @@ try {
   assert.ok(sundayMarketPlan.days[0].stops.every((stop) => marketNames.has(stop.place.name)));
   assert.ok(sundayMarketPlan.days[0].stops.every((stop) => !["Alfies Antique Market", "Primrose Hill Food Market", "Shepherd's Bush Market", "Wood Street Indoor Market"].includes(stop.place.name)));
 
-  const churchIntent = interpretPrompt("A nice a compact one day long walk across the best churches in the City");
-  const churchPlan = buildPlan(plannerPayload.places, { ...churchIntent, startDate: "2026-10-06" });
-  assert.deepEqual(churchIntent.areas, ["CITY_OF_LONDON"]);
-  assert.equal(churchIntent.churchFocus, true);
-  assert.equal(churchIntent.compactRoute, true);
-  assert.equal(churchPlan.days.length, 1);
-  assert.ok(churchPlan.days[0].stops.length >= 5);
-  assert.ok(churchPlan.days[0].stops.every((stop) => stop.place.category === "RELIGIOUS"));
-  assert.ok(churchPlan.days[0].stops.every((stop) => stop.place.lon >= -.1125 && stop.place.lon <= -.073));
-
   const revisions = await db.prepare("SELECT action FROM place_revisions WHERE place_id = ? ORDER BY revision_id").bind(createdPayload.id).all();
   assert.deepEqual(revisions.results.map((row) => row.action), ["create", "publish"]);
 
@@ -238,7 +229,6 @@ try {
     victoriaExample: victoriaPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
     marketExample: marketPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
     sundayMarketExample: sundayMarketPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
-    cityChurchExample: churchPlan.days[0].stops.map((stop) => `${stop.startTime}-${stop.endTime} ${stop.place.name}`),
   }));
 } finally {
   await mf.dispose();

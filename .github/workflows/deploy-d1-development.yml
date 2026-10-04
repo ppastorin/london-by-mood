@@ -94,6 +94,14 @@ jobs:
           jq -e '.ok == true and .count == 881' <<<"${places}" >/dev/null
           planner_places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/planner/places?limit=1200")"
           jq -e '[.places[] | select(.category == "RELIGIOUS" and .lat >= 51.508 and .lat <= 51.5235 and .lon >= -0.1125 and .lon <= -0.073 and .planning.dataConfidence == "HIGH")] | length >= 6' <<<"${planner_places}" >/dev/null
+          interpretation="$(curl --fail --silent --show-error --retry 3 --retry-delay 3 \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data '{"prompt":"A compact one day walk across the best churches in Kensington area"}' \
+            "${base_url}/api/planner/interpret")"
+          jq -e '.ok == true
+            and .intent.primaryCategory == "RELIGIOUS"
+            and (.intent.geoScopes | any(.label | ascii_downcase | contains("kensington")))' <<<"${interpretation}" >/dev/null
           admin_status="000"
           for attempt in 1 2 3 4 5 6; do
             admin_status="$(curl --silent --output /dev/null --write-out '%{http_code}' "${base_url}/admin/api/places?limit=1")"

@@ -10,6 +10,7 @@
     "deploy": "wrangler deploy",
     "test": "node --test tests/*.test.mjs",
     "test:integration": "node scripts/integration-smoke.mjs",
+    "test:interpreter:sandbox": "node scripts/evaluate-planner-interpreter.mjs",
     "test:csv": "node scripts/preview-csv-import.mjs",
     "data:prepare-batches": "node scripts/prepare-enrichment-batches.mjs",
     "data:fetch-batch1": "node scripts/fetch-official-source-evidence.mjs batch-1",
@@ -18,7 +19,7 @@
     "data:build-batch1": "node scripts/build-enrichment-candidates.mjs batch-1",
     "data:build-batch2": "node scripts/build-enrichment-candidates.mjs batch-2",
     "test:enrichment-sandbox": "node scripts/validate-enrichment-sandbox.mjs",
-    "check": "node --check src/worker.js && node --check src/data-quality.js && node --check src/migrate-production.js && node --check public/app.js && node --check public/ranking.js && node --check public/admin/app.js && node --check public/smart-navigation/app.js && node --check public/smart-navigation/itinerary.js && node --check public/smart-navigation/i18n.js && node --check public/planner/app.js && node --check public/planner/planner-core.js && node --check scripts/prepare-enrichment-batches.mjs && node --check scripts/fetch-official-source-evidence.mjs && node --check scripts/discover-official-sources.mjs && node --check scripts/build-enrichment-candidates.mjs && node --check scripts/validate-enrichment-sandbox.mjs && python3 -m py_compile scripts/build-d1-seed.py"
+    "check": "node --check src/worker.js && node --check src/planner-interpreter.js && node --check src/data-quality.js && node --check src/migrate-production.js && node --check public/app.js && node --check public/ranking.js && node --check public/admin/app.js && node --check public/smart-navigation/app.js && node --check public/smart-navigation/itinerary.js && node --check public/smart-navigation/i18n.js && node --check public/planner/app.js && node --check public/planner/planner-core.js && node --check scripts/evaluate-planner-interpreter.mjs && node --check scripts/prepare-enrichment-batches.mjs && node --check scripts/fetch-official-source-evidence.mjs && node --check scripts/discover-official-sources.mjs && node --check scripts/build-enrichment-candidates.mjs && node --check scripts/validate-enrichment-sandbox.mjs && python3 -m py_compile scripts/build-d1-seed.py"
   },
   "devDependencies": {
     "wrangler": "^4.92.0"

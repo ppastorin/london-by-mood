@@ -54,35 +54,6 @@ test("a market-led weekend prompt stays distinct from a mixed itinerary with one
   assert.ok(day.stops.slice(1).every((stop) => !new URL(stop.legUrl).searchParams.has("waypoints")));
 });
 
-test("a compact church walk in the City is geographically and categorically strict", () => {
-  const intent = interpretPrompt("A nice a compact one day long walk across the best churches in the City");
-  assert.equal(intent.days, 1);
-  assert.deepEqual(intent.areas, ["CITY_OF_LONDON"]);
-  assert.deepEqual(intent.categories, ["RELIGIOUS"]);
-  assert.equal(intent.transport, "walking");
-  assert.equal(intent.pace, "full");
-  assert.equal(intent.churchFocus, true);
-  assert.equal(intent.compactRoute, true);
-
-  const plan = buildPlan([
-    fixture("bride", "St Bride's Church", "RELIGIOUS", 51.5138, -.1055),
-    fixture("bow", "St Mary-le-Bow", "RELIGIOUS", 51.5137, -.0936),
-    fixture("stephen", "St Stephen Walbrook", "RELIGIOUS", 51.5127, -.09),
-    fixture("magnus", "St Magnus the Martyr", "RELIGIOUS", 51.5094, -.0864),
-    fixture("hallows", "All Hallows by the Tower", "RELIGIOUS", 51.5094, -.0793),
-    fixture("shop", "Peter Jones & Partners", "SHOPPING", 51.499, -.159),
-    fixture("outside", "St Paul's Knightsbridge", "RELIGIOUS", 51.502, -.158),
-    fixture("clerkenwell", "St John Priory Church", "RELIGIOUS", 51.5228, -.1033),
-  ], { ...intent, startDate: "2026-10-06" });
-  const day = plan.days[0];
-  assert.equal(day.area, "CITY_OF_LONDON");
-  assert.equal(day.stops.length, 5);
-  assert.ok(day.stops.every((stop) => stop.place.category === "RELIGIOUS"));
-  assert.ok(day.stops.every((stop) => stop.place.id !== "clerkenwell"));
-  assert.ok(day.stops.every((stop) => stop.place.lon >= -.1125 && stop.place.lon <= -.073));
-  assert.deepEqual(day.stops.map((stop) => stop.place.id), ["bride", "bow", "stephen", "magnus", "hallows"]);
-});
-
 test("west of South Kensington is a hard geographic constraint", () => {
   const prompt = "I would like a plan for one day in west London, west of South Kensington. I like walking, nice areas and buildings, maybe some gardens and parks, and possibly an interesting museum, not the big ones. I like walking";
   const intent = interpretPrompt(prompt);
