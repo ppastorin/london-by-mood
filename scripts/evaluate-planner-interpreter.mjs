@@ -4,12 +4,11 @@ const baseUrl = String(process.env.PLANNER_BASE_URL || "https://london-advanced-
 
 const cases = [
   {
-    name: "two different day geographies",
-    prompt: "I want to spend two full days during the week, one west of Hyde Park and the second east of Holborn. I like small museums, parks and quirky things. I have already visited all the major destinations as I have been to London 4 times. I like walking, but I am confident to jump on a tube. I usually start very early in the morning and go back to the hotel after dinner.",
+    name: "dated west London full day",
+    prompt: "I want one full day west of Hyde Park on Saturday 7 November 2026. I like small museums, parks and quirky things. I have visited London four times. I like walking, but I can use the Tube for longer gaps.",
     check(intent) {
-      assert.equal(intent.days, 2); assert.equal(intent.transport, "mixed");
-      assert.ok(intent.geoScopes.some((scope) => scope.day === 1 && scope.relation === "WEST_OF"));
-      assert.ok(intent.geoScopes.some((scope) => scope.day === 2 && scope.relation === "EAST_OF"));
+      assert.equal(intent.days, 1); assert.equal(intent.transport, "mixed"); assert.equal(intent.visitDate, "2026-11-07");
+      assert.ok(intent.geoScopes.some((scope) => scope.relation === "WEST_OF"));
       assert.ok(["MUSEUM", "PARK", "ODDITY"].every((category) => intent.categories.includes(category)));
     },
   },

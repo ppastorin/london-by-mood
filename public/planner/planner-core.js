@@ -153,7 +153,7 @@ export function interpretPrompt(value) {
     result.pace = "full";
     result.insights.push("full day");
   }
-  return { ...result, categories: unique(result.categories), moods: unique(result.moods), insights: unique(result.insights) };
+  return { ...result, days: 1, areas: result.areas?.slice(0, 1), categories: unique(result.categories), moods: unique(result.moods), insights: unique(result.insights) };
 }
 
 export function buildPlan(places, rawInput) {
@@ -239,7 +239,7 @@ export function buildPlan(places, rawInput) {
       dayNumber: index + 1,
       date,
       area,
-      areaLabel: geoScopes.length ? geoScopes.map((scope) => scope.label).join(" · ") : AREA_OPTIONS[area]?.label || AREA_OPTIONS.ANY.label,
+      areaLabel: geoScopes.length ? unique(geoScopes.map((scope) => scope.label)).join(" · ") : AREA_OPTIONS[area]?.label || AREA_OPTIONS.ANY.label,
       routeLabel: routeLabel(input),
       routeStart: input.routeStart,
       routeEnd: input.routeEnd,
@@ -298,14 +298,14 @@ export function dayRouteUrl(stops, _transport = "walking", routeStart = null, ro
 function normalizeInput(input) {
   const startDate = /^\d{4}-\d{2}-\d{2}$/.test(input.startDate || "") ? input.startDate : new Date().toISOString().slice(0, 10);
   return {
-    days: Number(input.days) === 1 ? 1 : 2,
+    days: 1,
     startDate,
     startTime: /^\d{2}:\d{2}$/.test(input.startTime || "") ? input.startTime : "09:00",
     endTime: /^\d{2}:\d{2}$/.test(input.endTime || "") ? input.endTime : "19:00",
     pace: PACE_STOPS[input.pace] ? input.pace : "balanced",
     transport: ["walking", "mixed", "transit"].includes(input.transport) ? input.transport : "walking",
     familiarity: input.familiarity === "first" ? "first" : "returning",
-    areas: (input.areas || ["ANY", "ANY"]).map((area) => AREA_OPTIONS[area] ? area : "ANY").slice(0, 2),
+    areas: (input.areas || ["ANY"]).map((area) => AREA_OPTIONS[area] ? area : "ANY").slice(0, 1),
     categories: unique(input.categories || []), moods: unique(input.moods || []),
     categoryPreferences: normalizeCategoryPreferences(input.categoryPreferences),
     excludedCategories: unique(input.excludedCategories || []),

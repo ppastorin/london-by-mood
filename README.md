@@ -8,7 +8,7 @@ Nothing in this branch is configured for production. `wrangler.jsonc` intentiona
 
 - `/` — London by Mood, now reading `GET /api/pois` from D1.
 - `/smart-navigation/` — rebuilt Smart Navigator, with walking-route detours, live TfL cycle availability, and mobile Google Maps navigation through up to nine selected places.
-- `/planner/` — feature-flagged one-/two-day planner prototype. It is available only when `PLANNER_ENABLED=true` and is `noindex`/`no-store`.
+- `/planner/` — feature-flagged one-day AI planner with editable interpretation, OpenStreetMap routing and PDF export. It is available only when `PLANNER_ENABLED=true` and is `noindex`/`no-store`.
 - `/admin/` — private place capture/editor prototype with draft, publish and archive states.
 - `migrations/0001_places.sql` — normalized D1 schema.
 - `migrations/0002_imports.sql` — durable source identities plus preview/commit batch imports.

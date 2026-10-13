@@ -2,7 +2,7 @@
 
 ## Outcome
 
-Increment 1 produces one recommended one- or two-day London itinerary from a
+The current sandbox produces one recommended one-day London itinerary from a
 short or detailed prompt plus compact controls. Each day is a geographically
 coherent sequence with practical times, visible access confidence, links to the
 official sources and a Google Maps directions link.
@@ -27,10 +27,10 @@ and editable through the controls.
 
 Explicitly changed controls override inferred prompt values. The controls cover:
 
-- one or two days and the first date;
+- one date, time of day and duration;
 - start and finish time;
 - pace and walking/public-transport preference;
-- a geographic focus for each day;
+- editable geographic scopes, exclusions, start and finish anchors;
 - preferred place categories;
 - returning/first-time visitor profile;
 - West End and high-traffic museum exclusions;
@@ -66,8 +66,9 @@ say otherwise.
 
 The interpreter uses the Cloudflare Workers AI binding and JSON-schema output.
 It extracts arbitrary London geography, route anchors, category priorities,
-semantic place-type terms, exclusions, transport, pace and at most one material
-clarification. It has no neighbourhood alias table and does not select venues.
+semantic place-type terms, moods, exclusions, transport, pace, calendar context
+and up to three material clarifications. It has no neighbourhood alias table
+and does not select venues.
 
 The Worker geocodes the model's location text through the existing bounded
 OpenStreetMap/Nominatim integration. Geographic scopes are represented as a
@@ -81,10 +82,9 @@ not consume inference again. Menu choices remain authoritative.
 ## Itinerary behaviour
 
 After interpretation, selection is deterministic and does not ask the model to
-invent or rank venues. It scores the catalogue for prompt/category fit, factual readiness, returning
-visitor suitability and the requested area, then applies a geographic-cohesion
-penalty and category-diversity penalty. The chosen stops are ordered by a simple
-nearest-neighbour pass.
+invent or rank venues. It scores the catalogue for prompt/category fit, factual
+readiness, returning-visitor suitability and the requested area, then applies a
+geographic-cohesion penalty and category-diversity penalty.
 
 Broad areas such as East, West, North and South London are interpreted by the
 AI as compound directional geographic constraints around stable reference
@@ -95,8 +95,9 @@ such as markets remains a hard concept filter, while singular/plural variants
 are matched generically.
 
 Travel time is a conservative local estimate. Mixed mode uses walking for short
-legs and labels longer jumps as Tube/bus. Google Maps links are generated using
-the existing shared directions helper. No booking is attempted.
+legs and labels longer jumps as Tube/bus. The result includes an OpenStreetMap
+view, an ordered Google Maps walking link and a branded PDF with the map, stops,
+source links and caveats. No booking is attempted.
 
 ## Verification
 
@@ -121,11 +122,9 @@ backlog, not a reason to hide the record from V1.
 
 ## Deliberate limits of Increment 1
 
-- one recommended itinerary, not two alternatives;
-- one or two days only;
+- one recommended one-day itinerary, not multiple alternatives;
 - no restaurant/hotel inventory or third-party packages;
 - no live booking or paid route optimization;
-- no downloadable document yet;
 - opening hours are only treated as confirmed when structured evidence exists.
 
 These limits keep the first increment usable and testable while leaving the data

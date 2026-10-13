@@ -37,6 +37,7 @@ test("AI contract safeguards primary concepts and exact category exclusions gene
 
   assert.equal(intent.experience.strictCategory, true);
   assert.equal(intent.experience.strictConcept, true);
+  assert.equal(intent.marketFocus, true);
   assert.ok(intent.excludedCategories.includes("MUSEUM"));
   assert.deepEqual(intent.avoidTerms, ["crowded places"]);
 });
@@ -49,6 +50,25 @@ test("a sole strict required category is normalised as the primary concept", () 
   assert.equal(intent.primaryCategory, "RELIGIOUS");
   assert.equal(intent.experience.strictCategory, true);
   assert.equal(intent.experience.strictConcept, true);
+});
+
+test("AI date, time-of-day and multiple refinement questions survive normalisation", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    days: 2,
+    visitDate: "2026-11-07",
+    timeOfDay: "morning",
+    preferredWeekdays: [6],
+    preferredMonths: [11],
+    clarifications: [
+      { id: "focus", question: "Which focus?", reason: "It changes the route.", options: [{ value: "markets", label: "Markets" }, { value: "parks", label: "Parks" }] },
+      { id: "pace", question: "How intensive?", reason: "It changes stop count.", options: [{ value: "relaxed", label: "Relaxed" }, { value: "full", label: "Full" }] },
+    ],
+  }));
+  assert.equal(intent.days, 1);
+  assert.equal(intent.visitDate, "2026-11-07");
+  assert.equal(intent.timeOfDay, "morning");
+  assert.deepEqual(intent.preferredMonths, [11]);
+  assert.equal(intent.clarifications.length, 2);
 });
 
 test("generic resolved geography and AI semantic terms are enforced without falling back elsewhere", () => {
@@ -100,6 +120,7 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.equal(response.status, 200);
   assert.equal(payload.intent.primaryCategory, "RELIGIOUS");
   assert.equal(payload.intent.geoScopes[0].label, "Kensington");
+  assert.equal(payload.intent.resolvedGeography[0].label, "Kensington");
   assert.deepEqual(payload.intent.geoScopes[0].bounds, { south: 51.48, north: 51.52, west: -0.23, east: -0.15 });
   assert.equal(payload.intent.routeStart, undefined);
   assert.deepEqual(geocodeQueries, ["Kensington area, London, UK", "Kensington, London, UK"]);
@@ -118,11 +139,11 @@ test("planner interpretation fails explicitly when the AI binding is absent", as
 
 function rawIntent(overrides = {}) {
   return {
-    days: 1, startTime: "", endTime: "", pace: "balanced", transport: "walking", familiarity: "returning",
+    days: 1, visitDate: "", timeOfDay: "flexible", startTime: "", endTime: "", pace: "balanced", transport: "walking", familiarity: "returning",
     geography: [], categoryPreferences: [],
     experience: { label: "London day", semanticTerms: [], strictCategory: false, strictConcept: false, compact: false },
     moods: [], exclusions: [], mustInclude: [], outdoorMode: "ANY", museumScale: "ANY", crowdPreference: "ANY",
-    touristPreference: "ANY", season: "unspecified", preferredWeekdays: [], openEnded: false,
+    touristPreference: "ANY", season: "unspecified", preferredWeekdays: [], preferredMonths: [], openEnded: false,
     assumptions: [], insights: [], clarifications: [], confidence: .92,
     ...overrides,
   };

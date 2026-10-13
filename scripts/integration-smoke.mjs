@@ -91,7 +91,7 @@ try {
 
   const plannerPage = await mf.dispatchFetch("http://local.test/planner/");
   assert.equal(plannerPage.status, 200);
-  assert.match(await plannerPage.text(), /Planner · Increment 1/);
+  assert.match(await plannerPage.text(), /One-day planner/);
   const plannerResponse = await mf.dispatchFetch("http://local.test/api/planner/places?limit=1200");
   const plannerPayload = await plannerResponse.json();
   assert.equal(plannerResponse.status, 200, JSON.stringify(plannerPayload));
@@ -99,16 +99,15 @@ try {
   assert.equal(plannerPayload.count, publicPayload.count + 1, "Every published place, including the integration fixture, must reach Planner V1");
   assert.ok(plannerPayload.places.every((place) => place.mapUrl && place.planning.validationUrl));
   assert.equal(plannerPayload.coverage.verified + plannerPayload.coverage.checkBeforeTravel, plannerPayload.count);
-  const detailedIntent = interpretPrompt("I want to spend two full days during the week, one west of Hyde Park and the second east of Holborn. I like small museums, parks and quirky things. I have already visited all the major destinations. I like walking, but I am confident to jump on a tube. I start very early and go back after dinner.");
+  const detailedIntent = interpretPrompt("I want to spend one full day west of Hyde Park. I like small museums, parks and quirky things. I have already visited all the major destinations. I like walking, but I am confident to jump on a tube. I start very early and go back after dinner.");
   const detailedPlan = buildPlan(plannerPayload.places, { ...detailedIntent, startDate: "2026-10-05" });
-  assert.equal(detailedPlan.days.length, 2);
+  assert.equal(detailedPlan.days.length, 1);
   assert.ok(detailedPlan.days.every((day) => day.stops.length >= 3));
   assert.ok(detailedPlan.days[0].stops.every((stop) => stop.place.lon < -0.165));
-  assert.ok(detailedPlan.days[1].stops.every((stop) => stop.place.lon > -0.118));
 
-  const basicIntent = interpretPrompt("Recommend a two full days itinerary, avoiding the core areas around Piccadilly/Oxford St, no big museum, nice and uncommon places.");
-  const basicPlan = buildPlan(plannerPayload.places, { ...basicIntent, startDate: "2026-10-05", areas: ["ANY", "ANY"] });
-  assert.equal(basicPlan.days.length, 2);
+  const basicIntent = interpretPrompt("Recommend a one-day itinerary, avoiding the core areas around Piccadilly/Oxford St, no big museum, nice and uncommon places.");
+  const basicPlan = buildPlan(plannerPayload.places, { ...basicIntent, startDate: "2026-10-05", areas: ["ANY"] });
+  assert.equal(basicPlan.days.length, 1);
   assert.ok(basicPlan.days.flatMap((day) => day.stops).every((stop) => !insideWestEndCore(stop.place)));
 
   const westIntent = interpretPrompt("I would like a plan for one day in west London, west of South Kensington. I like walking, nice areas and buildings, maybe some gardens and parks, and possibly an interesting museum, not the big ones. I like walking");

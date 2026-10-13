@@ -6,13 +6,14 @@
   <meta name="robots" content="noindex,nofollow">
   <title>London Advanced · Planner prototype</title>
   <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="/planner/styles.css">
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="/" aria-label="London Advanced home">
       <span class="brand-mark">LA</span>
-      <span><strong>London Advanced</strong><small>Planner · Increment 1</small></span>
+      <span><strong>London Advanced</strong><small>One-day planner</small></span>
     </a>
     <span class="prototype-badge">Sandbox prototype</span>
   </header>
@@ -21,8 +22,8 @@
     <section class="hero">
       <div>
         <p class="eyebrow">Beyond the obvious</p>
-        <h1>Shape one or two good London days.</h1>
-        <p>Describe the kind of trip you want, then use a few controls to make dates and practical choices precise.</p>
+        <h1>Shape one remarkable London day.</h1>
+        <p>Describe the day in your own words. The AI interpreter will identify place, date, mood and practical constraints, then ask only the questions that improve the result.</p>
       </div>
       <div class="hero-map" aria-hidden="true"></div>
     </section>
@@ -31,12 +32,12 @@
       <form id="planner-form" class="planner-form">
         <section class="form-section prompt-section">
           <div class="section-heading">
-            <span>1</span><div><h2>What would make these days yours?</h2><p>A short request is enough. The controls below can carry the detail.</p></div>
+            <span>1</span><div><h2>What would make this day yours?</h2><p>A short request is enough. You can review every interpretation before planning.</p></div>
           </div>
           <label class="sr-only" for="planner-prompt">Trip request</label>
-          <textarea id="planner-prompt" rows="5" placeholder="For example: Two full days, avoiding Piccadilly and Oxford Street. No big museums; I want parks and uncommon places."></textarea>
+          <textarea id="planner-prompt" rows="5" placeholder="For example: A Saturday in East London, starting near Liverpool Street. Markets, local character and unexpected architecture; mostly walking with the Tube for longer gaps."></textarea>
           <div class="prompt-actions">
-            <button id="interpret-button" class="secondary-button" type="button">Interpret request with AI</button>
+            <button id="interpret-button" class="secondary-button" type="button">Interpret and refine with AI</button>
             <button id="example-button" class="text-button" type="button">Load detailed example</button>
           </div>
           <div id="prompt-insights" class="insight-list" aria-live="polite"></div>
@@ -48,19 +49,22 @@
             <span>2</span><div><h2>Set the practical frame</h2><p>These selections are authoritative if the prompt says something different.</p></div>
           </div>
           <div class="field-grid three">
-            <label>Days
-              <select id="days"><option value="1">One day</option><option value="2" selected>Two days</option></select>
-            </label>
-            <label>First date
+            <label>Date
               <input id="start-date" type="date" required>
+            </label>
+            <label>Part of day
+              <select id="time-of-day"><option value="flexible">Flexible</option><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="full_day" selected>Full day</option></select>
             </label>
             <label>Visitor profile
               <select id="familiarity"><option value="returning" selected>Returning visitor</option><option value="first">First visit</option></select>
             </label>
           </div>
-          <div class="field-grid four">
+          <div class="field-grid five">
             <label>Start <input id="start-time" type="time" value="09:00"></label>
             <label>Finish <input id="end-time" type="time" value="19:00"></label>
+            <label>Duration
+              <select id="duration"><option value="3">3 hours</option><option value="5">5 hours</option><option value="8">8 hours</option><option value="10" selected>10 hours</option></select>
+            </label>
             <label>Pace
               <select id="pace"><option value="relaxed">Relaxed</option><option value="balanced" selected>Balanced</option><option value="full">Full</option></select>
             </label>
@@ -68,14 +72,11 @@
               <select id="transport"><option value="walking" selected>Mostly walk</option><option value="mixed">Walk + Tube</option><option value="transit">Public transport</option></select>
             </label>
           </div>
-          <div class="field-grid two">
-            <label>Day 1 area
-              <select id="area-1" class="area-select"></select>
-            </label>
-            <label id="area-2-label">Day 2 area
-              <select id="area-2" class="area-select"></select>
-            </label>
+          <div class="geography-heading">
+            <div><strong>Locations and boundaries</strong><p>AI suggestions are editable. Add an area, starting point, finish or exclusion.</p></div>
+            <button id="add-geography" class="text-button" type="button">+ Add location</button>
           </div>
+          <div id="geography-list" class="geography-list"></div>
         </section>
 
         <section class="form-section">
@@ -85,6 +86,10 @@
           <fieldset>
             <legend>Prioritise</legend>
             <div id="category-grid" class="choice-grid"></div>
+          </fieldset>
+          <fieldset class="mood-fieldset">
+            <legend>Preferred mood</legend>
+            <div id="mood-grid" class="choice-grid mood-grid"></div>
           </fieldset>
           <div class="toggle-row">
             <label><input id="avoid-core" type="checkbox"> Avoid the Piccadilly / Oxford Street core</label>
@@ -96,7 +101,7 @@
           </div>
         </section>
 
-        <button id="generate-button" class="primary-button" type="submit"><span>Build my itinerary</span><small>One recommended plan · official-source checks</small></button>
+        <button id="generate-button" class="primary-button" type="submit"><span>Build my one-day itinerary</span><small>Map · timed stops · source checks · PDF</small></button>
         <p class="form-note">AI interprets your request; curated data and deterministic checks control geography, access, timing and route feasibility. No venue or opening time is invented.</p>
       </form>
 
@@ -110,7 +115,10 @@
     </div>
   </main>
 
-  <footer><span>Increment 1 · sandbox only</span><span>Curated London Advanced data · no production deployment</span></footer>
+  <footer><span>One-day planner · sandbox only</span><span>Curated London Advanced data · no production deployment</span></footer>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
   <script type="module" src="/planner/app.js"></script>
 </body>
 </html>

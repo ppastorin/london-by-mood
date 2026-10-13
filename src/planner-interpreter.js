@@ -5,13 +5,15 @@ const RELATIONS = ["IN", "NEAR", "NORTH_OF", "SOUTH_OF", "EAST_OF", "WEST_OF"];
 const ROLES = ["SCOPE", "START", "END", "EXCLUDE"];
 const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "wander"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "7";
+export const PLANNER_INTENT_SCHEMA_VERSION = "8";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
   additionalProperties: false,
   properties: {
-    days: { type: "integer", minimum: 1, maximum: 2 },
+    days: { type: "integer", minimum: 1, maximum: 1 },
+    visitDate: { type: "string" },
+    timeOfDay: { type: "string", enum: ["morning", "afternoon", "evening", "full_day", "flexible"] },
     startTime: { type: "string" },
     endTime: { type: "string" },
     pace: { type: "string", enum: ["relaxed", "balanced", "full", "unspecified"] },
@@ -70,12 +72,13 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
     touristPreference: { type: "string", enum: ["NON_TOURISTIC", "ANY"] },
     season: { type: "string", enum: ["spring", "summer", "autumn", "winter", "unspecified"] },
     preferredWeekdays: { type: "array", maxItems: 7, items: { type: "integer", minimum: 0, maximum: 6 } },
+    preferredMonths: { type: "array", maxItems: 12, items: { type: "integer", minimum: 1, maximum: 12 } },
     openEnded: { type: "boolean" },
     assumptions: { type: "array", maxItems: 6, items: { type: "string" } },
     insights: { type: "array", maxItems: 12, items: { type: "string" } },
     clarifications: {
       type: "array",
-      maxItems: 1,
+      maxItems: 3,
       items: {
         type: "object",
         additionalProperties: false,
@@ -86,7 +89,7 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
           options: {
             type: "array",
             minItems: 2,
-            maxItems: 3,
+            maxItems: 4,
             items: {
               type: "object",
               additionalProperties: false,
@@ -100,9 +103,9 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
     },
     confidence: { type: "number", minimum: 0, maximum: 1 },
   },
-  required: ["days", "startTime", "endTime", "pace", "transport", "familiarity", "geography",
+  required: ["days", "visitDate", "timeOfDay", "startTime", "endTime", "pace", "transport", "familiarity", "geography",
     "categoryPreferences", "experience", "moods", "exclusions", "mustInclude", "outdoorMode", "museumScale",
-    "crowdPreference", "touristPreference", "season", "preferredWeekdays", "openEnded", "assumptions",
+    "crowdPreference", "touristPreference", "season", "preferredWeekdays", "preferredMonths", "openEnded", "assumptions",
     "insights", "clarifications", "confidence"],
 });
 
@@ -110,12 +113,13 @@ const SYSTEM_PROMPT = `You are the intent interpreter for London Advanced, a cur
 Your only task is to translate a visitor's request into the supplied JSON schema. Do not invent an itinerary, venues, opening hours or coordinates.
 
 Interpretation rules:
+- This planner always creates exactly one day and days must be 1. If a request assigns different areas or themes to different days, ask which single-day option to plan; do not silently combine incompatible day briefs.
 - Geography is a hard constraint whenever the user names an area, direction, start or end. Never replace it with a better-known part of London.
 - Resolve the intended London place name in query. Use full canonical feature names (for example "River Thames", not "Thames"). In a London travel context, "the City" means "City of London"; an ordinary city-wide request does not.
 - Use role SCOPE for an area to visit, EXCLUDE for an area to avoid, and START or END only for explicit route anchors. Every explicit starting and ending point is mandatory in geography, even when the request also contains a broad scope. A start or end is otherwise optional. "No specific destination" is openEnded and requires no clarification.
 - Use IN for "in/across/within", NEAR for "around/near", and the directional relations for "west/east/north/south of". For a directional constraint, query and label must contain only the geocodable reference place: "west of Hyde Park" is relation WEST_OF with query "Hyde Park", never an IN query containing "west of".
 - Treat broad London regions as compound geographic concepts, not named venues. Use multiple directional scopes when a single half-plane would spill into another obvious London region. For example, "East London" needs both EAST_OF a stable central reference such as Trafalgar Square and NORTH_OF the Thames using a stable reference such as London Bridge; label both scopes "East London" and use broad 12-20 km radii. Apply equivalent geographic reasoning to West, North and South London instead of asking a geocoder to search the region phrase itself.
-- For a request with different areas on different days, number them from 1 through days in the order stated. Day 0 is reserved only for a constraint that applies to every day; it is not the first day of a multi-day request.
+- Set day=0 for every geography item because all constraints apply to the single planned day.
 - Distinguish the main purpose from incidental possibilities. When the whole day is organised around one narrow place type, make its category PRIMARY, strictCategory true and strictConcept true; this applies equally to markets, churches and any future narrow concept. A merely possible stop is OPTIONAL.
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
 - semanticTerms are generic place-type words, not named venues. Supply them only when the user's concept is narrower than the category. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
@@ -123,25 +127,29 @@ Interpretation rules:
 - Negation always wins: a negated known category must be a categoryPreference with strength EXCLUDED, not only a free-text exclusion. A request for no big/major museums keeps MUSEUM available but sets museumScale SMALL_ONLY.
 - "Mainly outdoors" is PREFER; "nothing indoor" is ONLY. Green implies PARK. Artistic can imply MUSEUM or BUILDING depending context.
 - A compact/long walk controls experience.compact and transport. A willingness to use the Tube alongside walking is mixed.
-- Ask at most one clarification, and only when ambiguity could materially change geography or violate a hard constraint. Do not ask merely because details are omitted.
+- Ask up to three short clarifications when an answer would materially improve the result: resolve ambiguous geography, choose between genuinely different interpretations, confirm a date-dependent request, or settle a conflict such as outdoors versus an indoor category. Do not ask for information already present. Prefer two or three concrete options and include a sensible "Use your best judgement" option when no answer is essential.
 - Do not put questions in assumptions or insights. Keep insights short and user-facing.
-- If clarification answers are supplied, treat them as authoritative and normally return no further clarification.
+- If clarification answers are supplied, treat them as authoritative and return no further clarification unless an answer introduces a new material ambiguity.
 - Radius is geometric scope, not travel distance: about 2-3 km for a compact neighbourhood, 5-8 km around a broad district and up to 15-20 km for a directional part of London.
 - preferredWeekdays uses 0=Sunday, 1=Monday, ... 6=Saturday. "During the week" means 1 through 5.
-- Default unspecified values: days=1, blank times, pace=unspecified, transport=unspecified, familiarity=unspecified, season=unspecified, outdoorMode=ANY, museumScale=ANY, crowd/tourist preference=ANY.
+- Convert an explicit calendar date or unambiguous relative date into visitDate YYYY-MM-DD using the supplied current London date. Otherwise leave visitDate blank. Capture named weekdays in preferredWeekdays and named months in preferredMonths (1=January through 12=December).
+- timeOfDay is morning, afternoon, evening, full_day or flexible. Infer practical startTime and endTime when the user names a time of day; use 08:30–13:00 for morning, 13:00–18:00 for afternoon, 17:00–22:00 for evening and 09:00–19:00 for a full day unless the user gives exact times.
+- Default unspecified values: days=1, blank visitDate and times, timeOfDay=flexible, pace=unspecified, transport=unspecified, familiarity=unspecified, season=unspecified, outdoorMode=ANY, museumScale=ANY, crowd/tourist preference=ANY.
 - confidence reflects the interpretation, not itinerary quality or database coverage.`;
 
 export async function interpretPlannerIntent(prompt, env, answers = {}) {
   if (!env?.AI?.run) throw new PlannerInterpreterError("AI_INTERPRETER_UNAVAILABLE", "The AI interpreter is not configured in this sandbox.", 503);
   const answerText = Object.entries(answers || {}).filter(([, value]) => String(value || "").trim())
     .map(([key, value]) => `${key}: ${String(value).trim()}`).join("\n");
-  const userContent = answerText ? `TRAVEL REQUEST:\n${prompt}\n\nCLARIFICATION ANSWERS:\n${answerText}` : `TRAVEL REQUEST:\n${prompt}`;
+  const londonDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const requestContext = `CURRENT LONDON DATE: ${londonDate}\nTRAVEL REQUEST:\n${prompt}`;
+  const userContent = answerText ? `${requestContext}\n\nCLARIFICATION ANSWERS:\n${answerText}` : requestContext;
   let output;
   try {
     output = await env.AI.run(env.PLANNER_AI_MODEL || MODEL, {
       messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: userContent }],
       response_format: { type: "json_schema", json_schema: PLANNER_INTENT_SCHEMA },
-      max_tokens: 1600,
+      max_tokens: 1900,
       temperature: 0,
     });
   } catch (error) {
@@ -155,7 +163,7 @@ export function normalizePlannerIntent(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     throw new PlannerInterpreterError("INVALID_AI_RESPONSE", "The AI interpreter returned an invalid response.", 502);
   }
-  const days = clampInt(raw.days, 1, 2, 1);
+  const days = 1;
   const geography = array(raw.geography).flatMap((item) => {
     const role = enumValue(item?.role, ROLES, "");
     const relation = enumValue(item?.relation, RELATIONS, "");
@@ -172,9 +180,9 @@ export function normalizePlannerIntent(raw) {
     return [{ category, strength, minStops, maxStops: Math.max(minStops, clampInt(item.maxStops, 0, 6, 6)) }];
   }), (item) => item.category);
   const experience = raw.experience && typeof raw.experience === "object" ? raw.experience : {};
-  const clarifications = array(raw.clarifications).slice(0, 1).flatMap((item, index) => {
+  const clarifications = array(raw.clarifications).slice(0, 3).flatMap((item, index) => {
     const question = clean(item?.question, 240);
-    const options = array(item?.options).slice(0, 3).flatMap((option) => {
+    const options = array(item?.options).slice(0, 4).flatMap((option) => {
       const value = clean(option?.value, 80); const label = clean(option?.label, 160);
       return value && label ? [{ value, label }] : [];
     });
@@ -198,6 +206,8 @@ export function normalizePlannerIntent(raw) {
     schemaVersion: PLANNER_INTENT_SCHEMA_VERSION,
     provider: "workers-ai",
     days,
+    visitDate: validDate(raw.visitDate),
+    timeOfDay: enumValue(raw.timeOfDay, ["morning", "afternoon", "evening", "full_day", "flexible"], "flexible"),
     startTime: validTime(raw.startTime), endTime: validTime(raw.endTime),
     pace: enumValue(raw.pace, ["relaxed", "balanced", "full"], undefined),
     transport: enumValue(raw.transport, ["walking", "mixed", "transit"], undefined),
@@ -215,9 +225,13 @@ export function normalizePlannerIntent(raw) {
     mustHaves: unique(array(raw.mustInclude).map((item) => clean(item, 120)).filter(Boolean)),
     outdoorOnly: raw.outdoorMode === "ONLY", outdoorPreference: raw.outdoorMode === "PREFER",
     noBigMuseums: raw.museumScale === "SMALL_ONLY",
-    crowdSensitive: raw.crowdPreference === "LOW", nonTouristic: raw.touristPreference === "NON_TOURISTIC",
+    crowdSensitive: raw.crowdPreference === "LOW" || raw.touristPreference === "NON_TOURISTIC",
+    nonTouristic: raw.touristPreference === "NON_TOURISTIC",
+    marketFocus: primary?.category === "SHOPPING" && semanticTerms.some((term) => /market/i.test(term)),
+    weekendFlexible: array(raw.preferredWeekdays).includes(0) && array(raw.preferredWeekdays).includes(6),
     season: enumValue(raw.season, ["spring", "summer", "autumn", "winter"], undefined),
     preferredWeekdays: unique(array(raw.preferredWeekdays).map((value) => clampInt(value, 0, 6, -1)).filter((value) => value >= 0)),
+    preferredMonths: unique(array(raw.preferredMonths).map((value) => clampInt(value, 1, 12, -1)).filter((value) => value >= 1)),
     openEnded: Boolean(raw.openEnded), assumptions: unique(array(raw.assumptions).map((item) => clean(item, 180)).filter(Boolean)),
     insights: unique(array(raw.insights).map((item) => clean(item, 120)).filter(Boolean)), clarifications,
     confidence: clampNumber(raw.confidence, 0, 1, .5),
@@ -237,6 +251,7 @@ function array(value) { return Array.isArray(value) ? value : []; }
 function clean(value, max) { return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max); }
 function enumValue(value, values, fallback) { const normal = String(value || "").trim(); return values.includes(normal) ? normal : fallback; }
 function validTime(value) { const time = String(value || "").trim(); return /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : undefined; }
+function validDate(value) { const date = String(value || "").trim(); return /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T12:00:00Z`)) ? date : undefined; }
 function clampInt(value, min, max, fallback) { const number = Number.parseInt(value, 10); return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback; }
 function clampNumber(value, min, max, fallback) { const number = Number(value); return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback; }
 function unique(items) { return [...new Set(items)]; }

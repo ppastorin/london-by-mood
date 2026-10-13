@@ -192,6 +192,7 @@ async function resolveIntentGeography(intent, env) {
   const excludeScopes = resolved.filter((item) => item.role === "EXCLUDE");
   return {
     ...intent,
+    resolvedGeography: resolved,
     routeStart: start ? { label: start.label, ...start.center } : undefined,
     routeEnd: end ? { label: end.label, ...end.center } : undefined,
     geoScopes: scopes,
