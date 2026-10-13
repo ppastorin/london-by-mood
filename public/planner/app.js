@@ -114,6 +114,7 @@ function applyInterpretation(interpretation) {
   if (!interpretation.startTime && !interpretation.endTime && interpretation.timeOfDay !== "flexible" && !touched.has("time-of-day")) applyTimeWindow();
   syncDurationFromTimes(false);
   if (interpretation.pace && !touched.has("pace")) document.querySelector("#pace").value = interpretation.pace;
+  else if (interpretation.timeOfDay === "full_day" && !touched.has("pace")) document.querySelector("#pace").value = "full";
   if (interpretation.transport && !touched.has("transport")) document.querySelector("#transport").value = interpretation.transport;
   if (interpretation.familiarity && !touched.has("familiarity")) document.querySelector("#familiarity").value = interpretation.familiarity;
   if (!touched.has("avoid-core")) document.querySelector("#avoid-core").checked = Boolean(interpretation.avoidCore);

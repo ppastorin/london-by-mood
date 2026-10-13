@@ -181,7 +181,7 @@ export function buildPlan(places, rawInput) {
     if (area !== "ANY") {
       pool = areaPool;
       if (areaPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${areaPool.length} catalogue places inside the requested area; the planner will not substitute places elsewhere in London.`);
+        warnings.push(`The selected day has only ${areaPool.length} catalogue places inside the requested area; the planner will not substitute places elsewhere in London.`);
       }
     }
     if (geoScopes.length) {
@@ -189,50 +189,50 @@ export function buildPlan(places, rawInput) {
       pool = geographicPool;
       if (geographicPool.length < Math.min(3, PACE_STOPS[input.pace])) {
         const requested = geoScopes.map((scope) => scopeLabel(scope)).join(" and ");
-        warnings.push(`Day ${index + 1} has only ${geographicPool.length} catalogue ${geographicPool.length === 1 ? "place" : "places"} ${requested}; the planner will not substitute another part of London.`);
+        warnings.push(`The selected day has only ${geographicPool.length} catalogue ${geographicPool.length === 1 ? "place" : "places"} ${requested}; the planner will not substitute another part of London.`);
       }
     }
     if (input.routeStart && input.routeEnd) {
       const corridorPool = pool.filter((place) => routeFit(place, input));
       pool = corridorPool;
       if (corridorPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${corridorPool.length} catalogue places inside the requested route corridor; the planner will not add unrelated detours.`);
+        warnings.push(`The selected day has only ${corridorPool.length} catalogue places inside the requested route corridor; the planner will not add unrelated detours.`);
       }
     }
     if (input.marketFocus) {
       const marketPool = pool.filter((place) => marketExperience(place) && marketDayCompatible(place, date));
       pool = marketPool;
       if (marketPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${marketPool.length} market ${marketPool.length === 1 ? "experience" : "experiences"} compatible with the selected date; the planner will not replace them with unrelated places.`);
+        warnings.push(`The selected day has only ${marketPool.length} market ${marketPool.length === 1 ? "experience" : "experiences"} compatible with the selected date; the planner will not replace them with unrelated places.`);
       }
     }
     if (input.experience.strictCategory && input.primaryCategory) {
       const categoryPool = pool.filter((place) => place.category === input.primaryCategory);
       pool = categoryPool;
       if (categoryPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${categoryPool.length} catalogue ${CATEGORY_LABELS[input.primaryCategory]?.toLowerCase() || "matching places"} within the requested geography.`);
+        warnings.push(`The selected day has only ${categoryPool.length} catalogue ${CATEGORY_LABELS[input.primaryCategory]?.toLowerCase() || "matching places"} within the requested geography.`);
       }
     }
     if (input.experience.strictConcept && input.experience.semanticTerms.length) {
       const conceptPool = pool.filter((place) => semanticFit(place, input.experience.semanticTerms));
       pool = conceptPool;
       if (conceptPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        warnings.push(`Day ${index + 1} has only ${conceptPool.length} catalogue ${input.experience.label || "concept-matching"} ${conceptPool.length === 1 ? "place" : "places"} in scope.`);
+        warnings.push(`The selected day has only ${conceptPool.length} catalogue ${input.experience.label || "concept-matching"} ${conceptPool.length === 1 ? "place" : "places"} in scope.`);
       }
     }
     const selected = selectDay(pool, dailyMustHaves, input, area, date, used);
     if (!selected.length) {
-      warnings.push(`Day ${index + 1} has no suitable published stops.`);
+      warnings.push(`The selected day has no suitable published stops.`);
       continue;
     }
     const schedule = scheduleDay(selected, input, date);
     const scheduled = schedule.stops;
     scheduled.forEach((stop) => used.add(stop.place.id));
     if (schedule.omitted.length) {
-      warnings.push(`Day ${index + 1} omits ${schedule.omitted.length} selected ${schedule.omitted.length === 1 ? "place" : "places"} that cannot fit the opening window or available day.`);
+      warnings.push(`The selected day omits ${schedule.omitted.length} selected ${schedule.omitted.length === 1 ? "place" : "places"} that cannot fit the opening window or available day.`);
     }
     if (!scheduled.length) {
-      warnings.push(`Day ${index + 1} has no stops that fit the selected times.`);
+      warnings.push(`The selected day has no stops that fit the selected times.`);
       continue;
     }
     days.push({
