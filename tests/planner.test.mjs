@@ -289,6 +289,26 @@ test("scheduler omits a venue when the full visit cannot finish before closing",
   assert.match(plan.warnings.join(" "), /omits 1 selected place/);
 });
 
+test("scheduler backfills an omitted stop when a feasible catalogue alternative exists", () => {
+  const closing = fixture("closing", "Early Closing Museum", "MUSEUM", 51.50, -.20, {
+    accessType: "TIMETABLED", hoursStatus: "VERIFIED",
+    openingPeriods: [{ dayOfWeek: 1, opensAt: "10:00", closesAt: "10:30" }],
+  });
+  const alternatives = [
+    fixture("a", "Local Street", "AREA", 51.501, -.201),
+    fixture("b", "Pocket Park", "PARK", 51.502, -.202),
+    fixture("c", "Odd Detail", "ODDITY", 51.503, -.203),
+    fixture("d", "Historic Building", "BUILDING", 51.504, -.204, { dataConfidence: "LOW", recommendationTier: "CHECK" }),
+  ];
+  const plan = buildPlan([closing, ...alternatives], {
+    days: 1, startDate: "2026-10-05", startTime: "09:00", endTime: "18:00", pace: "relaxed", transport: "walking",
+    categories: ["MUSEUM", "AREA", "PARK", "ODDITY", "BUILDING"],
+    categoryPreferences: [{ category: "MUSEUM", strength: "PREFERRED", minStops: 0, maxStops: 2 }],
+  });
+  assert.equal(plan.days[0].stops.length, 4);
+  assert.ok(plan.days[0].stops.every((stop) => stop.place.id !== "closing"));
+});
+
 test("unanchored days visit the earliest-closing selected venue first", () => {
   const earlyMarket = fixture("early", "Sunday Flower Market", "SHOPPING", 51.53, -.07, {
     accessType: "TIMETABLED", hoursStatus: "VERIFIED",

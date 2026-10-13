@@ -225,7 +225,15 @@ export function buildPlan(places, rawInput) {
       warnings.push(`The selected day has no suitable published stops.`);
       continue;
     }
-    const schedule = scheduleDay(selected, input, date);
+    let schedule = scheduleDay(selected, input, date);
+    if (schedule.omitted.length && schedule.stops.length < PACE_STOPS[input.pace]) {
+      const rejected = new Set(schedule.omitted.map((place) => place.id));
+      const retained = schedule.stops.map((stop) => stop.place);
+      const replacementPool = pool.filter((place) => !rejected.has(place.id));
+      const replacementSelection = selectDay(replacementPool, retained, input, area, date, used);
+      const replacementSchedule = scheduleDay(replacementSelection, input, date);
+      if (replacementSchedule.stops.length > schedule.stops.length) schedule = replacementSchedule;
+    }
     const scheduled = schedule.stops;
     scheduled.forEach((stop) => used.add(stop.place.id));
     if (schedule.omitted.length) {
