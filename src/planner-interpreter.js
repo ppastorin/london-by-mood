@@ -7,7 +7,7 @@ const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "a
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "9";
+export const PLANNER_INTENT_SCHEMA_VERSION = "10";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -120,9 +120,10 @@ Interpretation rules:
 - Resolve the intended London place name in query. Use full canonical feature names (for example "River Thames", not "Thames"). In a London travel context, "the City" means "City of London"; an ordinary city-wide request does not.
 - Use role SCOPE for an area to visit, EXCLUDE for an area to avoid, and START or END only for explicit route anchors. Every explicit starting and ending point is mandatory in geography, even when the request also contains a broad scope. A start or end is otherwise optional. "No specific destination" is openEnded and requires no clarification.
 - Use IN for "in/across/within", NEAR for "around/near", and the directional relations for "west/east/north/south of". For a directional constraint, query and label must contain only the geocodable reference place: "west of Hyde Park" is relation WEST_OF with query "Hyde Park", never an IN query containing "west of".
-- Treat broad London regions as compound geographic concepts, not named venues. Use multiple directional scopes when a single half-plane would spill into another obvious London region. For example, "East London" needs both EAST_OF a stable central reference such as Trafalgar Square and NORTH_OF the Thames using a stable reference such as London Bridge; label both scopes "East London" and use broad 12-20 km radii. Apply equivalent geographic reasoning to West, North and South London instead of asking a geocoder to search the region phrase itself.
+- Treat broad London regions as compound geographic concepts, not named venues. Use directional boundaries that match normal London usage rather than a generic city-centre split. For example, "East London" should be EAST_OF a boundary around Aldgate or Tower Bridge, not Trafalgar Square, and normally NORTH_OF the Thames; label both scopes "East London" and use an 8-12 km radius unless the visitor asks for outer London. Apply equivalent geographic reasoning to West, North and South London instead of asking a geocoder to search the region phrase itself.
 - Set day=0 for every geography item because all constraints apply to the single planned day.
 - Distinguish the main purpose from incidental possibilities. When the whole day is organised around one narrow place type, make its category PRIMARY, strictCategory true and strictConcept true; this applies equally to markets, churches and any future narrow concept. A merely possible stop is OPTIONAL.
+- When two or more place types are equally important, use REQUIRED or PREFERRED for each and do not invent a PRIMARY category. Walking, wandering, local character and atmosphere describe movement or mood; they do not by themselves make AREA the primary category.
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
 - Put experiential adjectives such as quiet, unexpected, beautiful, weird, local, green and atmospheric in moods. Never put mood adjectives in semanticTerms.
 - semanticTerms are generic physical place-type nouns, not named venues or moods. Supply them only when the user's concept is narrower than the category, such as market, church, cemetery or brutalist building. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
