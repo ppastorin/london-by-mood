@@ -28,10 +28,10 @@ test("AI output is normalised without a neighbourhood or concept phrase dictiona
   assert.deepEqual(intent.experience.semanticTerms, ["meeting house", "chapel", "church"]);
 });
 
-test("AI contract safeguards primary concepts and exact category exclusions generically", () => {
+test("AI contract preserves narrow primary concepts and exact category exclusions", () => {
   const intent = normalizePlannerIntent(rawIntent({
     categoryPreferences: [{ category: "SHOPPING", strength: "PRIMARY", minStops: 2, maxStops: 5 }],
-    experience: { label: "market day", semanticTerms: ["market"], strictCategory: false, strictConcept: false, compact: false },
+    experience: { label: "market day", semanticTerms: ["market"], strictCategory: true, strictConcept: true, compact: false },
     exclusions: ["MUSEUM", "crowded places"],
   }));
 
@@ -57,8 +57,8 @@ test("AI date, time-of-day and multiple refinement questions survive normalisati
     days: 2,
     visitDate: "2026-11-07",
     timeOfDay: "morning",
-    preferredWeekdays: [6],
-    preferredMonths: [11],
+    preferredWeekdays: ["saturday"],
+    preferredMonths: ["november"],
     clarifications: [
       { id: "focus", question: "Which focus?", reason: "It changes the route.", options: [{ value: "markets", label: "Markets" }, { value: "parks", label: "Parks" }] },
       { id: "pace", question: "How intensive?", reason: "It changes stop count.", options: [{ value: "relaxed", label: "Relaxed" }, { value: "full", label: "Full" }] },

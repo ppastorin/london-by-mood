@@ -4,8 +4,10 @@ const STRENGTHS = ["PRIMARY", "REQUIRED", "PREFERRED", "OPTIONAL", "EXCLUDED"];
 const RELATIONS = ["IN", "NEAR", "NORTH_OF", "SOUTH_OF", "EAST_OF", "WEST_OF"];
 const ROLES = ["SCOPE", "START", "END", "EXCLUDE"];
 const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "wander"];
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "8";
+export const PLANNER_INTENT_SCHEMA_VERSION = "9";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -71,8 +73,8 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
     crowdPreference: { type: "string", enum: ["LOW", "ANY"] },
     touristPreference: { type: "string", enum: ["NON_TOURISTIC", "ANY"] },
     season: { type: "string", enum: ["spring", "summer", "autumn", "winter", "unspecified"] },
-    preferredWeekdays: { type: "array", maxItems: 7, items: { type: "integer", minimum: 0, maximum: 6 } },
-    preferredMonths: { type: "array", maxItems: 12, items: { type: "integer", minimum: 1, maximum: 12 } },
+    preferredWeekdays: { type: "array", maxItems: 7, items: { type: "string", enum: WEEKDAYS } },
+    preferredMonths: { type: "array", maxItems: 12, items: { type: "string", enum: MONTHS } },
     openEnded: { type: "boolean" },
     assumptions: { type: "array", maxItems: 6, items: { type: "string" } },
     insights: { type: "array", maxItems: 12, items: { type: "string" } },
@@ -122,16 +124,18 @@ Interpretation rules:
 - Set day=0 for every geography item because all constraints apply to the single planned day.
 - Distinguish the main purpose from incidental possibilities. When the whole day is organised around one narrow place type, make its category PRIMARY, strictCategory true and strictConcept true; this applies equally to markets, churches and any future narrow concept. A merely possible stop is OPTIONAL.
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
-- semanticTerms are generic place-type words, not named venues. Supply them only when the user's concept is narrower than the category. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
+- Put experiential adjectives such as quiet, unexpected, beautiful, weird, local, green and atmospheric in moods. Never put mood adjectives in semanticTerms.
+- semanticTerms are generic physical place-type nouns, not named venues or moods. Supply them only when the user's concept is narrower than the category, such as market, church, cemetery or brutalist building. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
 - PRIMARY means the whole itinerary is led by that category. REQUIRED means at least minStops. PREFERRED is important but not mandatory. OPTIONAL is a possible addition. EXCLUDED is forbidden. minStops and maxStops count itinerary stops, never days.
 - Negation always wins: a negated known category must be a categoryPreference with strength EXCLUDED, not only a free-text exclusion. A request for no big/major museums keeps MUSEUM available but sets museumScale SMALL_ONLY.
 - "Mainly outdoors" is PREFER; "nothing indoor" is ONLY. Green implies PARK. Artistic can imply MUSEUM or BUILDING depending context.
+- "Non-touristic", "not touristy" and requests to avoid tourist-heavy places set touristPreference=NON_TOURISTIC. Requests to avoid crowds set crowdPreference=LOW.
 - A compact/long walk controls experience.compact and transport. A willingness to use the Tube alongside walking is mixed.
 - Ask up to three short clarifications when an answer would materially improve the result: resolve ambiguous geography, choose between genuinely different interpretations, confirm a date-dependent request, or settle a conflict such as outdoors versus an indoor category. Do not ask for information already present. Prefer two or three concrete options and include a sensible "Use your best judgement" option when no answer is essential.
 - Do not put questions in assumptions or insights. Keep insights short and user-facing.
 - If clarification answers are supplied, treat them as authoritative and return no further clarification unless an answer introduces a new material ambiguity.
 - Radius is geometric scope, not travel distance: about 2-3 km for a compact neighbourhood, 5-8 km around a broad district and up to 15-20 km for a directional part of London.
-- preferredWeekdays uses 0=Sunday, 1=Monday, ... 6=Saturday. "During the week" means 1 through 5.
+- preferredWeekdays uses lowercase English weekday names. "During the week" means monday through friday. preferredMonths uses lowercase English month names.
 - Convert an explicit calendar date or unambiguous relative date into visitDate YYYY-MM-DD using the supplied current London date. Otherwise leave visitDate blank. Capture named weekdays in preferredWeekdays and named months in preferredMonths (1=January through 12=December).
 - timeOfDay is morning, afternoon, evening, full_day or flexible. Infer practical startTime and endTime when the user names a time of day; use 08:30–13:00 for morning, 13:00–18:00 for afternoon, 17:00–22:00 for evening and 09:00–19:00 for a full day unless the user gives exact times.
 - Default unspecified values: days=1, blank visitDate and times, timeOfDay=flexible, pace=unspecified, transport=unspecified, familiarity=unspecified, season=unspecified, outdoorMode=ANY, museumScale=ANY, crowd/tourist preference=ANY.
@@ -202,6 +206,8 @@ export function normalizePlannerIntent(raw) {
   const preferred = categoryPreferences.filter((item) => item.strength !== "EXCLUDED").map((item) => item.category);
   const excluded = categoryPreferences.filter((item) => item.strength === "EXCLUDED").map((item) => item.category);
   const semanticTerms = unique(array(experience.semanticTerms).map((term) => clean(term, 60)).filter(Boolean)).slice(0, 10);
+  const preferredWeekdays = unique(array(raw.preferredWeekdays).map((value) => namedOrdinal(value, WEEKDAYS, 0)).filter((value) => value >= 0));
+  const preferredMonths = unique(array(raw.preferredMonths).map((value) => namedOrdinal(value, MONTHS, 1)).filter((value) => value >= 1));
   return {
     schemaVersion: PLANNER_INTENT_SCHEMA_VERSION,
     provider: "workers-ai",
@@ -217,8 +223,8 @@ export function normalizePlannerIntent(raw) {
     categories: unique(preferred), excludedCategories: unique(excluded), primaryCategory: primary?.category,
     experience: {
       label: clean(experience.label, 160), semanticTerms,
-      strictCategory: Boolean(experience.strictCategory || primary),
-      strictConcept: Boolean(experience.strictConcept || (primary && semanticTerms.length)), compact: Boolean(experience.compact),
+      strictCategory: Boolean(experience.strictCategory),
+      strictConcept: Boolean(experience.strictConcept), compact: Boolean(experience.compact),
     },
     moods: unique(array(raw.moods).filter((mood) => MOODS.includes(mood))),
     avoidTerms: exclusionTerms.filter((term) => !CATEGORIES.includes(term.toUpperCase())),
@@ -228,10 +234,10 @@ export function normalizePlannerIntent(raw) {
     crowdSensitive: raw.crowdPreference === "LOW" || raw.touristPreference === "NON_TOURISTIC",
     nonTouristic: raw.touristPreference === "NON_TOURISTIC",
     marketFocus: primary?.category === "SHOPPING" && semanticTerms.some((term) => /market/i.test(term)),
-    weekendFlexible: array(raw.preferredWeekdays).includes(0) && array(raw.preferredWeekdays).includes(6),
+    weekendFlexible: preferredWeekdays.includes(0) && preferredWeekdays.includes(6),
     season: enumValue(raw.season, ["spring", "summer", "autumn", "winter"], undefined),
-    preferredWeekdays: unique(array(raw.preferredWeekdays).map((value) => clampInt(value, 0, 6, -1)).filter((value) => value >= 0)),
-    preferredMonths: unique(array(raw.preferredMonths).map((value) => clampInt(value, 1, 12, -1)).filter((value) => value >= 1)),
+    preferredWeekdays,
+    preferredMonths,
     openEnded: Boolean(raw.openEnded), assumptions: unique(array(raw.assumptions).map((item) => clean(item, 180)).filter(Boolean)),
     insights: unique(array(raw.insights).map((item) => clean(item, 120)).filter(Boolean)), clarifications,
     confidence: clampNumber(raw.confidence, 0, 1, .5),
@@ -252,6 +258,11 @@ function clean(value, max) { return String(value ?? "").trim().replace(/\s+/g, "
 function enumValue(value, values, fallback) { const normal = String(value || "").trim(); return values.includes(normal) ? normal : fallback; }
 function validTime(value) { const time = String(value || "").trim(); return /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : undefined; }
 function validDate(value) { const date = String(value || "").trim(); return /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T12:00:00Z`)) ? date : undefined; }
+function namedOrdinal(value, names, offset) {
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  const index = names.indexOf(String(value || "").trim().toLowerCase());
+  return index < 0 ? -1 : index + offset;
+}
 function clampInt(value, min, max, fallback) { const number = Number.parseInt(value, 10); return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback; }
 function clampNumber(value, min, max, fallback) { const number = Number(value); return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback; }
 function unique(items) { return [...new Set(items)]; }
