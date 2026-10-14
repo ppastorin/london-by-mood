@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { museumEnrichment } from "../data/museum-enrichment.mjs";
 
-const GENERIC = /focused cultural story beyond London|headline museums|walkable pocket with local texture|distinctive London building|best experienced slowly|source says 24\/7|may refer to|disambiguation|list of natural history museums/i;
+const GENERIC = /focused cultural story beyond London|headline museums|walkable pocket with local texture|distinctive London building|best experienced slowly|source says 24\/7|may refer to|disambiguation|list of natural history museums|there (?:are|is) (?:two|three|several) museums? called|each named after|==[^=]+==|comprises;-|is a road and area in the City of Westminster|international group of public science centres|dower house of Holland House/i;
 
 test("all museum places have unique, bilingual, place-specific editorial copy", async () => {
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
@@ -29,7 +29,7 @@ test("all museum places have unique, bilingual, place-specific editorial copy", 
 });
 
 test("the production migration updates every museum and records its source", async () => {
-  const migration = `${await readFile("migrations/0006_museum_editorial_enrichment.sql", "utf8")}\n${await readFile("migrations/0007_museum_disambiguation_corrections.sql", "utf8")}`;
+  const migration = `${await readFile("migrations/0006_museum_editorial_enrichment.sql", "utf8")}\n${await readFile("migrations/0007_museum_disambiguation_corrections.sql", "utf8")}\n${await readFile("migrations/0008_museum_semantic_corrections.sql", "utf8")}`;
   assert.match(migration, /CREATE TABLE IF NOT EXISTS place_editorial_sources/);
   for (const { id, sourceUrl } of museumEnrichment) {
     assert.match(migration, new RegExp(`WHERE id='${id}' AND category='MUSEUM'`));
@@ -50,4 +50,25 @@ test("London headline museums cannot regress to title-disambiguation copy", asyn
     assert.doesNotMatch(place.descriptionEn, /may refer to|disambiguation|list of /i);
     assert.doesNotMatch(place.descriptionIt, /può fare riferimento|disambiguazione|elenco di /i);
   }
+});
+
+test("museum records cannot regress to wrong-city, network-level, or extraction-artifact copy", () => {
+  const byId = new Map(museumEnrichment.map((place) => [place.id, place]));
+  const expected = new Map([
+    ["LA-2EC85679", "https://hunterianmuseum.org/"],
+    ["LA-4CB4F3CA", "https://www.vam.ac.uk/"],
+    ["LA-F2C58D1E", "https://london.sciencegallery.com/"],
+    ["LA-8BCC3185", "https://www.burghhouse.org.uk/"],
+    ["LA-05AF46FD", "https://amershammuseum.org/"],
+    ["LA-048DE124", "https://www.whitecube.com/"],
+  ]);
+  for (const [id, officialUrl] of expected) {
+    const place = byId.get(id);
+    assert.equal(place.officialUrl, officialUrl);
+    assert.doesNotMatch(place.descriptionEn, GENERIC);
+    assert.doesNotMatch(place.descriptionIt, GENERIC);
+  }
+  assert.match(byId.get("LA-733D46DF").descriptionEn, /Whitehall in Cheam/);
+  assert.match(byId.get("LA-26C43108").descriptionEn, /Little Holland House in Carshalton/);
+  assert.match(byId.get("LA-F2C58D1E").descriptionEn, /permanent closure on 1 August 2026/);
 });
