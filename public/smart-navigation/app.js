@@ -7,7 +7,7 @@ const STORAGE_KEY="london-advanced-smart-navigation-itinerary-v1";
 const STORAGE_MAX_AGE=24*60*60*1000;
 // Version the editorial payload independently from the app shell. This prevents
 // a browser or CDN edge from reusing place copy from before a data migration.
-const PLACES_CONTENT_VERSION="2026-10-14-building-copy-v1";
+const PLACES_CONTENT_VERSION="2026-10-14-italian-copy-v1";
 const state={places:[],placesById:new Map(),matches:[],selectedIds:[],customOrder:false,start:null,end:null,corridor:200,map:null,routeLayer:null,baseRoute:null,discoveryLine:null,poiLayer:null,startMarker:null,endMarker:null,pickMode:null,routeRevision:0};
 const el=Object.fromEntries(["message","start-query","start-choice","end-query","end-choice","categories","route-button","route-summary","distance","duration","match-count","results-section","results-note","results-list","bikes-panel","bikes","itinerary","stop-count","itinerary-list","navigate","mobile-itinerary-bar","mobile-stop-count","mobile-duration","mobile-navigate"].map(id=>[id.replaceAll("-","_"),document.getElementById(id)]));
 
@@ -135,13 +135,18 @@ function renderMatchViews(){
 }
 
 function popupContent(place){
-  const wrapper=document.createElement("div");const title=document.createElement("h3");title.textContent=place.name;const copy=document.createElement("p");copy.textContent=place.description||place.hook||t("fallbackPlace");const button=document.createElement("button");const selected=state.selectedIds.includes(place.id);button.type="button";button.className=`popup-add-stop${selected?" selected":""}`;button.textContent=selected?t("removeFromWalk"):t("addToWalk");button.addEventListener("click",()=>toggleStop(place));wrapper.append(title,copy,button);return wrapper;
+  const wrapper=document.createElement("div");const title=document.createElement("h3");title.textContent=place.name;const copy=document.createElement("p");copy.textContent=localizedPlaceCopy(place);const button=document.createElement("button");const selected=state.selectedIds.includes(place.id);button.type="button";button.className=`popup-add-stop${selected?" selected":""}`;button.textContent=selected?t("removeFromWalk"):t("addToWalk");button.addEventListener("click",()=>toggleStop(place));wrapper.append(title,copy,button);return wrapper;
 }
 
 function card(place){
-  const selected=state.selectedIds.includes(place.id);const article=document.createElement("article");article.className=`place-card${selected?" selected-stop":""}`;const copy=place.description||place.hook||(i18n.locale==="it"?t("fallbackPlace"):"A place from the London Advanced collection.");
-  article.innerHTML=`<header><h3>${escapeHtml(place.name)}</h3><span class="distance">${place.distanceFromRoute} m</span></header><p>${escapeHtml(truncate(copy,190))}</p><div class="tags"><span>${escapeHtml(CATEGORY_LABELS[place.category]||place.category)}</span>${place.price?`<span>${escapeHtml(place.price)}</span>`:""}${place.visitMinutes?`<span>${place.visitMinutes} min</span>`:""}</div><div class="actions"><button class="add-stop${selected?" selected":""}">${selected?escapeHtml(t("removeFromWalk")):escapeHtml(t("addToWalk"))}</button><button class="show-map">${i18n.locale==="it"?t("showOnMap"):"Show on map"}</button><a href="${escapeAttr(place.mapUrl)}" target="_blank" rel="noreferrer">Google Maps ↗</a>${place.officialUrl?`<a href="${escapeAttr(place.officialUrl)}" target="_blank" rel="noreferrer">${i18n.locale==="it"?t("info"):"Info ↗"}</a>`:""}</div>`;
+  const selected=state.selectedIds.includes(place.id);const article=document.createElement("article");article.className=`place-card${selected?" selected-stop":""}`;const copy=localizedPlaceCopy(place);const price=i18n.locale==="it"&&place.price==="Free"?"Gratis":place.price;
+  article.innerHTML=`<header><h3>${escapeHtml(place.name)}</h3><span class="distance">${place.distanceFromRoute} m</span></header><p>${escapeHtml(truncate(copy,190))}</p><div class="tags"><span>${escapeHtml(CATEGORY_LABELS[place.category]||place.category)}</span>${price?`<span>${escapeHtml(price)}</span>`:""}${place.visitMinutes?`<span>${place.visitMinutes} min</span>`:""}</div><div class="actions"><button class="add-stop${selected?" selected":""}">${selected?escapeHtml(t("removeFromWalk")):escapeHtml(t("addToWalk"))}</button><button class="show-map">${i18n.locale==="it"?t("showOnMap"):"Show on map"}</button><a href="${escapeAttr(place.mapUrl)}" target="_blank" rel="noreferrer">Google Maps ↗</a>${place.officialUrl?`<a href="${escapeAttr(place.officialUrl)}" target="_blank" rel="noreferrer">${i18n.locale==="it"?t("info"):"Info ↗"}</a>`:""}</div>`;
   article.querySelector(".add-stop").addEventListener("click",()=>toggleStop(place));article.querySelector(".show-map").addEventListener("click",()=>{state.map.setView([place.lat,place.lon],16);state.poiLayer.eachLayer(layer=>{if(layer.options.placeId===place.id)layer.openPopup()})});return article;
+}
+
+function localizedPlaceCopy(place){
+  if(i18n.locale==="it")return place.descriptionIt||place.hookIt||place.description||place.hook||t("fallbackPlace");
+  return place.description||place.hook||"A place from the London Advanced collection.";
 }
 
 async function toggleStop(place){
