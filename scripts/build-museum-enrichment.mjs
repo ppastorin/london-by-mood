@@ -4,7 +4,7 @@ import { museumEnrichment } from "../data/museum-enrichment.mjs";
 const VERIFIED_ON = "2026-10-14";
 const MIGRATION_PATH = "migrations/0006_museum_editorial_enrichment.sql";
 const SNAPSHOT_PATH = "public/pois-snapshot.json";
-const GENERIC = /focused cultural story beyond London|headline museums|walkable pocket with local texture|distinctive London building|best experienced slowly|source says 24\/7/i;
+const GENERIC = /focused cultural story beyond London|headline museums|walkable pocket with local texture|distinctive London building|best experienced slowly|source says 24\/7|may refer to|disambiguation|list of natural history museums/i;
 const sql = (value) => `'${String(value ?? "").replaceAll("'", "''")}'`;
 
 function validate() {

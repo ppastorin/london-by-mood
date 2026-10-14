@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { museumEnrichment } from "../data/museum-enrichment.mjs";
 
-const GENERIC = /focused cultural story beyond London|headline museums|walkable pocket with local texture|distinctive London building|best experienced slowly|source says 24\/7/i;
+const GENERIC = /focused cultural story beyond London|headline museums|walkable pocket with local texture|distinctive London building|best experienced slowly|source says 24\/7|may refer to|disambiguation|list of natural history museums/i;
 
 test("all museum places have unique, bilingual, place-specific editorial copy", async () => {
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
@@ -29,10 +29,25 @@ test("all museum places have unique, bilingual, place-specific editorial copy", 
 });
 
 test("the production migration updates every museum and records its source", async () => {
-  const migration = await readFile("migrations/0006_museum_editorial_enrichment.sql", "utf8");
+  const migration = `${await readFile("migrations/0006_museum_editorial_enrichment.sql", "utf8")}\n${await readFile("migrations/0007_museum_disambiguation_corrections.sql", "utf8")}`;
   assert.match(migration, /CREATE TABLE IF NOT EXISTS place_editorial_sources/);
   for (const { id, sourceUrl } of museumEnrichment) {
     assert.match(migration, new RegExp(`WHERE id='${id}' AND category='MUSEUM'`));
     assert.ok(migration.includes(sourceUrl.replaceAll("'", "''")), `${id} source is missing from migration`);
+  }
+});
+
+test("London headline museums cannot regress to title-disambiguation copy", async () => {
+  const byId = new Map(museumEnrichment.map((place) => [place.id, place]));
+  const expected = new Map([
+    ["LA-9ED1A100", "https://www.nhm.ac.uk/"],
+    ["LA-A46A6C72", "https://www.sciencemuseum.org.uk/"],
+    ["LA-A550BDE9", "https://www.npg.org.uk/"],
+  ]);
+  for (const [id, officialUrl] of expected) {
+    const place = byId.get(id);
+    assert.equal(place.officialUrl, officialUrl);
+    assert.doesNotMatch(place.descriptionEn, /may refer to|disambiguation|list of /i);
+    assert.doesNotMatch(place.descriptionIt, /può fare riferimento|disambiguazione|elenco di /i);
   }
 });
