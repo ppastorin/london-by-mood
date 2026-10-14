@@ -77,7 +77,9 @@ async function listPublicPlaces(url, env) {
   requireDatabase(env);
   const places = await queryPlaces(env.DB, parsePlaceFilters(url.searchParams, true));
   return json({ ok: true, schemaVersion: 2, generatedAt: new Date().toISOString(), count: places.length, places }, 200, {
-    "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
+    // Editorial corrections must not remain stale at an edge for a full day.
+    // Smart Navigation also versions this URL when its bundled content changes.
+    "Cache-Control": "public, max-age=0, s-maxage=60, must-revalidate",
   });
 }
 

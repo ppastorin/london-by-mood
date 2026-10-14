@@ -5,6 +5,9 @@ const {t,localizeError}=i18n;
 const CATEGORY_LABELS=i18n.locale==="it"?{AREA:"Zone",BUILDING:"Edifici",MUSEUM:"Musei",ODDITY:"Curiosità",PARK:"Parchi",RELIGIOUS:"Luoghi religiosi",SHOPPING:"Shopping",VIEWPOINT:"Punti panoramici"}:{AREA:"Areas",BUILDING:"Buildings",MUSEUM:"Museums",ODDITY:"Oddities",PARK:"Parks",RELIGIOUS:"Religious",SHOPPING:"Shopping",VIEWPOINT:"Views"};
 const STORAGE_KEY="london-advanced-smart-navigation-itinerary-v1";
 const STORAGE_MAX_AGE=24*60*60*1000;
+// Version the editorial payload independently from the app shell. This prevents
+// a browser or CDN edge from reusing place copy from before a data migration.
+const PLACES_CONTENT_VERSION="2026-10-14-religious-copy-v1";
 const state={places:[],placesById:new Map(),matches:[],selectedIds:[],customOrder:false,start:null,end:null,corridor:200,map:null,routeLayer:null,baseRoute:null,discoveryLine:null,poiLayer:null,startMarker:null,endMarker:null,pickMode:null,routeRevision:0};
 const el=Object.fromEntries(["message","start-query","start-choice","end-query","end-choice","categories","route-button","route-summary","distance","duration","match-count","results-section","results-note","results-list","bikes-panel","bikes","itinerary","stop-count","itinerary-list","navigate","mobile-itinerary-bar","mobile-stop-count","mobile-duration","mobile-navigate"].map(id=>[id.replaceAll("-","_"),document.getElementById(id)]));
 
@@ -28,7 +31,7 @@ async function start(){
   });
   bind();
   try{
-    const payload=await api("/api/pois");
+    const payload=await api(`/api/pois?content=${encodeURIComponent(PLACES_CONTENT_VERSION)}`,{cache:"no-store"});
     state.places=payload.places;
     state.placesById=new Map(state.places.map(place=>[place.id,place]));
     renderCategories();

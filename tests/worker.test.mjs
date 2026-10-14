@@ -60,6 +60,8 @@ test("public POI reads chunk station lookups below D1's 100-bind limit", async (
   const payload = await response.json();
   assert.equal(response.status, 200);
   assert.equal(payload.count, 205);
+  assert.equal(response.headers.get("cache-control"), "public, max-age=0, s-maxage=60, must-revalidate");
+  assert.doesNotMatch(response.headers.get("cache-control"), /stale-while-revalidate/);
   assert.deepEqual(stationChunkSizes, [80, 80, 45]);
   assert.equal(payload.places[0].stations[0].name, "Station");
 });

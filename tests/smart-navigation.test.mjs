@@ -82,3 +82,13 @@ test("Smart Navigation removes duplicate branding only when embedded", async () 
   assert.match(styles, /\.embedded \.topbar\{display:none\}/);
   assert.match(styles, /\.embedded \.message\{margin-top:8px\}/);
 });
+
+test("Smart Navigation cannot reuse place copy from an older editorial release", async () => {
+  const html = await readFile(htmlPath, "utf8");
+  const app = await readFile(appPath, "utf8");
+
+  assert.match(html, /smart-navigation\/app\.js\?v=20261014-religious-copy/);
+  assert.match(app, /PLACES_CONTENT_VERSION="2026-10-14-religious-copy-v1"/);
+  assert.match(app, /api\(`\/api\/pois\?content=/);
+  assert.match(app, /\{cache:"no-store"\}/);
+});
