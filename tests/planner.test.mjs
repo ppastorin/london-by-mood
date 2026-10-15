@@ -299,12 +299,28 @@ test("an intermediate destination bends the route corridor and river mode includ
   assert.match(day.routeUrl, /waypoints=/);
 });
 
-test("the same place with slightly different category coordinates appears only once", () => {
+test("the same location remains available as two distinct category experiences", () => {
   const park = fixture("greenwich-park", "Greenwich Park", "PARK", 51.4769, .0015);
   const viewpoint = fixture("greenwich-view", "Greenwich Park", "VIEWPOINT", 51.4781, .0002);
   viewpoint.planning.dataConfidence = "MEDIUM";
   const plan = buildPlan([
     park, viewpoint,
+    fixture("one-tree", "One Tree Hill", "VIEWPOINT", 51.4798, .0008),
+    fixture("the-point", "The Point", "VIEWPOINT", 51.4735, -.0101),
+  ], { days: 1, startDate: "2026-10-22", startTime: "09:00", endTime: "18:00", pace: "relaxed",
+    transport: "walking", categories: ["PARK", "VIEWPOINT"] });
+  const greenwichParkStops = plan.days[0].stops.filter((stop) => stop.place.name === "Greenwich Park");
+  assert.equal(greenwichParkStops.length, 2);
+  assert.deepEqual(greenwichParkStops.map((stop) => stop.place.category).sort(), ["PARK", "VIEWPOINT"]);
+  assert.doesNotMatch(plan.warnings.join(" "), /duplicate catalogue record/i);
+});
+
+test("nearby records with the same name and category are still consolidated", () => {
+  const original = fixture("greenwich-park", "Greenwich Park", "PARK", 51.4769, .0015);
+  const duplicate = fixture("greenwich-park-copy", "Greenwich Park", "PARK", 51.4771, .0017);
+  duplicate.planning.dataConfidence = "MEDIUM";
+  const plan = buildPlan([
+    original, duplicate,
     fixture("one-tree", "One Tree Hill", "VIEWPOINT", 51.4798, .0008),
     fixture("the-point", "The Point", "VIEWPOINT", 51.4735, -.0101),
   ], { days: 1, startDate: "2026-10-22", startTime: "09:00", endTime: "18:00", pace: "relaxed",

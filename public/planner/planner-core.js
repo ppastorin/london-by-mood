@@ -796,12 +796,16 @@ function termVariants(value) {
 function dedupeCandidates(places) {
   const selected = new Map();
   for (const place of places) {
-    const name = normalText(place.name).trim();
-    const matches = selected.get(name) || [];
+    // A physical location may intentionally be catalogued as more than one
+    // experience. Greenwich Park, for example, is both a PARK visit and a
+    // VIEWPOINT stop. Only consolidate nearby records when both their name
+    // and category match.
+    const identity = `${normalText(place.name).trim()}|${place.category || ""}`;
+    const matches = selected.get(identity) || [];
     const duplicateIndex = matches.findIndex((current) => haversineKm(place.lat, place.lon, current.lat, current.lon) <= .75);
     if (duplicateIndex < 0) matches.push(place);
     else if (evidenceRank(place) > evidenceRank(matches[duplicateIndex])) matches[duplicateIndex] = place;
-    selected.set(name, matches);
+    selected.set(identity, matches);
   }
   return [...selected.values()].flat();
 }
