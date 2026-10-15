@@ -206,6 +206,12 @@ export function buildPlan(places, rawInput) {
         warnings.push(`The selected day has only ${corridorPool.length} catalogue places inside the requested route corridor; the planner will not add unrelated detours.`);
       }
     }
+    const positiveCategoryRules = input.categoryPreferences.filter((item) => item.strength !== "EXCLUDED");
+    if (positiveCategoryRules.length && positiveCategoryRules.every((item) => ["PRIMARY", "REQUIRED"].includes(item.strength))) {
+      const requiredCategories = new Set(positiveCategoryRules.map((item) => item.category));
+      const categoryPool = pool.filter((place) => requiredCategories.has(place.category));
+      if (categoryPool.length) pool = categoryPool;
+    }
     if (input.marketFocus) {
       const marketPool = pool.filter((place) => marketExperience(place) && marketDayCompatible(place, date));
       pool = marketPool;
@@ -790,11 +796,14 @@ function termVariants(value) {
 function dedupeCandidates(places) {
   const selected = new Map();
   for (const place of places) {
-    const key = `${normalText(place.name).trim()}|${Number(place.lat).toFixed(3)}|${Number(place.lon).toFixed(3)}`;
-    const current = selected.get(key);
-    if (!current || evidenceRank(place) > evidenceRank(current)) selected.set(key, place);
+    const name = normalText(place.name).trim();
+    const matches = selected.get(name) || [];
+    const duplicateIndex = matches.findIndex((current) => haversineKm(place.lat, place.lon, current.lat, current.lon) <= .75);
+    if (duplicateIndex < 0) matches.push(place);
+    else if (evidenceRank(place) > evidenceRank(matches[duplicateIndex])) matches[duplicateIndex] = place;
+    selected.set(name, matches);
   }
-  return [...selected.values()];
+  return [...selected.values()].flat();
 }
 
 function evidenceRank(place) {

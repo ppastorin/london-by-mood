@@ -272,25 +272,45 @@ test("an intermediate destination bends the route corridor and river mode includ
   const places = [
     fixture("greenwich-park", "Greenwich Park", "PARK", 51.4769, .0005),
     fixture("one-tree-hill", "One Tree Hill", "VIEWPOINT", 51.4773, .0018),
+    fixture("the-point", "The Point", "VIEWPOINT", 51.4735, -.0101),
     fixture("ranger-house", "The Ranger's House", "BUILDING", 51.4705, .0076),
+    fixture("greenwich-market", "Greenwich Market", "SHOPPING", 51.4816, -.009),
     fixture("westminster", "Unrelated Westminster Stop", "BUILDING", 51.5, -.125),
   ];
   const plan = buildPlan(places, {
     days: 1, startDate: "2026-10-22", startTime: "09:00", endTime: "19:00", pace: "relaxed",
     transport: "river", categories: ["PARK", "VIEWPOINT"],
+    categoryPreferences: [
+      { category: "PARK", strength: "REQUIRED", minStops: 1, maxStops: 5 },
+      { category: "VIEWPOINT", strength: "REQUIRED", minStops: 1, maxStops: 5 },
+    ],
     geoScopes: [{ day: 0, relation: "IN", label: "Greenwich", radiusKm: 5, center: via,
       bounds: { south: 51.44, north: 51.52, west: -.045, east: .035 } }],
     routeStart: start, routeWaypoints: [via], routeEnd: end,
   });
   const day = plan.days[0];
   assert.ok(day.stops.length >= 3);
-  assert.ok(day.stops.every((stop) => stop.place.id !== "westminster"));
+  assert.ok(day.stops.every((stop) => !["westminster", "greenwich-market"].includes(stop.place.id)));
   assert.match(day.routeLabel, /Millbank Pier → Greenwich → Battersea Power Station/);
   assert.equal(day.stops[0].legMode, "Uber Boat + walk");
   assert.ok(day.stops[0].travelMinutes >= 45);
   assert.equal(day.destinationLegMode, "Uber Boat + walk");
   assert.ok(day.destinationTravelMinutes >= 50);
   assert.match(day.routeUrl, /waypoints=/);
+});
+
+test("the same place with slightly different category coordinates appears only once", () => {
+  const park = fixture("greenwich-park", "Greenwich Park", "PARK", 51.4769, .0015);
+  const viewpoint = fixture("greenwich-view", "Greenwich Park", "VIEWPOINT", 51.4781, .0002);
+  viewpoint.planning.dataConfidence = "MEDIUM";
+  const plan = buildPlan([
+    park, viewpoint,
+    fixture("one-tree", "One Tree Hill", "VIEWPOINT", 51.4798, .0008),
+    fixture("the-point", "The Point", "VIEWPOINT", 51.4735, -.0101),
+  ], { days: 1, startDate: "2026-10-22", startTime: "09:00", endTime: "18:00", pace: "relaxed",
+    transport: "walking", categories: ["PARK", "VIEWPOINT"] });
+  assert.equal(plan.days[0].stops.filter((stop) => stop.place.name === "Greenwich Park").length, 1);
+  assert.match(plan.warnings.join(" "), /1 duplicate catalogue record was consolidated/i);
 });
 
 test("visitable buildings and small museums receive realistic minimum durations", () => {
