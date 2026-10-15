@@ -65,7 +65,7 @@ say otherwise.
 ## AI interpretation boundary
 
 The interpreter uses the Cloudflare Workers AI binding and JSON-schema output.
-It extracts arbitrary London geography, route anchors, category priorities,
+It extracts arbitrary London geography, start/end anchors, mandatory intermediate destinations, category priorities,
 semantic place-type terms, moods, exclusions, transport, pace, calendar context
 and up to three material clarifications. It has no neighbourhood alias table
 and does not select venues.
@@ -95,7 +95,9 @@ such as markets remains a hard concept filter, while singular/plural variants
 are matched generically.
 
 Travel time is a conservative local estimate. Mixed mode uses walking for short
-legs and labels longer jumps as Tube/bus. The result includes an OpenStreetMap
+legs and labels longer jumps as Tube/bus. River mode uses walking locally and
+adds an indicative boarding, waiting and sailing allowance for longer Thames
+legs; the visitor is linked to the official Uber Boat timetable. The result includes an OpenStreetMap
 view, an ordered Google Maps walking link and a branded PDF with the map, stops,
 source links and caveats. No booking is attempted.
 

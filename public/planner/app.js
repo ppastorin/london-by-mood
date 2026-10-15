@@ -5,7 +5,7 @@ const MOOD_LABELS = Object.freeze({
   local: "Local", green: "Green", atmospheric: "Atmospheric", wander: "Good for wandering",
 });
 const RELATION_LABELS = Object.freeze({ IN: "In", NEAR: "Around", NORTH_OF: "North of", SOUTH_OF: "South of", EAST_OF: "East of", WEST_OF: "West of" });
-const ROLE_LABELS = Object.freeze({ SCOPE: "Explore", START: "Start", END: "Finish", EXCLUDE: "Avoid" });
+const ROLE_LABELS = Object.freeze({ SCOPE: "Explore", START: "Start", VIA: "Visit en route", END: "Finish", EXCLUDE: "Avoid" });
 const TIME_WINDOWS = Object.freeze({ morning: ["08:30", "13:00"], afternoon: ["13:00", "18:00"], evening: ["17:00", "22:00"], full_day: ["09:00", "19:00"] });
 
 const form = document.querySelector("#planner-form");
@@ -165,7 +165,7 @@ async function generate(event) {
       pace: document.querySelector("#pace").value, transport: document.querySelector("#transport").value,
       familiarity: document.querySelector("#familiarity").value, areas: ["ANY"],
       geoScopes: geography.filter((item) => item.role === "SCOPE"), excludeGeoScopes: geography.filter((item) => item.role === "EXCLUDE"),
-      routeStart: pointForRole(geography, "START"), routeEnd: pointForRole(geography, "END"),
+      routeStart: pointForRole(geography, "START"), routeWaypoints: pointsForRole(geography, "VIA"), routeEnd: pointForRole(geography, "END"),
       categories: menuCategoriesOverride ? checkedCategories : intent.categories,
       categoryPreferences: menuCategoriesOverride ? checkedCategories.map((category) => ({ category, strength: "PREFERRED", minStops: 0, maxStops: 6 })) : intent.categoryPreferences,
       excludedCategories: intent.excludedCategories, primaryCategory: menuCategoriesOverride ? "" : intent.primaryCategory,
@@ -210,7 +210,9 @@ async function renderPlan(plan) {
     ${plan.warnings.length ? `<div class="warning-box"><strong>Before you go</strong>${plan.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
     <section class="map-card"><div id="itinerary-map" aria-label="OpenStreetMap itinerary map"></div>
       <div class="map-toolbar"><span id="map-status">Preparing the walking route…</span><span>Map data © OpenStreetMap contributors</span></div></section>
-    ${plan.input.transport === "walking" ? "" : `<p class="route-map-note">The map and Google Maps link show the complete walking sequence. Follow the schedule labels when a Tube or bus hop is recommended for a longer leg.</p>`}
+    ${plan.input.transport === "walking" ? "" : plan.input.transport === "river"
+      ? `<p class="route-map-note">The map and Google Maps link show the land-based walking sequence. Legs marked Uber Boat include an indicative boarding, waiting and sailing allowance. <a href="https://www.thamesclippers.com/plan-your-journey/timetable" target="_blank" rel="noopener">Check the official timetable before travelling ↗</a></p>`
+      : `<p class="route-map-note">The map and Google Maps link show the complete walking sequence. Follow the schedule labels when a Tube or bus hop is recommended for a longer leg.</p>`}
     <div class="result-actions"><a class="maps-button" href="${escapeAttribute(day.routeUrl)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>
       <button id="download-pdf" class="download-button" type="button">Download branded PDF</button></div>
     <article class="day-card">${renderDay(day)}</article>
@@ -301,7 +303,8 @@ async function downloadPdf() {
       doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text(String(index + 1), margin + 4, y + 2.2, { align: "center" });
       doc.setTextColor(23, 33, 44); doc.setFontSize(12); doc.text(`${stop.startTime}  ${place.name}`, margin + 11, y + 2);
       y += 7; doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(80, 90, 98);
-      doc.text(`${CATEGORY_LABELS[place.category] || place.category} · ${stop.visitMinutes} min · ${stop.availability.label}`, margin + 11, y);
+      const incomingLeg = stop.legMode === "start" ? "" : ` · ${stop.legMode} ${stop.travelMinutes} min`;
+      doc.text(`${CATEGORY_LABELS[place.category] || place.category} · ${stop.visitMinutes} min${incomingLeg} · ${stop.availability.label}`, margin + 11, y);
       y += 5; doc.setFontSize(9); doc.text(descriptionLines, margin + 11, y); y += descriptionLines.length * 4.4 + 2;
       doc.setTextColor(47, 111, 80); doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
       doc.textWithLink("Location map", margin + 11, y, { url: place.mapUrl });
@@ -382,7 +385,7 @@ function addGeographyRow(item, focus) {
 }
 
 function syncGeographyRole(event) {
-  const row = event.target.closest(".geography-row"); const anchor = ["START", "END"].includes(event.target.value);
+  const row = event.target.closest(".geography-row"); const anchor = ["START", "VIA", "END"].includes(event.target.value);
   row.querySelector(".geo-relation").disabled = anchor; row.querySelector(".geo-radius").disabled = anchor;
   if (anchor) row.querySelector(".geo-relation").value = "NEAR";
 }
@@ -416,9 +419,10 @@ function syncDurationFromTimes(markTouched = true) { const duration = Math.max(1
 function nearestPreferredDate(weekdays = [], months = []) { const weekdaySet = new Set(weekdays.map(Number)); const monthSet = new Set(months.map(Number)); const start = new Date(); start.setHours(12, 0, 0, 0); for (let offset = 0; offset <= 370; offset += 1) { const candidate = new Date(start); candidate.setDate(candidate.getDate() + offset); if ((!weekdaySet.size || weekdaySet.has(candidate.getDay())) && (!monthSet.size || monthSet.has(candidate.getMonth() + 1))) return localIsoDate(candidate); } return document.querySelector("#start-date").value; }
 function routePoints(day) { const points = []; if (day.routeStart) points.push({ ...day.routeStart, kind: "start", label: day.routeStart.label }); day.stops.forEach((stop, index) => points.push({ lat: stop.place.lat, lon: stop.place.lon, kind: "stop", number: index + 1, label: stop.place.name })); if (day.routeEnd) points.push({ ...day.routeEnd, kind: "finish", label: day.routeEnd.label }); return points.filter((point, index, items) => index === 0 || point.lat !== items[index - 1].lat || point.lon !== items[index - 1].lon); }
 function pointForRole(items, role) { const item = items.find((candidate) => candidate.role === role); return item ? { label: item.label, ...item.center } : undefined; }
+function pointsForRole(items, role) { return items.filter((candidate) => candidate.role === role).map((item) => ({ label: item.label, ...item.center })); }
 function checkedValues(name) { return [...document.querySelectorAll(`[name=${name}]:checked`)].map((item) => item.value); }
 function validationUrl(place) { return place.planning?.validationUrl || place.officialUrl || place.planning?.sourceUrl || place.mapUrl; }
-function transportLabel(value) { return ({ walking: "mostly walking", mixed: "walking + Tube/bus", transit: "public transport" })[value] || value; }
+function transportLabel(value) { return ({ walking: "mostly walking", mixed: "walking + Tube/bus", transit: "public transport", river: "walking + Uber Boat" })[value] || value; }
 function splitInput(value) { return String(value || "").split(/[,;\n]/).map((item) => item.trim()).filter(Boolean); }
 function minutes(value) { const [hours, mins] = String(value || "00:00").split(":").map(Number); return hours * 60 + mins; }
 function timeFromMinutes(value) { return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }

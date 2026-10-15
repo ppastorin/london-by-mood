@@ -2,12 +2,12 @@ const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const CATEGORIES = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "VIEWPOINT"];
 const STRENGTHS = ["PRIMARY", "REQUIRED", "PREFERRED", "OPTIONAL", "EXCLUDED"];
 const RELATIONS = ["IN", "NEAR", "NORTH_OF", "SOUTH_OF", "EAST_OF", "WEST_OF"];
-const ROLES = ["SCOPE", "START", "END", "EXCLUDE"];
+const ROLES = ["SCOPE", "START", "VIA", "END", "EXCLUDE"];
 const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "wander"];
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "10";
+export const PLANNER_INTENT_SCHEMA_VERSION = "11";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -19,7 +19,7 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
     startTime: { type: "string" },
     endTime: { type: "string" },
     pace: { type: "string", enum: ["relaxed", "balanced", "full", "unspecified"] },
-    transport: { type: "string", enum: ["walking", "mixed", "transit", "unspecified"] },
+    transport: { type: "string", enum: ["walking", "mixed", "transit", "river", "unspecified"] },
     familiarity: { type: "string", enum: ["first", "returning", "unspecified"] },
     geography: {
       type: "array",
@@ -118,12 +118,13 @@ Interpretation rules:
 - This planner always creates exactly one day and days must be 1. If a request assigns different areas or themes to different days, ask which single-day option to plan; do not silently combine incompatible day briefs.
 - Geography is a hard constraint whenever the user names an area, direction, start or end. Never replace it with a better-known part of London.
 - Resolve the intended London place name in query. Use full canonical feature names (for example "River Thames", not "Thames"). In a London travel context, "the City" means "City of London"; an ordinary city-wide request does not.
-- Use role SCOPE for an area to visit, EXCLUDE for an area to avoid, and START or END only for explicit route anchors. Every explicit starting and ending point is mandatory in geography, even when the request also contains a broad scope. A start or end is otherwise optional. "No specific destination" is openEnded and requires no clarification.
+- Use role SCOPE for an area in which to choose catalogue stops, EXCLUDE for an area to avoid, START or END for explicit route endpoints, and VIA for an explicit intermediate destination that the route must reach before continuing. Every explicit start, intermediate destination and end is mandatory in geography. A place can appear once as VIA and once as SCOPE when the visitor both wants to reach it and explore stops around it. For example, "start at Millbank Pier, visit Greenwich parks, then finish at Battersea Power Station" requires START Millbank Pier, VIA Greenwich, SCOPE Greenwich with an approximately 3 km radius, and END Battersea Power Station. A start or end is otherwise optional. "No specific destination" is openEnded and requires no clarification.
 - Use IN for "in/across/within", NEAR for "around/near", and the directional relations for "west/east/north/south of". For a directional constraint, query and label must contain only the geocodable reference place: "west of Hyde Park" is relation WEST_OF with query "Hyde Park", never an IN query containing "west of".
 - Treat broad London regions as compound geographic concepts, not named venues. Use directional boundaries that match normal London usage rather than a generic city-centre split. For example, "East London" should be EAST_OF a boundary around Aldgate or Tower Bridge, not Trafalgar Square, and normally NORTH_OF the Thames; label both scopes "East London" and use an 8-12 km radius unless the visitor asks for outer London. Apply equivalent geographic reasoning to West, North and South London instead of asking a geocoder to search the region phrase itself.
 - Set day=0 for every geography item because all constraints apply to the single planned day.
 - Distinguish the main purpose from incidental possibilities. When the whole day is organised around one narrow place type, make its category PRIMARY, strictCategory true and strictConcept true; this applies equally to markets, churches and any future narrow concept. A merely possible stop is OPTIONAL.
 - When two or more place types are equally important, use REQUIRED or PREFERRED for each and do not invent a PRIMARY category. Walking, wandering, local character and atmosphere describe movement or mood; they do not by themselves make AREA the primary category.
+- When the visitor explicitly names the only desired place types, mark each at least REQUIRED with minStops 1. Use PREFERRED when the wording is merely suggestive (for example "possibly" or "maybe").
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
 - Put experiential adjectives such as quiet, unexpected, beautiful, weird, local, green and atmospheric in moods. Never put mood adjectives in semanticTerms.
 - semanticTerms are generic physical place-type nouns, not named venues or moods. Supply them only when the user's concept is narrower than the category, such as market, church, cemetery or brutalist building. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
@@ -131,7 +132,7 @@ Interpretation rules:
 - Negation always wins: a negated known category must be a categoryPreference with strength EXCLUDED, not only a free-text exclusion. A request for no big/major museums keeps MUSEUM available but sets museumScale SMALL_ONLY.
 - "Mainly outdoors" is PREFER; "nothing indoor" is ONLY. Green implies PARK. Artistic can imply MUSEUM or BUILDING depending context.
 - "Non-touristic", "not touristy" and requests to avoid tourist-heavy places set touristPreference=NON_TOURISTIC. Requests to avoid crowds set crowdPreference=LOW.
-- A compact/long walk controls experience.compact and transport. A willingness to use the Tube alongside walking is mixed.
+- A compact/long walk controls experience.compact and transport. A willingness to use the Tube alongside walking is mixed. Explicit requests for Uber Boat, Thames Clippers or travel by river use river. When a journey explicitly starts at a Thames pier and visits another well-known riverside destination or pier before continuing along the Thames, infer river unless the user requests another mode; mention that inference in assumptions or ask a transport clarification only when it would materially change the day.
 - Ask up to three short clarifications when an answer would materially improve the result: resolve ambiguous geography, choose between genuinely different interpretations, confirm a date-dependent request, or settle a conflict such as outdoors versus an indoor category. Do not ask for information already present. Prefer two or three concrete options and include a sensible "Use your best judgement" option when no answer is essential.
 - Do not put questions in assumptions or insights. Keep insights short and user-facing.
 - If clarification answers are supplied, treat them as authoritative and return no further clarification unless an answer introduces a new material ambiguity.
@@ -217,7 +218,7 @@ export function normalizePlannerIntent(raw) {
     timeOfDay: enumValue(raw.timeOfDay, ["morning", "afternoon", "evening", "full_day", "flexible"], "flexible"),
     startTime: validTime(raw.startTime), endTime: validTime(raw.endTime),
     pace: enumValue(raw.pace, ["relaxed", "balanced", "full"], undefined),
-    transport: enumValue(raw.transport, ["walking", "mixed", "transit"], undefined),
+    transport: enumValue(raw.transport, ["walking", "mixed", "transit", "river"], undefined),
     familiarity: enumValue(raw.familiarity, ["first", "returning"], undefined),
     geography,
     categoryPreferences,

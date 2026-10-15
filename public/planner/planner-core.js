@@ -21,6 +21,13 @@ export const CATEGORY_LABELS = Object.freeze({
 const NUMBER_WORDS = Object.freeze({ one: 1, two: 2 });
 const PACE_STOPS = Object.freeze({ relaxed: 4, balanced: 5, full: 6 });
 const EARLY_ACCESS = new Set(["ALWAYS_ACCESSIBLE", "EXTERIOR_ONLY"]);
+const UBER_BOAT_TIMETABLE_URL = "https://www.thamesclippers.com/plan-your-journey/timetable";
+const THAMES_LINE = [
+  [-.38, 51.455], [-.31, 51.462], [-.25, 51.474], [-.215, 51.467], [-.188, 51.465],
+  [-.177, 51.473], [-.166, 51.482], [-.15, 51.484], [-.135, 51.488], [-.123, 51.496],
+  [-.121, 51.501], [-.115, 51.507], [-.105, 51.509], [-.075, 51.507],
+  [-.055, 51.505], [-.025, 51.502], [0, 51.500], [.04, 51.493], [.09, 51.488], [.18, 51.490],
+];
 
 export function interpretPrompt(value) {
   const text = normalText(value);
@@ -250,12 +257,13 @@ export function buildPlan(places, rawInput) {
       areaLabel: geoScopes.length ? unique(geoScopes.map((scope) => scope.label)).join(" · ") : AREA_OPTIONS[area]?.label || AREA_OPTIONS.ANY.label,
       routeLabel: routeLabel(input),
       routeStart: input.routeStart,
+      routeWaypoints: input.routeWaypoints,
       routeEnd: input.routeEnd,
       destinationArrival: schedule.destinationArrival,
       destinationTravelMinutes: schedule.destinationTravelMinutes,
       destinationLegMode: schedule.destinationLegMode,
       stops: scheduled,
-      routeUrl: dayRouteUrl(scheduled, input.transport, input.routeStart, input.routeEnd),
+      routeUrl: dayRouteUrl(scheduled, input.transport, input.routeStart, input.routeEnd, input.routeWaypoints),
       provisionalCount: scheduled.filter((stop) => stop.availability.status === "check").length,
     });
   }
@@ -290,13 +298,17 @@ export function availabilityForDate(place, date) {
   return { status: "check", label: bookingLabel(planning) };
 }
 
-export function dayRouteUrl(stops, _transport = "walking", routeStart = null, routeEnd = null) {
+export function dayRouteUrl(stops, _transport = "walking", routeStart = null, routeEnd = null, routeWaypoints = []) {
   if (!stops?.length) return "";
   if (stops.length === 1 && !routeStart && !routeEnd) return stops[0].place.mapUrl;
   const stopPoints = stops.map((stop) => ({ lat: stop.place.lat, lon: stop.place.lon }));
   const start = routeStart || stopPoints[0];
   const end = routeEnd || stopPoints.at(-1);
-  const points = [start, ...stopPoints, end].filter((point, index, values) => index === 0
+  const routePath = [start, ...(routeWaypoints || []), end].filter(Boolean);
+  const intermediate = routeStart && routeEnd
+    ? [...stopPoints, ...(routeWaypoints || [])].sort((a, b) => routePathMetrics(a, routePath).position - routePathMetrics(b, routePath).position)
+    : [...stopPoints, ...(routeWaypoints || [])];
+  const points = [start, ...intermediate, end].filter((point, index, values) => index === 0
     || point.lat !== values[index - 1].lat || point.lon !== values[index - 1].lon);
   return buildGoogleMapsUrl({
     start: points[0], end: points.at(-1), stops: points.slice(1, -1), travelMode: "walking",
@@ -311,7 +323,7 @@ function normalizeInput(input) {
     startTime: /^\d{2}:\d{2}$/.test(input.startTime || "") ? input.startTime : "09:00",
     endTime: /^\d{2}:\d{2}$/.test(input.endTime || "") ? input.endTime : "19:00",
     pace: PACE_STOPS[input.pace] ? input.pace : "balanced",
-    transport: ["walking", "mixed", "transit"].includes(input.transport) ? input.transport : "walking",
+    transport: ["walking", "mixed", "transit", "river"].includes(input.transport) ? input.transport : "walking",
     familiarity: input.familiarity === "first" ? "first" : "returning",
     areas: (input.areas || ["ANY"]).map((area) => AREA_OPTIONS[area] ? area : "ANY").slice(0, 1),
     categories: unique(input.categories || []), moods: unique(input.moods || []),
@@ -323,7 +335,9 @@ function normalizeInput(input) {
     excludeGeoScopes: (input.excludeGeoScopes || []).map(normalizeGeoScope).filter(Boolean),
     impact: input.impact === "wow" ? "wow" : "",
     season: input.season === "autumn" ? "autumn" : "",
-    routeStart: normalizePoint(input.routeStart), routeEnd: normalizePoint(input.routeEnd),
+    routeStart: normalizePoint(input.routeStart),
+    routeWaypoints: (Array.isArray(input.routeWaypoints) ? input.routeWaypoints : []).map(normalizePoint).filter(Boolean).slice(0, 3),
+    routeEnd: normalizePoint(input.routeEnd),
     avoidCore: Boolean(input.avoidCore), noBigMuseums: Boolean(input.noBigMuseums), excludeMuseums: Boolean(input.excludeMuseums),
     outdoorOnly: Boolean(input.outdoorOnly), outdoorPreference: Boolean(input.outdoorPreference), crowdSensitive: Boolean(input.crowdSensitive),
     marketFocus: Boolean(input.marketFocus), weekendFlexible: Boolean(input.weekendFlexible),
@@ -391,11 +405,12 @@ function selectAnchoredDay(pool, locked, input, area, date, used) {
 function selectRouteDay(pool, locked, input, area, date, used) {
   const desired = PACE_STOPS[input.pace];
   const selected = seedRequiredCategories(pool, uniquePlaces(locked).slice(0, desired), input, area, date, used, desired);
+  const path = routePath(input);
   for (let slot = selected.length; slot < desired; slot += 1) {
     const target = desired === 1 ? .5 : slot / (desired - 1);
     const next = pool.filter((place) => !used.has(place.id) && !selected.some((chosen) => chosen.id === place.id) && underCategoryMaximum(place, selected, input))
       .map((place) => {
-        const route = routeMetrics(place, input.routeStart, input.routeEnd);
+        const route = routePathMetrics(place, path);
         const repeats = categoryRepeatPenalty(place, selected, input);
         return { place, score: scorePlace(place, input, area, date) - route.distanceKm * 9 - Math.abs(route.position - target) * 28 - repeats
           - indoorPreferencePenalty(place, selected, input) };
@@ -424,6 +439,7 @@ function scorePlace(place, input, area, date) {
   const categoryRule = input.categoryPreferences.find((item) => item.category === place.category);
   if (categoryRule) score += ({ PRIMARY: 48, REQUIRED: 38, PREFERRED: 26, OPTIONAL: 10 }[categoryRule.strength] || 0);
   else if (input.categories.includes(place.category)) score += 26;
+  else if (input.categories.length) score -= 16;
   if (input.experience.semanticTerms.length) {
     const matches = semanticMatches(place, input.experience.semanticTerms);
     score += matches * (input.experience.strictConcept ? 18 : 8);
@@ -451,8 +467,8 @@ function scorePlace(place, input, area, date) {
 function routeOrder(places, startTime, input = {}, date = input.startDate) {
   if (places.length < 2) return places;
   if (input.routeStart && input.routeEnd) {
-    return [...places].sort((a, b) => routeMetrics(a, input.routeStart, input.routeEnd).position
-      - routeMetrics(b, input.routeStart, input.routeEnd).position);
+    const path = routePath(input);
+    return [...places].sort((a, b) => routePathMetrics(a, path).position - routePathMetrics(b, path).position);
   }
   if (input.routeStart) return nearestNeighborOrder(places, input.routeStart);
   if (input.routeEnd) return nearestNeighborOrder(places, input.routeEnd).reverse();
@@ -523,7 +539,8 @@ function scheduleDay(places, input, date) {
       omitted.push(place);
       continue;
     }
-    const legUrl = previous && legMode === "Tube / bus" ? buildGoogleMapsUrl({ start: previous, end: place, travelMode: "transit" }) : "";
+    const legUrl = previous && legMode === "Tube / bus" ? buildGoogleMapsUrl({ start: previous, end: place, travelMode: "transit" })
+      : previous && legMode === "Uber Boat + walk" ? UBER_BOAT_TIMETABLE_URL : "";
     result.push({ place, startTime: minutesToTime(proposedStart), endTime: minutesToTime(proposedEnd), travelMinutes, legMode, legUrl, availability, visitMinutes: duration });
     const lunchDue = !lunchTaken && proposedEnd >= 12 * 60 && proposedEnd <= 14 * 60;
     cursor = proposedEnd + (lunchDue ? 45 : 10);
@@ -557,6 +574,10 @@ export function recommendedVisitMinutes(place) {
 
 export function estimateTravel(from, to, transport = "mixed") {
   const distanceKm = haversineKm(from.lat, from.lon, to.lat, to.lon);
+  const riverLeg = transport === "river" && distanceKm > 5.5 && nearThames(from, 3.5) && nearThames(to, 3.5);
+  if (riverLeg) {
+    return { minutes: Math.ceil(18 + distanceKm * 4), mode: "Uber Boat + walk", distanceKm };
+  }
   const transitLeg = transport === "transit" || (transport === "mixed" && distanceKm > 2.2);
   return transitLeg
     ? { minutes: Math.ceil(12 + distanceKm * 4), mode: "Tube / bus", distanceKm }
@@ -587,9 +608,30 @@ function areaFit(place, area) {
 
 function routeFit(place, input) {
   if (!input.routeStart || !input.routeEnd) return true;
-  const route = routeMetrics(place, input.routeStart, input.routeEnd);
-  const radius = input.transport === "walking" ? 2.5 : 3.5;
-  return route.rawPosition >= -.05 && route.rawPosition <= 1.05 && route.distanceKm <= radius;
+  const route = routePathMetrics(place, routePath(input));
+  const radius = input.transport === "walking" ? 2.5 : input.transport === "river" ? 4.5 : 3.5;
+  return route.distanceKm <= radius;
+}
+
+function routePath(input) {
+  return [input.routeStart, ...(input.routeWaypoints || []), input.routeEnd].filter(Boolean);
+}
+
+function routePathMetrics(place, points) {
+  if (points.length < 2) return { position: 0, distanceKm: 0 };
+  const segments = points.slice(0, -1).map((start, index) => {
+    const end = points[index + 1];
+    return { start, end, lengthKm: haversineKm(start.lat, start.lon, end.lat, end.lon) };
+  });
+  const total = Math.max(.001, segments.reduce((sum, segment) => sum + segment.lengthKm, 0));
+  let elapsed = 0; let best = { position: 0, distanceKm: Number.POSITIVE_INFINITY };
+  for (const segment of segments) {
+    const metric = routeMetrics(place, segment.start, segment.end);
+    const candidate = { position: (elapsed + metric.position * segment.lengthKm) / total, distanceKm: metric.distanceKm };
+    if (candidate.distanceKm < best.distanceKm) best = candidate;
+    elapsed += segment.lengthKm;
+  }
+  return best;
 }
 
 export function routeMetrics(place, start, end) {
@@ -606,27 +648,29 @@ export function routeMetrics(place, start, end) {
 }
 
 function southOfThames(place) {
-  const river = [
-    [-.38, 51.455], [-.31, 51.462], [-.25, 51.474], [-.215, 51.467], [-.188, 51.465],
-    [-.177, 51.473], [-.166, 51.482], [-.15, 51.484], [-.135, 51.488], [-.123, 51.496],
-    [-.121, 51.501], [-.115, 51.507], [-.105, 51.509], [-.075, 51.507],
-    [-.055, 51.505], [-.025, 51.502], [0, 51.500], [.04, 51.493], [.09, 51.488], [.18, 51.490],
-  ];
   const lon = Number(place.lon);
-  const next = river.findIndex(([riverLon]) => riverLon >= lon);
-  if (next <= 0) return Number(place.lat) < river[0][1];
-  if (next < 0) return Number(place.lat) < river.at(-1)[1];
-  const [leftLon, leftLat] = river[next - 1];
-  const [rightLon, rightLat] = river[next];
+  const next = THAMES_LINE.findIndex(([riverLon]) => riverLon >= lon);
+  if (next <= 0) return Number(place.lat) < THAMES_LINE[0][1];
+  if (next < 0) return Number(place.lat) < THAMES_LINE.at(-1)[1];
+  const [leftLon, leftLat] = THAMES_LINE[next - 1];
+  const [rightLon, rightLat] = THAMES_LINE[next];
   const ratio = (lon - leftLon) / (rightLon - leftLon);
   return Number(place.lat) < leftLat + (rightLat - leftLat) * ratio;
 }
 
 function routeLabel(input) {
   if (!input.routeStart && !input.routeEnd) return "";
-  if (input.routeStart && input.routeEnd) return `${input.routeStart.label} → ${input.routeEnd.label}`;
+  const via = (input.routeWaypoints || []).map((point) => point.label);
+  if (input.routeStart && input.routeEnd) return [input.routeStart.label, ...via, input.routeEnd.label].join(" → ");
   if (input.routeStart) return `From ${input.routeStart.label}`;
   return `Finish at ${input.routeEnd.label}`;
+}
+
+function nearThames(point, thresholdKm) {
+  return THAMES_LINE.slice(0, -1).some(([lon, lat], index) => {
+    const [nextLon, nextLat] = THAMES_LINE[index + 1];
+    return routeMetrics(point, { lat, lon }, { lat: nextLat, lon: nextLon }).distanceKm <= thresholdKm;
+  });
 }
 
 function outdoorFit(place) {
@@ -710,7 +754,7 @@ function geographyFit(place, scope) {
   if (scope.relation === "IN") {
     if (!scope.bounds) return distance <= scope.radiusKm;
     const padding = Math.min(.018, Math.max(.003, scope.radiusKm / 111));
-    return lat >= scope.bounds.south - padding && lat <= scope.bounds.north + padding
+    return distance <= scope.radiusKm && lat >= scope.bounds.south - padding && lat <= scope.bounds.north + padding
       && lon >= scope.bounds.west - padding && lon <= scope.bounds.east + padding;
   }
   if (distance > scope.radiusKm) return false;

@@ -128,6 +128,43 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.match(modelRequest.messages[1].content, /Kensington area/);
 });
 
+test("AI interpretation preserves an intermediate destination as a route waypoint", async () => {
+  globalThis.fetch = async (url) => {
+    const query = new URL(url).searchParams.get("q");
+    const locations = {
+      "Millbank Pier, London, UK": [51.4917, -.1248],
+      "Greenwich, London, UK": [51.4821, -.0045],
+      "Battersea Power Station, London, UK": [51.4818, -.1446],
+    };
+    const [lat, lon] = locations[query] || [];
+    return Response.json(lat ? [{ display_name: query, lat: String(lat), lon: String(lon), boundingbox: [String(lat - .02), String(lat + .02), String(lon - .02), String(lon + .02)], type: "suburb" }] : []);
+  };
+  const AI = { run: async () => ({ response: rawIntent({
+    transport: "river",
+    geography: [
+      { day: 0, role: "START", relation: "NEAR", query: "Millbank Pier", label: "Millbank Pier", radiusKm: .5 },
+      { day: 0, role: "VIA", relation: "NEAR", query: "Greenwich", label: "Greenwich", radiusKm: .5 },
+      { day: 0, role: "SCOPE", relation: "IN", query: "Greenwich", label: "Greenwich", radiusKm: 5 },
+      { day: 0, role: "END", relation: "NEAR", query: "Battersea Power Station", label: "Battersea Power Station", radiusKm: .5 },
+    ],
+    categoryPreferences: [
+      { category: "PARK", strength: "PREFERRED", minStops: 1, maxStops: 5 },
+      { category: "VIEWPOINT", strength: "PREFERRED", minStops: 1, maxStops: 5 },
+    ],
+  }) }) };
+  const response = await worker.fetch(new Request("https://example.com/api/planner/interpret", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: "Start at Millbank Pier, visit Greenwich parks, then finish at Battersea Power Station" }),
+  }), { PLANNER_ENABLED: "true", AI, GEOCODING_API_URL: "https://nominatim.openstreetmap.org/search", ASSETS: assets() }, context());
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.intent.transport, "river");
+  assert.equal(payload.intent.routeWaypoints[0].label, "Greenwich");
+  assert.equal(payload.intent.geoScopes[0].label, "Greenwich");
+  assert.equal(payload.intent.routeStart.label, "Millbank Pier");
+  assert.equal(payload.intent.routeEnd.label, "Battersea Power Station");
+});
+
 test("planner interpretation fails explicitly when the AI binding is absent", async () => {
   const response = await worker.fetch(new Request("https://example.com/api/planner/interpret", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: "A day around Richmond" }),

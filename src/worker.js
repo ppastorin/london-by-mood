@@ -188,12 +188,14 @@ async function resolveIntentGeography(intent, env) {
   }
   const start = resolved.find((item) => item.role === "START");
   const end = resolved.find((item) => item.role === "END");
+  const waypoints = resolved.filter((item) => item.role === "VIA");
   const scopes = resolved.filter((item) => item.role === "SCOPE");
   const excludeScopes = resolved.filter((item) => item.role === "EXCLUDE");
   return {
     ...intent,
     resolvedGeography: resolved,
     routeStart: start ? { label: start.label, ...start.center } : undefined,
+    routeWaypoints: waypoints.map((item) => ({ label: item.label, ...item.center })),
     routeEnd: end ? { label: end.label, ...end.center } : undefined,
     geoScopes: scopes,
     excludeGeoScopes: excludeScopes,
