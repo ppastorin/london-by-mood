@@ -87,8 +87,8 @@ test("Smart Navigation cannot reuse place copy from an older editorial release",
   const html = await readFile(htmlPath, "utf8");
   const app = await readFile(appPath, "utf8");
 
-  assert.match(html, /smart-navigation\/app\.js\?v=20261014-museum-semantic/);
-  assert.match(app, /PLACES_CONTENT_VERSION="2026-10-14-museum-semantic-v3"/);
+  assert.match(html, /smart-navigation\/app\.js\?v=20261015-park-copy/);
+  assert.match(app, /PLACES_CONTENT_VERSION="2026-10-15-park-copy-v1"/);
   assert.match(app, /api\(`\/api\/pois\?content=/);
   assert.match(app, /\{cache:"no-store"\}/);
 });
