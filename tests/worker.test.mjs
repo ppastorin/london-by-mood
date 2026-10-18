@@ -28,7 +28,7 @@ test("health reports the D1 data version", async () => {
     },
   };
   const response = await worker.fetch(new Request("https://example.com/health"), {
-    DB, ASSETS: assets(), HEIGIT_API_KEY: "route-key", TFL_API_KEY: "tfl-key",
+    DB, ASSETS: assets(), HEIGIT_API_KEY: "route-key", GEOAPIFY_API_KEY: "fallback-key", TFL_API_KEY: "tfl-key",
   }, context());
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
@@ -36,7 +36,12 @@ test("health reports the D1 data version", async () => {
     service: "london-places",
     database: "d1",
     dataVersion: "7",
-    integrations: { walkingRouting: "authenticated", tflBikePoint: "authenticated" },
+    integrations: {
+      walkingRouting: "authenticated",
+      walkingRoutingPrimary: "authenticated",
+      walkingRoutingFallback: "authenticated",
+      tflBikePoint: "authenticated",
+    },
   });
 });
 
@@ -219,6 +224,74 @@ test("walking routes use the current HeiGIT endpoint", async () => {
   assert.deepEqual(requestedBody.coordinates, [[-0.127716, 51.507587], [-0.102911, 51.515008]]);
   assert.equal(payload.distanceMetres, 2100);
   assert.equal(payload.stopCount, 0);
+  assert.equal(payload.provider, "openrouteservice");
+  assert.equal(payload.fallbackUsed, false);
+});
+
+test("walking routes fall back to Geoapify and normalise multi-leg geometry", async () => {
+  const requested = [];
+  globalThis.fetch = async (url) => {
+    requested.push(new URL(url));
+    if (requested.length === 1) return Response.json({ error: { message: "Foot walking is unavailable" } }, { status: 503 });
+    return Response.json({
+      features: [{
+        geometry: { type: "MultiLineString", coordinates: [
+          [[-0.127716, 51.507587], [-0.12, 51.51]],
+          [[-0.12, 51.51], [-0.102911, 51.515008]],
+        ] },
+        properties: { distance: 2250, time: 1620 },
+      }],
+    });
+  };
+  const response = await worker.fetch(
+    new Request("https://example.com/api/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: { lat: 51.507587, lon: -0.127716 }, end: { lat: 51.515008, lon: -0.102911 } }),
+    }),
+    { HEIGIT_API_KEY: "primary-key", GEOAPIFY_API_KEY: "fallback-key", ASSETS: assets() },
+    context(),
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(requested.length, 2);
+  assert.equal(requested[1].origin + requested[1].pathname, "https://api.geoapify.com/v1/routing");
+  assert.equal(requested[1].searchParams.get("waypoints"), "51.507587,-0.127716|51.515008,-0.102911");
+  assert.equal(requested[1].searchParams.get("mode"), "walk");
+  assert.equal(requested[1].searchParams.get("apiKey"), "fallback-key");
+  assert.deepEqual(payload.geometry, { type: "LineString", coordinates: [
+    [-0.127716, 51.507587], [-0.12, 51.51], [-0.102911, 51.515008],
+  ] });
+  assert.equal(payload.distanceMetres, 2250);
+  assert.equal(payload.durationSeconds, 1620);
+  assert.equal(payload.provider, "geoapify");
+  assert.equal(payload.fallbackUsed, true);
+  assert.equal(JSON.stringify(payload).includes("fallback-key"), false);
+});
+
+test("Geoapify can route directly when the primary provider is not configured", async () => {
+  let requestedUrl;
+  globalThis.fetch = async (url) => {
+    requestedUrl = new URL(url);
+    return Response.json({ features: [{
+      geometry: { type: "LineString", coordinates: [[-0.127716, 51.507587], [-0.102911, 51.515008]] },
+      properties: { distance: 2200, time: 1600 },
+    }] });
+  };
+  const response = await worker.fetch(
+    new Request("https://example.com/api/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: { lat: 51.507587, lon: -0.127716 }, end: { lat: 51.515008, lon: -0.102911 } }),
+    }),
+    { GEOAPIFY_API_KEY: "fallback-key", ASSETS: assets() },
+    context(),
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(requestedUrl.hostname, "api.geoapify.com");
+  assert.equal(payload.provider, "geoapify");
+  assert.equal(payload.fallbackUsed, false);
 });
 
 test("walking routes preserve the order of up to nine intermediate stops", async () => {
@@ -283,6 +356,32 @@ test("walking-route network failures return a controlled JSON error", async () =
   );
   assert.equal(response.status, 502);
   assert.deepEqual(await response.json(), { ok: false, error: "Walking route service unavailable: upstream unavailable" });
+});
+
+test("walking-route network failures use the fallback when it is configured", async () => {
+  let requestCount = 0;
+  globalThis.fetch = async () => {
+    requestCount += 1;
+    if (requestCount === 1) throw new Error("upstream unavailable");
+    return Response.json({ features: [{
+      geometry: { type: "LineString", coordinates: [[-0.127716, 51.507587], [-0.102911, 51.515008]] },
+      properties: { distance: 2200, time: 1600 },
+    }] });
+  };
+  const response = await worker.fetch(
+    new Request("https://example.com/api/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: { lat: 51.507587, lon: -0.127716 }, end: { lat: 51.515008, lon: -0.102911 } }),
+    }),
+    { HEIGIT_API_KEY: "primary-key", GEOAPIFY_API_KEY: "fallback-key", ASSETS: assets() },
+    context(),
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(requestCount, 2);
+  assert.equal(payload.provider, "geoapify");
+  assert.equal(payload.fallbackUsed, true);
 });
 
 test("walking-route HTTP failures do not escape the Worker error boundary", async () => {

@@ -77,7 +77,9 @@ async function health(env) {
     database: "d1",
     dataVersion: row?.value ?? null,
     integrations: {
-      walkingRouting: env.HEIGIT_API_KEY ? "authenticated" : "missing",
+      walkingRouting: env.HEIGIT_API_KEY || env.GEOAPIFY_API_KEY ? "authenticated" : "missing",
+      walkingRoutingPrimary: env.HEIGIT_API_KEY ? "authenticated" : "missing",
+      walkingRoutingFallback: env.GEOAPIFY_API_KEY ? "authenticated" : "missing",
       tflBikePoint: env.TFL_API_KEY ? "authenticated" : "anonymous",
     },
   });
@@ -598,31 +600,131 @@ async function routeRequest(request, env) {
   const via = viaInput.map((point) => ({ lat: finiteNumber(point?.lat), lon: finiteNumber(point?.lon) }));
   const routePoints = [start, ...via, end];
   if (routePoints.some((point) => !insideLondonBounds(point.lat, point.lon))) return json({ ok: false, error: "All route points must be in London" }, 400);
-  if (!env.HEIGIT_API_KEY) return json({ ok: false, error: "Routing is not configured in this dev environment" }, 503);
+  if (!env.HEIGIT_API_KEY && !env.GEOAPIFY_API_KEY) return json({ ok: false, error: "Routing is not configured in this dev environment" }, 503);
+
+  let primaryFailure = null;
+  if (env.HEIGIT_API_KEY) {
+    try {
+      const route = await openRouteServiceRoute(routePoints, env);
+      return routeResponse(route, via.length, false);
+    } catch (error) {
+      primaryFailure = error;
+      console.warn("openrouteservice walking route failed", safeErrorMessage(error));
+      if (!env.GEOAPIFY_API_KEY || !error?.fallbackAllowed) return routingErrorResponse(error);
+    }
+  }
+
+  try {
+    const route = await geoapifyRoute(routePoints, env);
+    return routeResponse(route, via.length, Boolean(primaryFailure));
+  } catch (error) {
+    console.error("Geoapify walking route failed", safeErrorMessage(error));
+    if (primaryFailure) {
+      return json({ ok: false, error: "Walking route services are temporarily unavailable" }, 502, { "Cache-Control": "no-store" });
+    }
+    return routingErrorResponse(error);
+  }
+}
+
+async function openRouteServiceRoute(routePoints, env) {
   const routingApiUrl = env.ROUTING_API_URL || "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson";
-  let upstream;
-  let responseText;
+  let upstream, responseText;
   try {
     upstream = await fetch(routingApiUrl, {
       method: "POST", headers: { Authorization: env.HEIGIT_API_KEY.trim(), "Content-Type": "application/json", Accept: "application/geo+json, application/json" },
       body: JSON.stringify({ coordinates: routePoints.map((point) => [point.lon, point.lat]) }),
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(8000),
     });
     responseText = await upstream.text();
   } catch (error) {
-    return json({ ok: false, error: `Walking route service unavailable: ${safeErrorMessage(error)}` }, 502, { "Cache-Control": "no-store" });
+    throw routingProviderError(`Walking route service unavailable: ${safeErrorMessage(error)}`, 502, true);
   }
-  let payload;
-  try { payload = JSON.parse(responseText); } catch { payload = null; }
+  const payload = parseJson(responseText);
   if (!upstream.ok) {
     const upstreamMessage = payload?.error?.message || payload?.message || responseText.slice(0, 180).trim();
-    return json({ ok: false, error: upstreamMessage || `Routing returned ${upstream.status}` }, 502, { "Cache-Control": "no-store" });
+    throw routingProviderError(upstreamMessage || `Routing returned ${upstream.status}`, upstream.status, routingFallbackAllowed(upstream.status));
   }
-  if (!payload) throw new Error("The routing service returned an unreadable response");
+  if (!payload) throw routingProviderError("The routing service returned an unreadable response", 502, true);
   const feature = payload?.features?.[0];
-  if (!feature?.geometry) throw new Error("The routing service returned no route");
-  return json({ ok: true, geometry: feature.geometry, distanceMetres: feature.properties?.summary?.distance ?? 0, stopCount: via.length,
-    durationSeconds: feature.properties?.summary?.duration ?? 0, attribution: "Route data © openrouteservice and OpenStreetMap contributors" });
+  if (!feature?.geometry) throw routingProviderError("The routing service returned no route", 502, true);
+  return {
+    geometry: feature.geometry,
+    distanceMetres: feature.properties?.summary?.distance ?? 0,
+    durationSeconds: feature.properties?.summary?.duration ?? 0,
+    provider: "openrouteservice",
+    attribution: "Route data © openrouteservice and OpenStreetMap contributors",
+  };
+}
+
+async function geoapifyRoute(routePoints, env) {
+  const target = new URL(env.GEOAPIFY_ROUTING_API_URL || "https://api.geoapify.com/v1/routing");
+  target.searchParams.set("waypoints", routePoints.map((point) => `${point.lat},${point.lon}`).join("|"));
+  target.searchParams.set("mode", "walk");
+  target.searchParams.set("format", "geojson");
+  target.searchParams.set("intermediate_waypoint_mode", "stopover");
+  target.searchParams.set("apiKey", env.GEOAPIFY_API_KEY.trim());
+
+  let upstream, responseText;
+  try {
+    upstream = await fetch(target, { headers: { Accept: "application/geo+json, application/json" }, signal: AbortSignal.timeout(10000) });
+    responseText = await upstream.text();
+  } catch (error) {
+    throw routingProviderError(`Walking route service unavailable: ${safeErrorMessage(error)}`, 502, false);
+  }
+  const payload = parseJson(responseText);
+  if (!upstream.ok) {
+    const upstreamMessage = payload?.message || payload?.error?.message || responseText.slice(0, 180).trim();
+    throw routingProviderError(upstreamMessage || `Fallback routing returned ${upstream.status}`, upstream.status, false);
+  }
+  if (!payload) throw routingProviderError("The fallback routing service returned an unreadable response", 502, false);
+  const feature = payload?.features?.[0];
+  const geometry = normaliseRouteGeometry(feature?.geometry);
+  if (!geometry) throw routingProviderError("The fallback routing service returned no route", 502, false);
+  return {
+    geometry,
+    distanceMetres: feature.properties?.distance ?? 0,
+    durationSeconds: feature.properties?.time ?? 0,
+    provider: "geoapify",
+    attribution: "Route data © Geoapify and OpenStreetMap contributors",
+  };
+}
+
+function routeResponse(route, stopCount, fallbackUsed) {
+  return json({ ok: true, ...route, stopCount, fallbackUsed }, 200, { "Cache-Control": "no-store" });
+}
+
+function routingErrorResponse(error) {
+  return json({ ok: false, error: safeErrorMessage(error) }, 502, { "Cache-Control": "no-store" });
+}
+
+function routingProviderError(message, status, fallbackAllowed) {
+  const error = new Error(message);
+  error.providerStatus = status;
+  error.fallbackAllowed = fallbackAllowed;
+  return error;
+}
+
+function routingFallbackAllowed(status) {
+  return status === 401 || status === 403 || status === 408 || status === 429 || status >= 500;
+}
+
+function parseJson(value) {
+  try { return JSON.parse(value); } catch { return null; }
+}
+
+function normaliseRouteGeometry(geometry) {
+  if (geometry?.type === "LineString" && Array.isArray(geometry.coordinates) && geometry.coordinates.length > 1) return geometry;
+  if (geometry?.type !== "MultiLineString" || !Array.isArray(geometry.coordinates)) return null;
+  const coordinates = [];
+  for (const line of geometry.coordinates) {
+    if (!Array.isArray(line)) continue;
+    for (const coordinate of line) {
+      if (!Array.isArray(coordinate) || coordinate.length < 2) continue;
+      const previous = coordinates.at(-1);
+      if (!previous || previous[0] !== coordinate[0] || previous[1] !== coordinate[1]) coordinates.push(coordinate);
+    }
+  }
+  return coordinates.length > 1 ? { type: "LineString", coordinates } : null;
 }
 
 function safeErrorMessage(error) {
