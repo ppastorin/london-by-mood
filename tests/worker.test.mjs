@@ -27,9 +27,17 @@ test("health reports the D1 data version", async () => {
       return { first: async () => ({ value: "7" }) };
     },
   };
-  const response = await worker.fetch(new Request("https://example.com/health"), { DB, ASSETS: assets() }, context());
+  const response = await worker.fetch(new Request("https://example.com/health"), {
+    DB, ASSETS: assets(), HEIGIT_API_KEY: "route-key", TFL_API_KEY: "tfl-key",
+  }, context());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, service: "london-places", database: "d1", dataVersion: "7" });
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    service: "london-places",
+    database: "d1",
+    dataVersion: "7",
+    integrations: { walkingRouting: "authenticated", tflBikePoint: "authenticated" },
+  });
 });
 
 test("public POI reads chunk station lookups below D1's 100-bind limit", async () => {
@@ -128,6 +136,55 @@ test("address search is explicit, London-bounded and returns coordinates", async
   assert.equal(requestedUrl.searchParams.get("bounded"), "1");
   assert.equal(requestedUrl.searchParams.get("countrycodes"), "gb");
   assert.match(requestedHeaders.get("user-agent"), /LondonAdvanced-Places/);
+});
+
+
+
+test("BikePoint requests use the TfL key and cache the global feed without exposing it", async () => {
+  let requestedUrl;
+  let cachedUrl;
+  globalThis.caches = {
+    default: {
+      match: async () => null,
+      put: async (request) => { cachedUrl = String(request.url); },
+    },
+  };
+  globalThis.fetch = async (request) => {
+    requestedUrl = new URL(request);
+    return Response.json([{
+      id: "BikePoints_359",
+      commonName: "Butler Place, Westminster",
+      lat: 51.497829,
+      lon: -0.13544,
+      additionalProperties: [
+        { key: "NbBikes", value: "6" },
+        { key: "NbEmptyDocks", value: "11" },
+      ],
+    }]);
+  };
+  const response = await worker.fetch(
+    new Request("https://example.com/api/bikepoints?lat=51.4975&lon=-0.1357"),
+    { TFL_API_KEY: "private-tfl-key", ASSETS: assets() },
+    context(),
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(requestedUrl.origin + requestedUrl.pathname, "https://api.tfl.gov.uk/BikePoint");
+  assert.equal(requestedUrl.searchParams.get("app_key"), "private-tfl-key");
+  assert.equal(cachedUrl, "https://example.com/__cache/tfl-bikepoints");
+  assert.equal(JSON.stringify(payload).includes("private-tfl-key"), false);
+  assert.equal(payload.stations[0].bikes, 6);
+});
+
+test("BikePoint quota responses remain distinguishable from provider failures", async () => {
+  globalThis.fetch = async () => new Response("rate limited", { status: 429 });
+  const response = await worker.fetch(
+    new Request("https://example.com/api/bikepoints?lat=51.4975&lon=-0.1357"),
+    { TFL_API_KEY: "private-tfl-key", ASSETS: assets() },
+    context(),
+  );
+  assert.equal(response.status, 429);
+  assert.deepEqual(await response.json(), { ok: false, error: "TfL BikePoint request limit reached" });
 });
 
 test("walking routes use the current HeiGIT endpoint", async () => {

@@ -2,6 +2,7 @@ const LONDON_BOUNDS = Object.freeze({ west: -0.75, south: 51.20, east: 0.45, nor
 const PLACE_BOUNDS = Object.freeze({ west: -1.00, south: 50.80, east: 0.75, north: 52.00 });
 const DEFAULT_LIMIT = 1200;
 const MAX_LIMIT = 2000;
+const BIKEPOINT_CACHE_SECONDS = 45;
 const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "VIEWPOINT"];
 
 export default {
@@ -19,7 +20,7 @@ export default {
         return request.method === "POST" ? await routeRequest(request, env) : methodNotAllowed("POST");
       }
       if (url.pathname === "/api/bikepoints") {
-        return request.method === "GET" ? await bikePoints(url, env) : methodNotAllowed("GET");
+        return request.method === "GET" ? await bikePoints(url, env, ctx) : methodNotAllowed("GET");
       }
       if (env.TRUST_CF_ACCESS === "true" && (url.pathname === "/admin" || url.pathname.startsWith("/admin/"))) {
         const auth = requireAdmin(request, env);
@@ -70,7 +71,16 @@ export default {
 async function health(env) {
   if (!env.DB) return json({ ok: false, service: "london-places", database: "missing" }, 503);
   const row = await env.DB.prepare("SELECT value FROM app_meta WHERE key = 'data_version'").first();
-  return json({ ok: true, service: "london-places", database: "d1", dataVersion: row?.value ?? null });
+  return json({
+    ok: true,
+    service: "london-places",
+    database: "d1",
+    dataVersion: row?.value ?? null,
+    integrations: {
+      walkingRouting: env.HEIGIT_API_KEY ? "authenticated" : "missing",
+      tflBikePoint: env.TFL_API_KEY ? "authenticated" : "anonymous",
+    },
+  });
 }
 
 async function listPublicPlaces(url, env) {
@@ -620,16 +630,58 @@ function safeErrorMessage(error) {
   return message.replace(/[\r\n]+/g, " ").slice(0, 180);
 }
 
-async function bikePoints(url, env) {
+async function bikePoints(url, env, ctx) {
   const lat = finiteNumber(url.searchParams.get("lat")); const lon = finiteNumber(url.searchParams.get("lon"));
   if (!insideLondonBounds(lat, lon)) return json({ ok: false, error: "Choose a London starting point" }, 400);
-  const target = new URL("https://api.tfl.gov.uk/BikePoint"); if (env.TFL_API_KEY) target.searchParams.set("app_key", env.TFL_API_KEY);
-  const upstream = await fetch(target, { headers: { Accept: "application/json" } });
-  if (!upstream.ok) throw new Error(`TfL BikePoint returned ${upstream.status}`);
-  const payload = await upstream.json();
+  let payload;
+  try {
+    payload = await bikePointFeed(url, env, ctx);
+  } catch (error) {
+    const status = error?.status === 429 ? 429 : 502;
+    return json({ ok: false, error: safeErrorMessage(error) }, status, { "Cache-Control": "no-store" });
+  }
   const stations = payload.map((place) => mapBikePoint(place, lat, lon)).filter((place) => place.distanceM <= 500)
     .sort((a, b) => a.distanceM - b.distanceM).slice(0, 3);
-  return json({ ok: true, updatedAt: new Date().toISOString(), stations }, 200, { "Cache-Control": "public, max-age=45" });
+  return json({ ok: true, updatedAt: new Date().toISOString(), stations }, 200, {
+    "Cache-Control": `public, max-age=${BIKEPOINT_CACHE_SECONDS}`,
+  });
+}
+
+async function bikePointFeed(requestUrl, env, ctx) {
+  const cache = typeof caches === "undefined" ? null : caches.default;
+  const cacheKey = new Request(`${requestUrl.origin}/__cache/tfl-bikepoints`, { headers: { Accept: "application/json" } });
+  if (cache) {
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached.json();
+  }
+
+  const target = new URL("https://api.tfl.gov.uk/BikePoint");
+  if (env.TFL_API_KEY) target.searchParams.set("app_key", env.TFL_API_KEY);
+  const upstream = await fetch(target, { headers: { Accept: "application/json" } });
+  if (!upstream.ok) {
+    const error = new Error(upstream.status === 429
+      ? "TfL BikePoint request limit reached"
+      : upstream.status === 401 || upstream.status === 403
+        ? "TfL BikePoint API key was rejected"
+        : `TfL BikePoint returned ${upstream.status}`);
+    error.status = upstream.status === 429 ? 429 : 502;
+    throw error;
+  }
+
+  const responseText = await upstream.text();
+  let payload;
+  try { payload = JSON.parse(responseText); } catch { payload = null; }
+  if (!Array.isArray(payload)) throw new Error("TfL BikePoint returned an unreadable response");
+
+  if (cache) {
+    const cachedResponse = new Response(responseText, {
+      headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${BIKEPOINT_CACHE_SECONDS}` },
+    });
+    const cacheWrite = cache.put(cacheKey, cachedResponse);
+    if (ctx?.waitUntil) ctx.waitUntil(cacheWrite);
+    else await cacheWrite;
+  }
+  return payload;
 }
 
 function mapBikePoint(place, lat, lon) {
