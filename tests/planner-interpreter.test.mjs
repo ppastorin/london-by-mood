@@ -149,6 +149,8 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.equal(modelRequest.response_format.type, "json_schema");
   assert.ok(modelRequest.response_format.json_schema.properties.routePolicy);
   assert.ok(modelRequest.response_format.json_schema.properties.breaks);
+  assert.match(modelRequest.messages[0].content, /Do not invent a SCOPE/);
+  assert.match(modelRequest.messages[0].content, /routePolicy=DIRECT/);
   assert.match(modelRequest.messages[1].content, /Kensington area/);
 });
 
