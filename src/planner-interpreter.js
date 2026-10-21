@@ -9,7 +9,7 @@ const MONTHS = ["january", "february", "march", "april", "may", "june", "july", 
 const ROUTE_STYLES = ["DIRECT", "COMPACT", "SCENIC", "EXPLORATORY", "UNSPECIFIED"];
 const BREAK_TYPES = ["LUNCH", "COFFEE", "REST"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "15";
+export const PLANNER_INTENT_SCHEMA_VERSION = "16";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -207,7 +207,7 @@ export function normalizePlannerIntent(raw) {
     throw new PlannerInterpreterError("INVALID_AI_RESPONSE", "The AI interpreter returned an invalid response.", 502);
   }
   const days = 1;
-  const geography = array(raw.geography).flatMap((item) => {
+  const interpretedGeography = array(raw.geography).flatMap((item) => {
     const role = enumValue(item?.role, ROLES, "");
     const relation = enumValue(item?.relation, RELATIONS, "");
     const query = clean(item?.query, 120);
@@ -215,6 +215,12 @@ export function normalizePlannerIntent(raw) {
     return [{ day: clampInt(item.day, 0, days, 0), role, relation, query,
       label: clean(item.label, 120) || query, radiusKm: clampNumber(item.radiusKm, .5, 25, role === "SCOPE" ? 3 : 1.5) }];
   });
+  // START + VIA + END already define a route corridor. Models sometimes add a
+  // conversational pseudo-place such as "the area between Baker Street and
+  // Lower Marsh" as a SCOPE. It is neither a real geocodable place nor an
+  // additional user boundary, so discard any scope composed from both route
+  // endpoints. This is place-agnostic and preserves independently named areas.
+  const geography = discardCompositeEndpointScopes(interpretedGeography);
   const categoryPreferences = dedupeBy(array(raw.categoryPreferences).flatMap((item) => {
     const category = enumValue(item?.category, CATEGORIES, "");
     const strength = enumValue(item?.strength, STRENGTHS, "");
@@ -328,6 +334,23 @@ function clampInt(value, min, max, fallback) { const number = Number.parseInt(va
 function clampNumber(value, min, max, fallback) { const number = Number(value); return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback; }
 function unique(items) { return [...new Set(items)]; }
 function dedupeBy(items, key) { const seen = new Set(); return items.filter((item) => { const value = key(item); if (seen.has(value)) return false; seen.add(value); return true; }); }
+function discardCompositeEndpointScopes(items) {
+  const start = items.find((item) => item.role === "START");
+  const end = items.find((item) => item.role === "END");
+  if (!start || !end) return items;
+  const startNames = endpointNames(start);
+  const endNames = endpointNames(end);
+  return items.filter((item) => item.role !== "SCOPE" || ![item.query, item.label].some((value) => {
+    const phrase = normalGeographyPhrase(value);
+    return phrase && startNames.some((name) => phrase.includes(name)) && endNames.some((name) => phrase.includes(name));
+  }));
+}
+function endpointNames(item) {
+  return unique([item.query, item.label].map(normalGeographyPhrase).filter((value) => value.length >= 3));
+}
+function normalGeographyPhrase(value) {
+  return clean(value, 160).toLocaleLowerCase("en-GB").replace(/[^a-z0-9]+/g, " ").trim();
+}
 
 export class PlannerInterpreterError extends Error {
   constructor(code, message, status = 400) { super(message); this.name = "PlannerInterpreterError"; this.code = code; this.status = status; }

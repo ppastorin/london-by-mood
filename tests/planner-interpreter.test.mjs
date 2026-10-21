@@ -93,6 +93,34 @@ test("AI contract preserves a direct endpoint route, oddity focus and required l
   }]);
 });
 
+test("endpoint streets define the corridor without geocoding an invented between-area", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    geography: [
+      { day: 0, role: "START", relation: "IN", query: "Baker Street", label: "Baker Street", radiusKm: .5 },
+      { day: 0, role: "END", relation: "IN", query: "Lower Marsh", label: "Lower Marsh", radiusKm: .5 },
+      { day: 0, role: "SCOPE", relation: "IN", query: "area between Baker Street and Lower Marsh", label: "area between Baker Street and Lower Marsh", radiusKm: 3 },
+    ],
+    categoryPreferences: [{ category: "RELIGIOUS", strength: "PRIMARY", minStops: 2, maxStops: 6 }],
+  }));
+
+  assert.deepEqual(intent.geography.map((item) => [item.role, item.query]), [
+    ["START", "Baker Street"], ["END", "Lower Marsh"],
+  ]);
+  assert.equal(intent.primaryCategory, "RELIGIOUS");
+});
+
+test("an independently named area remains valid alongside route endpoints", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    geography: [
+      { day: 0, role: "START", relation: "NEAR", query: "Baker Street", label: "Baker Street", radiusKm: .5 },
+      { day: 0, role: "SCOPE", relation: "IN", query: "Bloomsbury", label: "Bloomsbury", radiusKm: 2 },
+      { day: 0, role: "END", relation: "NEAR", query: "Lower Marsh", label: "Lower Marsh", radiusKm: .5 },
+    ],
+  }));
+
+  assert.equal(intent.geography.find((item) => item.role === "SCOPE")?.query, "Bloomsbury");
+});
+
 test("AI category minimums do not become accidental stop ceilings", () => {
   const openEnded = normalizePlannerIntent(rawIntent({
     categoryPreferences: [{ category: "ODDITY", strength: "REQUIRED", minStops: 2, maxStops: 2, maxStopsExplicit: false }],
