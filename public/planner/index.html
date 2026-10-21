@@ -72,6 +72,17 @@
               <select id="transport"><option value="walking" selected>Mostly walk</option><option value="mixed">Walk + Tube/bus</option><option value="transit">Public transport</option><option value="river">Walk + Uber Boat</option></select>
             </label>
           </div>
+          <div class="field-grid three route-controls">
+            <label>Route shape
+              <select id="route-style"><option value="UNSPECIFIED">Best fit</option><option value="DIRECT">Direct with stops</option><option value="COMPACT">Compact</option><option value="SCENIC">Scenic</option><option value="EXPLORATORY">Exploratory</option></select>
+            </label>
+            <label>Walking limit
+              <input id="max-walking-km" type="number" min="1" max="30" step="0.5" placeholder="Automatic" inputmode="decimal">
+            </label>
+            <label>Planned break
+              <select id="planned-break"><option value="none">None</option><option value="COFFEE:30">Coffee / rest · 30 min</option><option value="LUNCH:45">Lunch · 45 min</option><option value="LUNCH:60">Lunch · 60 min</option><option value="LUNCH:75">Lunch · 75 min</option></select>
+            </label>
+          </div>
           <div class="geography-heading">
             <div><strong>Locations and boundaries</strong><p>AI suggestions are editable. Add an area, starting point, finish or exclusion.</p></div>
             <button id="add-geography" class="text-button" type="button">+ Add location</button>

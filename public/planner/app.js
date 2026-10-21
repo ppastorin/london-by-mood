@@ -117,6 +117,9 @@ function applyInterpretation(interpretation) {
   else if (interpretation.timeOfDay === "full_day" && !touched.has("pace")) document.querySelector("#pace").value = "full";
   if (interpretation.transport && !touched.has("transport")) document.querySelector("#transport").value = interpretation.transport;
   if (interpretation.familiarity && !touched.has("familiarity")) document.querySelector("#familiarity").value = interpretation.familiarity;
+  if (!touched.has("route-style")) document.querySelector("#route-style").value = interpretation.routePolicy?.style || "UNSPECIFIED";
+  if (!touched.has("max-walking-km")) document.querySelector("#max-walking-km").value = interpretation.routePolicy?.maxWalkingKm || "";
+  if (!touched.has("planned-break")) document.querySelector("#planned-break").value = breakControlValue(interpretation.breaks);
   if (!touched.has("avoid-core")) document.querySelector("#avoid-core").checked = Boolean(interpretation.avoidCore);
   if (!touched.has("no-big-museums")) document.querySelector("#no-big-museums").checked = Boolean(interpretation.noBigMuseums);
   if (!touched.has("categories")) {
@@ -132,7 +135,10 @@ function applyInterpretation(interpretation) {
 
   const geographicInsights = (interpretation.geography || []).map((item) => `${RELATION_LABELS[item.relation]?.toLowerCase() || "near"} ${item.label}`);
   const dateInsight = interpretation.visitDate ? [formatDate(interpretation.visitDate)] : [];
-  const insightItems = [...new Set([...(interpretation.insights || []), ...geographicInsights, ...dateInsight])];
+  const routeInsight = interpretation.routePolicy?.style && interpretation.routePolicy.style !== "UNSPECIFIED"
+    ? [`${interpretation.routePolicy.style.toLowerCase()} route`] : [];
+  const breakInsight = interpretation.breaks?.length ? [interpretation.breaks.map((item) => item.type.toLowerCase()).join(" + ")] : [];
+  const insightItems = [...new Set([...(interpretation.insights || []), ...geographicInsights, ...routeInsight, ...breakInsight, ...dateInsight])];
   insights.innerHTML = insightItems.length
     ? `<span class="insight-prefix">AI understood:</span>${insightItems.map((item) => `<span class="insight-chip">${escapeHtml(item)}</span>`).join("")}`
     : `<span class="insight-empty">No firm preferences were stated. Review the controls and add anything that matters.</span>`;
@@ -166,6 +172,11 @@ async function generate(event) {
       familiarity: document.querySelector("#familiarity").value, areas: ["ANY"],
       geoScopes: geography.filter((item) => item.role === "SCOPE"), excludeGeoScopes: geography.filter((item) => item.role === "EXCLUDE"),
       routeStart: pointForRole(geography, "START"), routeWaypoints: pointsForRole(geography, "VIA"), routeEnd: pointForRole(geography, "END"),
+      routePolicy: {
+        style: document.querySelector("#route-style").value,
+        maxWalkingKm: Number(document.querySelector("#max-walking-km").value) || 0,
+      },
+      breaks: touched.has("planned-break") ? breaksFromControl(document.querySelector("#planned-break").value) : intent.breaks,
       categories: menuCategoriesOverride ? checkedCategories : intent.categories,
       categoryPreferences: menuCategoriesOverride ? checkedCategories.map((category) => ({ category, strength: "PREFERRED", minStops: 0, maxStops: 6 })) : intent.categoryPreferences,
       excludedCategories: intent.excludedCategories, primaryCategory: menuCategoriesOverride ? "" : intent.primaryCategory,
@@ -204,7 +215,9 @@ async function renderPlan(plan) {
     return;
   }
   const day = plan.days[0];
-  const summary = `${day.stops.length} ${day.stops.length === 1 ? "stop" : "stops"} · ${transportLabel(plan.input.transport)} · ${plan.input.startTime}–${plan.input.endTime}`;
+  const walkingSummary = plan.input.transport === "walking" && day.estimatedWalkingKm
+    ? ` · ~${day.estimatedWalkingKm.toFixed(1)} km walking` : "";
+  const summary = `${day.stops.length} ${day.stops.length === 1 ? "stop" : "stops"} · ${transportLabel(plan.input.transport)}${walkingSummary} · ${plan.input.startTime}–${plan.input.endTime}`;
   results.innerHTML = `
     <div class="results-header"><div><p class="eyebrow">Your one-day plan</p><h2>${escapeHtml(day.areaLabel || "A London day")}</h2></div><p>${escapeHtml(summary)}</p></div>
     ${plan.warnings.length ? `<div class="warning-box"><strong>Before you go</strong>${plan.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
@@ -223,9 +236,22 @@ async function renderPlan(plan) {
 }
 
 function renderDay(day) {
+  const events = [
+    ...day.stops.map((stop, index) => ({ kind: "stop", startTime: stop.startTime, stop, index })),
+    ...(day.breaks || []).map((item) => ({ kind: "break", startTime: item.startTime, item })),
+  ].sort((a, b) => a.startTime.localeCompare(b.startTime));
   return `<header><div><span>One day</span><h3>${escapeHtml(formatDate(day.date))}</h3><p>${day.routeLabel ? escapeHtml(day.routeLabel) : "A coherent route through the selected area"}</p></div></header>
-    <ol class="stop-list">${day.stops.map((stop, index) => renderStop(stop, index)).join("")}</ol>
+    <ol class="stop-list">${events.map((event) => event.kind === "stop" ? renderStop(event.stop, event.index) : renderBreak(event.item)).join("")}</ol>
     ${day.routeEnd && day.destinationArrival ? `<div class="route-destination"><strong>${escapeHtml(day.destinationArrival)}</strong><span>${escapeHtml(day.destinationLegMode)} · ${day.destinationTravelMinutes} min</span><p>Finish at ${escapeHtml(day.routeEnd.label)}</p></div>` : ""}`;
+}
+
+function renderBreak(item) {
+  const detail = item.preference || `Time reserved for a ${item.label.toLowerCase()}.`;
+  return `<li class="break-card"><div class="time-column"><span class="break-symbol">☕</span><strong>${escapeHtml(item.startTime)}</strong><span>${item.durationMinutes} min</span></div>
+    <div class="break-body"><div class="stop-topline"><span class="category-label">Planned break</span></div><h4>${escapeHtml(item.label)}</h4>
+      <p>${escapeHtml(detail)} Suggested around ${escapeHtml(item.anchorLabel)}; choose the venue that suits you.</p>
+      <div class="stop-facts"><span>${escapeHtml(item.startTime)}–${escapeHtml(item.endTime)}</span><span>Included in the schedule</span></div>
+      <div class="stop-links"><a href="${escapeAttribute(item.mapUrl)}" target="_blank" rel="noopener">Explore nearby options</a></div></div></li>`;
 }
 
 function renderStop(stop, index) {
@@ -293,8 +319,24 @@ async function downloadPdf() {
     else drawRouteDiagram(doc, margin, y, 180, 78, day);
     y += 84; doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(217, 75, 56);
     doc.textWithLink("Open the complete walking route in Google Maps", margin, y, { url: day.routeUrl }); y += 9;
-    for (let index = 0; index < day.stops.length; index += 1) {
-      const stop = day.stops[index]; const place = stop.place;
+    const pdfEvents = [
+      ...day.stops.map((stop, index) => ({ kind: "stop", startTime: stop.startTime, stop, index })),
+      ...(day.breaks || []).map((item) => ({ kind: "break", startTime: item.startTime, item })),
+    ].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    for (const event of pdfEvents) {
+      if (event.kind === "break") {
+        const item = event.item;
+        if (y + 24 > 278) { doc.addPage(); y = 18; }
+        doc.setFillColor(238, 244, 239); doc.roundedRect(margin, y - 4, 180, 20, 2, 2, "F");
+        doc.setTextColor(47, 111, 80); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+        doc.text(`${item.startTime}  ${item.label}`, margin + 5, y + 2);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(80, 90, 98);
+        doc.text(`${item.durationMinutes} min · around ${item.anchorLabel}`, margin + 5, y + 8);
+        doc.setTextColor(47, 111, 80); doc.setFont("helvetica", "bold"); doc.textWithLink("Explore nearby options", margin + 5, y + 13, { url: item.mapUrl });
+        y += 25;
+        continue;
+      }
+      const { stop, index } = event; const place = stop.place;
       const description = place.hook || place.description || "A curated London Advanced stop.";
       const descriptionLines = doc.splitTextToSize(description, 164); const caveats = place.planning?.caveats || [];
       const blockHeight = 22 + descriptionLines.length * 4.4 + Math.min(caveats.length, 3) * 4.2;
@@ -412,7 +454,21 @@ async function requestInterpretation(value, answers = {}, force = false) {
 }
 
 function collectClarificationAnswers() { return Object.fromEntries([...document.querySelectorAll("[data-clarification-id]")].filter((control) => control.value).map((control) => [control.dataset.clarificationId, control.value])); }
-function emptyInterpretation() { return { days: 1, categories: [], categoryPreferences: [], excludedCategories: [], moods: [], avoidTerms: [], mustHaves: [], geography: [], clarifications: [], experience: {}, insights: [] }; }
+function emptyInterpretation() { return { days: 1, categories: [], categoryPreferences: [], excludedCategories: [], moods: [], avoidTerms: [], mustHaves: [], geography: [], clarifications: [], experience: {}, routePolicy: { style: "UNSPECIFIED", maxWalkingKm: 0 }, breaks: [], insights: [] }; }
+
+function breakControlValue(breaks) {
+  const planned = (breaks || []).find((item) => item.required) || breaks?.[0];
+  if (!planned) return "none";
+  const duration = [30, 45, 60, 75].sort((a, b) => Math.abs(a - planned.durationMinutes) - Math.abs(b - planned.durationMinutes))[0];
+  return `${planned.type === "LUNCH" ? "LUNCH" : "COFFEE"}:${duration}`;
+}
+
+function breaksFromControl(value) {
+  if (!value || value === "none") return [];
+  const [type, rawDuration] = value.split(":");
+  return [{ type, required: true, durationMinutes: Number(rawDuration), earliestTime: type === "LUNCH" ? "12:00" : "10:00",
+    latestTime: type === "LUNCH" ? "14:30" : "17:00", preference: type === "LUNCH" ? "a pleasant lunch stop" : "a pleasant café or rest stop" }];
+}
 function applyTimeWindow() { const window = TIME_WINDOWS[document.querySelector("#time-of-day").value]; if (!window) return; document.querySelector("#start-time").value = window[0]; document.querySelector("#end-time").value = window[1]; syncDurationFromTimes(false); }
 function applyDuration() { const start = minutes(document.querySelector("#start-time").value); const duration = Number(document.querySelector("#duration").value) * 60; document.querySelector("#end-time").value = timeFromMinutes(Math.min(23 * 60 + 59, start + duration)); }
 function syncDurationFromTimes(markTouched = true) { const duration = Math.max(1, (minutes(document.querySelector("#end-time").value) - minutes(document.querySelector("#start-time").value)) / 60); document.querySelector("#duration").value = closestOption(document.querySelector("#duration"), duration); if (markTouched) touched.add("duration"); }

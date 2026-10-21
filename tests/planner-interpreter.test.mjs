@@ -71,6 +71,28 @@ test("AI date, time-of-day and multiple refinement questions survive normalisati
   assert.equal(intent.clarifications.length, 2);
 });
 
+test("AI contract preserves a direct endpoint route, oddity focus and required lunch break", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    geography: [
+      { day: 0, role: "START", relation: "NEAR", query: "Westminster Abbey", label: "Westminster Abbey", radiusKm: .5 },
+      { day: 0, role: "END", relation: "NEAR", query: "Old Street Station", label: "Old Street", radiusKm: .5 },
+    ],
+    categoryPreferences: [{ category: "ODDITY", strength: "PRIMARY", minStops: 2, maxStops: 6 }],
+    experience: { label: "oddities along the walk", semanticTerms: ["oddity", "curiosity"], strictCategory: true, strictConcept: false, compact: false },
+    routePolicy: { style: "DIRECT", maxWalkingKm: 0 },
+    breaks: [{ type: "LUNCH", required: true, durationMinutes: 60, earliestTime: "12:00", latestTime: "14:30", preference: "a nice lunch break" }],
+  }));
+
+  assert.deepEqual(intent.geography.map((item) => [item.role, item.query]), [
+    ["START", "Westminster Abbey"], ["END", "Old Street Station"],
+  ]);
+  assert.equal(intent.primaryCategory, "ODDITY");
+  assert.deepEqual(intent.routePolicy, { style: "DIRECT", maxWalkingKm: 0 });
+  assert.deepEqual(intent.breaks, [{
+    type: "LUNCH", required: true, durationMinutes: 60, earliestTime: "12:00", latestTime: "14:30", preference: "a nice lunch break",
+  }]);
+});
+
 test("generic resolved geography and AI semantic terms are enforced without falling back elsewhere", () => {
   const kensingtonChurch = fixture("k1", "St Mary Abbots Church", "RELIGIOUS", 51.5008, -0.191, "A historic parish church in Kensington.");
   const kensingtonCemetery = fixture("k2", "Kensington Memorial Garden", "RELIGIOUS", 51.501, -0.195, "A landscaped cemetery and memorial garden.");
@@ -125,6 +147,8 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.equal(payload.intent.routeStart, undefined);
   assert.deepEqual(geocodeQueries, ["Kensington area, London, UK", "Kensington, London, UK"]);
   assert.equal(modelRequest.response_format.type, "json_schema");
+  assert.ok(modelRequest.response_format.json_schema.properties.routePolicy);
+  assert.ok(modelRequest.response_format.json_schema.properties.breaks);
   assert.match(modelRequest.messages[1].content, /Kensington area/);
 });
 
@@ -179,6 +203,7 @@ function rawIntent(overrides = {}) {
     days: 1, visitDate: "", timeOfDay: "flexible", startTime: "", endTime: "", pace: "balanced", transport: "walking", familiarity: "returning",
     geography: [], categoryPreferences: [],
     experience: { label: "London day", semanticTerms: [], strictCategory: false, strictConcept: false, compact: false },
+    routePolicy: { style: "UNSPECIFIED", maxWalkingKm: 0 }, breaks: [],
     moods: [], exclusions: [], mustInclude: [], outdoorMode: "ANY", museumScale: "ANY", crowdPreference: "ANY",
     touristPreference: "ANY", season: "unspecified", preferredWeekdays: [], preferredMonths: [], openEnded: false,
     assumptions: [], insights: [], clarifications: [], confidence: .92,

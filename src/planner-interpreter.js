@@ -6,8 +6,10 @@ const ROLES = ["SCOPE", "START", "VIA", "END", "EXCLUDE"];
 const MOODS = ["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "wander"];
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+const ROUTE_STYLES = ["DIRECT", "COMPACT", "SCENIC", "EXPLORATORY", "UNSPECIFIED"];
+const BREAK_TYPES = ["LUNCH", "COFFEE", "REST"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "11";
+export const PLANNER_INTENT_SCHEMA_VERSION = "12";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -65,6 +67,32 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
       },
       required: ["label", "semanticTerms", "strictCategory", "strictConcept", "compact"],
     },
+    routePolicy: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        style: { type: "string", enum: ROUTE_STYLES },
+        maxWalkingKm: { type: "number", minimum: 0, maximum: 30 },
+      },
+      required: ["style", "maxWalkingKm"],
+    },
+    breaks: {
+      type: "array",
+      maxItems: 3,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          type: { type: "string", enum: BREAK_TYPES },
+          required: { type: "boolean" },
+          durationMinutes: { type: "integer", minimum: 15, maximum: 120 },
+          earliestTime: { type: "string" },
+          latestTime: { type: "string" },
+          preference: { type: "string" },
+        },
+        required: ["type", "required", "durationMinutes", "earliestTime", "latestTime", "preference"],
+      },
+    },
     moods: { type: "array", maxItems: 8, items: { type: "string", enum: MOODS } },
     exclusions: { type: "array", maxItems: 12, items: { type: "string" } },
     mustInclude: { type: "array", maxItems: 8, items: { type: "string" } },
@@ -106,7 +134,7 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
     confidence: { type: "number", minimum: 0, maximum: 1 },
   },
   required: ["days", "visitDate", "timeOfDay", "startTime", "endTime", "pace", "transport", "familiarity", "geography",
-    "categoryPreferences", "experience", "moods", "exclusions", "mustInclude", "outdoorMode", "museumScale",
+    "categoryPreferences", "experience", "routePolicy", "breaks", "moods", "exclusions", "mustInclude", "outdoorMode", "museumScale",
     "crowdPreference", "touristPreference", "season", "preferredWeekdays", "preferredMonths", "openEnded", "assumptions",
     "insights", "clarifications", "confidence"],
 });
@@ -133,6 +161,10 @@ Interpretation rules:
 - "Mainly outdoors" is PREFER; "nothing indoor" is ONLY. Green implies PARK. Artistic can imply MUSEUM or BUILDING depending context.
 - "Non-touristic", "not touristy" and requests to avoid tourist-heavy places set touristPreference=NON_TOURISTIC. Requests to avoid crowds set crowdPreference=LOW.
 - A compact/long walk controls experience.compact and transport. A willingness to use the Tube alongside walking is mixed. Explicit requests for Uber Boat, Thames Clippers or travel by river use river. When a journey explicitly starts at a Thames pier and visits another well-known riverside destination or pier before continuing along the Thames, infer river unless the user requests another mode; mention that inference in assumptions or ask a transport clarification only when it would materially change the day.
+- Interpret the shape of an endpoint-to-endpoint journey in routePolicy. DIRECT means progress towards the destination with only small diversions; COMPACT allows a coherent cluster of nearby stops; SCENIC permits a purposeful scenic deviation; EXPLORATORY permits a deliberately meandering route. A request to walk from A to B and stop at matching places normally means DIRECT unless the visitor explicitly asks to wander, meander, detour or take a scenic route. Never treat a destination as permission to continue materially beyond it.
+- maxWalkingKm is a user constraint, not an invented route calculation. Set it only when the visitor gives a numeric distance or an unmistakable limit such as a very short walk; otherwise use 0 and let the route engine calculate a feasible allowance from the resolved endpoints.
+- Capture every explicit meal, coffee or rest request in breaks. A lunch request normally means a required LUNCH break of 45-60 minutes between 12:00 and 14:30. Preserve stated timing, duration and qualities in preference, but do not invent a restaurant. Do not ask about cuisine unless it is essential to the visitor's request.
+- When visitors ask to stop along a route for a named place type, that place type is a genuine itinerary requirement. Use its category as PRIMARY or REQUIRED and select a sensible minStops from the wording; do not dilute it with unrelated categories merely to fill the day.
 - Ask up to three short clarifications when an answer would materially improve the result: resolve ambiguous geography, choose between genuinely different interpretations, confirm a date-dependent request, or settle a conflict such as outdoors versus an indoor category. Do not ask for information already present. Prefer two or three concrete options and include a sensible "Use your best judgement" option when no answer is essential.
 - Do not put questions in assumptions or insights. Keep insights short and user-facing.
 - If clarification answers are supplied, treat them as authoritative and return no further clarification unless an answer introduces a new material ambiguity.
@@ -140,7 +172,7 @@ Interpretation rules:
 - preferredWeekdays uses lowercase English weekday names. "During the week" means monday through friday. preferredMonths uses lowercase English month names.
 - Convert an explicit calendar date or unambiguous relative date into visitDate YYYY-MM-DD using the supplied current London date. Otherwise leave visitDate blank. Capture named weekdays in preferredWeekdays and named months in preferredMonths (1=January through 12=December).
 - timeOfDay is morning, afternoon, evening, full_day or flexible. Infer practical startTime and endTime when the user names a time of day; use 08:30–13:00 for morning, 13:00–18:00 for afternoon, 17:00–22:00 for evening and 09:00–19:00 for a full day unless the user gives exact times.
-- Default unspecified values: days=1, blank visitDate and times, timeOfDay=flexible, pace=unspecified, transport=unspecified, familiarity=unspecified, season=unspecified, outdoorMode=ANY, museumScale=ANY, crowd/tourist preference=ANY.
+- Default unspecified values: days=1, blank visitDate and times, timeOfDay=flexible, pace=unspecified, transport=unspecified, familiarity=unspecified, season=unspecified, routePolicy style=UNSPECIFIED with maxWalkingKm=0, breaks=[], outdoorMode=ANY, museumScale=ANY, crowd/tourist preference=ANY.
 - confidence reflects the interpretation, not itinerary quality or database coverage.`;
 
 export async function interpretPlannerIntent(prompt, env, answers = {}) {
@@ -155,7 +187,7 @@ export async function interpretPlannerIntent(prompt, env, answers = {}) {
     output = await env.AI.run(env.PLANNER_AI_MODEL || MODEL, {
       messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: userContent }],
       response_format: { type: "json_schema", json_schema: PLANNER_INTENT_SCHEMA },
-      max_tokens: 1900,
+      max_tokens: 2300,
       temperature: 0,
     });
   } catch (error) {
@@ -208,6 +240,24 @@ export function normalizePlannerIntent(raw) {
   const preferred = categoryPreferences.filter((item) => item.strength !== "EXCLUDED").map((item) => item.category);
   const excluded = categoryPreferences.filter((item) => item.strength === "EXCLUDED").map((item) => item.category);
   const semanticTerms = unique(array(experience.semanticTerms).map((term) => clean(term, 60)).filter(Boolean)).slice(0, 10);
+  const rawRoutePolicy = raw.routePolicy && typeof raw.routePolicy === "object" ? raw.routePolicy : {};
+  const routePolicy = {
+    style: enumValue(rawRoutePolicy.style, ROUTE_STYLES, "UNSPECIFIED"),
+    maxWalkingKm: clampNumber(rawRoutePolicy.maxWalkingKm, 0, 30, 0),
+  };
+  const breaks = array(raw.breaks).slice(0, 3).flatMap((item) => {
+    const type = enumValue(item?.type, BREAK_TYPES, "");
+    if (!type) return [];
+    const defaults = type === "LUNCH" ? ["12:00", "14:30", 60] : ["10:00", "17:00", 30];
+    return [{
+      type,
+      required: Boolean(item.required),
+      durationMinutes: clampInt(item.durationMinutes, 15, 120, defaults[2]),
+      earliestTime: validTime(item.earliestTime) || defaults[0],
+      latestTime: validTime(item.latestTime) || defaults[1],
+      preference: clean(item.preference, 160),
+    }];
+  });
   const preferredWeekdays = unique(array(raw.preferredWeekdays).map((value) => namedOrdinal(value, WEEKDAYS, 0)).filter((value) => value >= 0));
   const preferredMonths = unique(array(raw.preferredMonths).map((value) => namedOrdinal(value, MONTHS, 1)).filter((value) => value >= 1));
   return {
@@ -228,6 +278,8 @@ export function normalizePlannerIntent(raw) {
       strictCategory: Boolean(experience.strictCategory),
       strictConcept: Boolean(experience.strictConcept), compact: Boolean(experience.compact),
     },
+    routePolicy,
+    breaks,
     moods: unique(array(raw.moods).filter((mood) => MOODS.includes(mood))),
     avoidTerms: exclusionTerms.filter((term) => !CATEGORIES.includes(term.toUpperCase())),
     mustHaves: unique(array(raw.mustInclude).map((item) => clean(item, 120)).filter(Boolean)),
