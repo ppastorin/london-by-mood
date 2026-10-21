@@ -5,9 +5,10 @@ import test from "node:test";
 import { availabilityForDate, buildPlan, estimateTravel, interpretPrompt, recommendedVisitMinutes, routeMetrics } from "../public/planner/planner-core.js";
 
 test("planner UI exposes one-day controls, OpenStreetMap and branded PDF export", async () => {
-  const [html, app] = await Promise.all([
+  const [html, app, styles] = await Promise.all([
     readFile(new URL("../public/planner/index.html", import.meta.url), "utf8"),
     readFile(new URL("../public/planner/app.js", import.meta.url), "utf8"),
+    readFile(new URL("../public/planner/styles.css", import.meta.url), "utf8"),
   ]);
   assert.doesNotMatch(html, /id="days"|Day 2 area/);
   assert.match(html, /id="time-of-day"/);
@@ -15,6 +16,9 @@ test("planner UI exposes one-day controls, OpenStreetMap and branded PDF export"
   assert.match(html, /id="route-style"/);
   assert.match(html, /id="max-walking-km"/);
   assert.match(html, /id="planned-break"/);
+  assert.match(html, /class="field-grid practical-grid"/);
+  assert.match(html, /class="field-wide">Planned break/);
+  assert.match(styles, /\.practical-grid,.route-controls \{ grid-template-columns:repeat\(2,minmax\(0,1fr\)\); \}/);
   assert.match(html, /leaflet@1\.9\.4/);
   assert.match(html, /jspdf@2\.5\.2/);
   assert.match(html, /Walk \+ Uber Boat/);
