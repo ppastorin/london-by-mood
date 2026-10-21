@@ -9,7 +9,7 @@ const MONTHS = ["january", "february", "march", "april", "may", "june", "july", 
 const ROUTE_STYLES = ["DIRECT", "COMPACT", "SCENIC", "EXPLORATORY", "UNSPECIFIED"];
 const BREAK_TYPES = ["LUNCH", "COFFEE", "REST"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "12";
+export const PLANNER_INTENT_SCHEMA_VERSION = "13";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
