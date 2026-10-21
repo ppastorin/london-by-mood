@@ -93,6 +93,18 @@ test("AI contract preserves a direct endpoint route, oddity focus and required l
   }]);
 });
 
+test("AI category minimums do not become accidental stop ceilings", () => {
+  const openEnded = normalizePlannerIntent(rawIntent({
+    categoryPreferences: [{ category: "ODDITY", strength: "REQUIRED", minStops: 2, maxStops: 2, maxStopsExplicit: false }],
+  }));
+  const explicitlyCapped = normalizePlannerIntent(rawIntent({
+    categoryPreferences: [{ category: "ODDITY", strength: "REQUIRED", minStops: 2, maxStops: 2, maxStopsExplicit: true }],
+  }));
+
+  assert.equal(openEnded.categoryPreferences[0].maxStops, 6);
+  assert.equal(explicitlyCapped.categoryPreferences[0].maxStops, 2);
+});
+
 test("generic resolved geography and AI semantic terms are enforced without falling back elsewhere", () => {
   const kensingtonChurch = fixture("k1", "St Mary Abbots Church", "RELIGIOUS", 51.5008, -0.191, "A historic parish church in Kensington.");
   const kensingtonCemetery = fixture("k2", "Kensington Memorial Garden", "RELIGIOUS", 51.501, -0.195, "A landscaped cemetery and memorial garden.");

@@ -435,8 +435,9 @@ function selectRouteDay(pool, locked, input, area, date, used) {
       .map((place) => {
         const route = routePathMetrics(place, path);
         const repeats = categoryRepeatPenalty(place, selected, input);
-        const distanceWeight = input.routePolicy.style === "DIRECT" ? 32 : input.routePolicy.style === "COMPACT" ? 22 : 12;
-        return { place, score: scorePlace(place, input, area, date) - route.distanceKm * distanceWeight - Math.abs(route.position - target) * 28 - repeats
+        const distanceWeight = input.routePolicy.style === "DIRECT" ? 8 : input.routePolicy.style === "COMPACT" ? 7 : 6;
+        return { place, score: scorePlace(place, input, area, date) + routeClusterBonus(place, pool)
+          - route.distanceKm * distanceWeight - Math.abs(route.position - target) * 28 - repeats
           - indoorPreferencePenalty(place, selected, input) };
       })
       .sort((a, b) => b.score - a.score)[0]?.place;
@@ -468,6 +469,7 @@ function scorePlace(place, input, area, date) {
     const matches = semanticMatches(place, input.experience.semanticTerms);
     score += matches * (input.experience.strictConcept ? 18 : 8);
   }
+  if (input.categories.includes(place.category) || categoryRule) score += categoryCharacterScore(place) * 6;
   for (const mood of input.moods) score += Number(place.moods?.[mood] || 0) * 5;
   if (input.impact === "wow") {
     const impact = ["beautiful", "unexpected", "atmospheric", "weird"].reduce((sum, mood) => sum + Number(place.moods?.[mood] || 0), 0);
@@ -679,7 +681,7 @@ function areaFit(place, area) {
 function routeFit(place, input) {
   if (!input.routeStart || !input.routeEnd) return true;
   const route = routePathMetrics(place, routePath(input));
-  const styleRadius = { DIRECT: .9, COMPACT: 1.4, SCENIC: 2.1, EXPLORATORY: 3.5, UNSPECIFIED: 1.6 }[input.routePolicy.style];
+  const styleRadius = { DIRECT: 1.2, COMPACT: 1.6, SCENIC: 2.3, EXPLORATORY: 3.5, UNSPECIFIED: 1.6 }[input.routePolicy.style];
   const radius = input.transport === "river" ? Math.max(styleRadius, 4.5)
     : input.transport === "transit" ? Math.max(styleRadius, 3) : input.transport === "mixed" ? Math.max(styleRadius, 1.8) : styleRadius;
   return route.distanceKm <= radius;
@@ -699,7 +701,7 @@ function routeWalkingBudgetKm(input) {
   if (!input.routeStart || !input.routeEnd || input.transport !== "walking") return Number.POSITIVE_INFINITY;
   if (input.routePolicy.maxWalkingKm > 0) return input.routePolicy.maxWalkingKm;
   const base = routeBaseKm(input) * 1.18;
-  const allowance = { DIRECT: 1.2, COMPACT: 2, SCENIC: 3.5, EXPLORATORY: 6, UNSPECIFIED: 2 }[input.routePolicy.style];
+  const allowance = { DIRECT: 2.5, COMPACT: 3, SCENIC: 4.5, EXPLORATORY: 6, UNSPECIFIED: 2.5 }[input.routePolicy.style];
   return base + allowance;
 }
 
@@ -968,8 +970,32 @@ function seedRequiredCategories(pool, initial, input, area, date, used, desired)
 function requiredSeedScore(place, input, area, date) {
   if (!input.routeStart || !input.routeEnd) return scorePlace(place, input, area, date);
   const route = routePathMetrics(place, routePath(input));
-  const distanceWeight = input.routePolicy.style === "DIRECT" ? 32 : input.routePolicy.style === "COMPACT" ? 22 : 12;
+  const distanceWeight = input.routePolicy.style === "DIRECT" ? 8 : input.routePolicy.style === "COMPACT" ? 7 : 6;
   return scorePlace(place, input, area, date) - route.distanceKm * distanceWeight;
+}
+
+function categoryCharacterScore(place) {
+  const moods = place.moods || {};
+  if (place.category === "ODDITY") return Number(moods.unexpected || 0) + Number(moods.weird || 0);
+  if (place.category === "PARK") return Number(moods.green || 0) + Number(moods.beautiful || 0);
+  if (place.category === "VIEWPOINT") return Number(moods.beautiful || 0) + Number(moods.atmospheric || 0);
+  if (place.category === "AREA") return Number(moods.local || 0) + Number(moods.atmospheric || 0);
+  if (place.category === "SHOPPING") return Number(moods.local || 0) + Number(moods.lively || 0);
+  return Number(moods.beautiful || 0) + Number(moods.atmospheric || 0);
+}
+
+function routeClusterBonus(place, pool) {
+  const nearbyPeers = pool.filter((candidate) => candidate.id !== place.id && candidate.category === place.category
+    && haversineKm(place.lat, place.lon, candidate.lat, candidate.lon) <= .8).length;
+  const seriesKey = thematicSeriesKey(place.name);
+  const seriesPeers = seriesKey ? pool.filter((candidate) => candidate.id !== place.id && thematicSeriesKey(candidate.name) === seriesKey
+    && haversineKm(place.lat, place.lon, candidate.lat, candidate.lon) <= 1).length : 0;
+  return Math.min(nearbyPeers, 6) * 4 + Math.min(seriesPeers, 4) * 8;
+}
+
+function thematicSeriesKey(value) {
+  const key = normalText(value).replace(/\b\d+\b/g, "").replace(/\s+/g, " ").trim();
+  return key.split(" ").length >= 2 ? key : "";
 }
 
 function normalizePoint(value) {

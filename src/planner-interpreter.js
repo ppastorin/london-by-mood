@@ -9,7 +9,7 @@ const MONTHS = ["january", "february", "march", "april", "may", "june", "july", 
 const ROUTE_STYLES = ["DIRECT", "COMPACT", "SCENIC", "EXPLORATORY", "UNSPECIFIED"];
 const BREAK_TYPES = ["LUNCH", "COFFEE", "REST"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "13";
+export const PLANNER_INTENT_SCHEMA_VERSION = "14";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -51,8 +51,9 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
           strength: { type: "string", enum: STRENGTHS },
           minStops: { type: "integer", minimum: 0, maximum: 6 },
           maxStops: { type: "integer", minimum: 0, maximum: 6 },
+          maxStopsExplicit: { type: "boolean" },
         },
-        required: ["category", "strength", "minStops", "maxStops"],
+        required: ["category", "strength", "minStops", "maxStops", "maxStopsExplicit"],
       },
     },
     experience: {
@@ -158,6 +159,7 @@ Interpretation rules:
 - Put experiential adjectives such as quiet, unexpected, beautiful, weird, local, green and atmospheric in moods. Never put mood adjectives in semanticTerms.
 - semanticTerms are generic physical place-type nouns, not named venues or moods. Supply them only when the user's concept is narrower than the category, such as market, church, cemetery or brutalist building. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
 - PRIMARY means the whole itinerary is led by that category. REQUIRED means at least minStops. PREFERRED is important but not mandatory. OPTIONAL is a possible addition. EXCLUDED is forbidden. minStops and maxStops count itinerary stops, never days.
+- maxStops is a visitor-imposed ceiling only when the visitor explicitly says "only", "exactly", "at most" or gives another clear numeric cap. In that case set maxStopsExplicit=true. Otherwise set maxStopsExplicit=false and maxStops=6 so the route engine can fill the available day; never copy minStops into maxStops by default.
 - Negation always wins: a negated known category must be a categoryPreference with strength EXCLUDED, not only a free-text exclusion. A request for no big/major museums keeps MUSEUM available but sets museumScale SMALL_ONLY.
 - "Mainly outdoors" is PREFER; "nothing indoor" is ONLY. Green implies PARK. Artistic can imply MUSEUM or BUILDING depending context.
 - "Non-touristic", "not touristy" and requests to avoid tourist-heavy places set touristPreference=NON_TOURISTIC. Requests to avoid crowds set crowdPreference=LOW.
@@ -217,7 +219,9 @@ export function normalizePlannerIntent(raw) {
     const strength = enumValue(item?.strength, STRENGTHS, "");
     if (!category || !strength) return [];
     const minStops = clampInt(item.minStops, 0, 6, strength === "PRIMARY" || strength === "REQUIRED" ? 1 : 0);
-    return [{ category, strength, minStops, maxStops: Math.max(minStops, clampInt(item.maxStops, 0, 6, 6)) }];
+    const maxStopsExplicit = Boolean(item.maxStopsExplicit);
+    return [{ category, strength, minStops, maxStops: maxStopsExplicit ? Math.max(minStops, clampInt(item.maxStops, 0, 6, 6)) : 6,
+      maxStopsExplicit }];
   }), (item) => item.category);
   const experience = raw.experience && typeof raw.experience === "object" ? raw.experience : {};
   const clarifications = array(raw.clarifications).slice(0, 3).flatMap((item, index) => {
