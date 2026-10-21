@@ -306,6 +306,36 @@ test("a direct Westminster-to-Old-Street oddity walk stays on route, includes So
   assert.ok(day.destinationArrival);
 });
 
+test("a first-visit return trip selects defining landmarks instead of nearby niche filler", () => {
+  const stPancras = { label: "St Pancras", lat: 51.5319, lon: -.1266 };
+  const landmarks = [
+    fixture("british", "The British Museum", "MUSEUM", 51.5194, -.1270, "A major world museum."),
+    fixture("covent", "Covent Garden", "AREA", 51.5118, -.1233, "A defining central London district."),
+    fixture("buckingham", "Buckingham Palace", "BUILDING", 51.5014, -.1419, "The royal palace."),
+    fixture("abbey", "Westminster Abbey", "RELIGIOUS", 51.4994, -.1273, "The historic royal church."),
+    fixture("stpaul", "St Paul's Cathedral", "RELIGIOUS", 51.5138, -.0984, "London's landmark cathedral."),
+  ];
+  landmarks.forEach((place, index) => { place.landmarkProminence = [98, 90, 100, 100, 98][index]; });
+  const niche = [
+    fixture("garnault", "Garnault Place", "BUILDING", 51.5270, -.1077, "A detailed local facade."),
+    fixture("emerald", "Emerald Court", "AREA", 51.5220, -.1177, "A small local court."),
+  ];
+  niche.forEach((place) => { place.landmarkProminence = 25; });
+
+  const plan = buildPlan([...niche, ...landmarks], {
+    days: 1, startDate: "2026-10-21", startTime: "09:00", endTime: "20:00", pace: "balanced",
+    transport: "mixed", familiarity: "first", areas: ["ANY"], categories: [], moods: [],
+    routeStart: stPancras, routeEnd: stPancras, routePolicy: { style: "COMPACT", maxWalkingKm: 0 },
+  });
+
+  assert.equal(plan.days.length, 1);
+  assert.equal(plan.days[0].stops.length, 5);
+  assert.ok(plan.days[0].stops.every((stop) => stop.place.landmarkProminence >= 70));
+  assert.ok(plan.days[0].stops.every((stop) => !["Garnault Place", "Emerald Court"].includes(stop.place.name)));
+  assert.equal(plan.days[0].routeLabel, "St Pancras → St Pancras");
+  assert.ok(plan.days[0].destinationArrival <= "20:00");
+});
+
 test("an intermediate destination bends the route corridor and river mode includes realistic travel", () => {
   const start = { label: "Millbank Pier", lat: 51.4917, lon: -.1248 };
   const via = { label: "Greenwich", lat: 51.4821, lon: -.0045 };

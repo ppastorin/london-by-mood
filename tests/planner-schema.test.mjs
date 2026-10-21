@@ -15,13 +15,13 @@ test("planner data migration is additive and preserves legacy place fields", asy
   }));
   try {
     const db = await mf.getD1Database("DB", "planner-schema-test");
-    for (const migration of ["0001_places.sql", "0002_imports.sql", "0003_planner_data_foundation.sql"]) {
+    for (const migration of ["0001_places.sql", "0002_imports.sql", "0003_planner_data_foundation.sql", "0004_landmark_prominence.sql"]) {
       await applySql(db, await readFile(`migrations/${migration}`, "utf8"));
     }
     await db.prepare(`INSERT INTO places(id,slug,name,category,latitude,longitude,status,access_type)
       VALUES ('LA-LEGACY','legacy-place','Legacy Place','AREA',51.5,-0.1,'published','24H')`).run();
     await db.prepare("UPDATE places SET access_type_v2='ALWAYS_ACCESSIBLE' WHERE id='LA-LEGACY'").run();
-    const row = await db.prepare(`SELECT name, access_type, access_type_v2, data_confidence, planner_ready,
+    const row = await db.prepare(`SELECT name, access_type, access_type_v2, data_confidence, planner_ready, landmark_prominence,
       booking_mode, admission_type, access_clarity, hours_status FROM places WHERE id='LA-LEGACY'`).first();
     assert.deepEqual(row, {
       name: "Legacy Place",
@@ -31,13 +31,14 @@ test("planner data migration is additive and preserves legacy place fields", asy
       admission_type: "UNKNOWN",
       data_confidence: "LOW",
       planner_ready: 0,
+      landmark_prominence: 0,
       access_clarity: "UNREVIEWED",
       hours_status: "UNKNOWN",
     });
     const tables = await db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name IN
       ('place_experiences','place_opening_periods','place_opening_exceptions','place_review_issues','enrichment_batches','enrichment_batch_places')`).all();
     assert.equal(tables.results.length, 6);
-    assert.equal((await db.prepare("SELECT value FROM app_meta WHERE key='schema_version'").first()).value, "3");
+    assert.equal((await db.prepare("SELECT value FROM app_meta WHERE key='schema_version'").first()).value, "4");
   } finally {
     await mf.dispose();
   }

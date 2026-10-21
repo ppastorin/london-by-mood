@@ -32,6 +32,7 @@ try {
   await applySql(db, await readFile("migrations/0002_imports.sql", "utf8"));
   await applySql(db, await readFile("migrations/0003_planner_data_foundation.sql", "utf8"));
   await seedSnapshot(db, JSON.parse(await readFile("public/pois-snapshot.json", "utf8")));
+  await applySql(db, await readFile("migrations/0004_landmark_prominence.sql", "utf8"));
   await applySql(db, await readFile("data/enrichment/generated/batch-1-candidates.sql", "utf8"));
   await applySql(db, await readFile("data/enrichment/generated/batch-2-candidates.sql", "utf8"));
   await applySql(db, await readFile("data/enrichment/generated/bermondsey-putney-corridor.sql", "utf8"));

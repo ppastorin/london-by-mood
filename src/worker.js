@@ -347,7 +347,8 @@ function mapPlace(row, stations = []) {
   return {
     id: row.id, slug: row.slug, name: row.name, category: row.category, lat: row.latitude, lon: row.longitude,
     status: row.status, description: row.description_en || "", descriptionIt: row.description_it || "",
-    touristIntensity: row.tourist_intensity, crowdScope: row.crowd_scope, visitMinutes: row.visit_minutes,
+    touristIntensity: row.tourist_intensity, landmarkProminence: row.landmark_prominence ?? row.tourist_intensity,
+    crowdScope: row.crowd_scope, visitMinutes: row.visit_minutes,
     officialUrl: row.official_url || "", guideUrl: row.guide_url || "",
     mapUrl: row.google_maps_url || `https://www.google.com/maps?q=${row.latitude},${row.longitude}`,
     price: row.price_text || "", accessType: row.access_type, accessNotes: row.access_notes_en || "",
@@ -433,7 +434,7 @@ async function updatePlace(id, request, env) {
 function buildPlaceWriteStatements(db, p, update) {
   const values = [p.slug, p.name, p.category, p.lat, p.lon, p.status, p.description, p.descriptionIt,
     p.hook, p.hookIt, p.officialUrl, p.guideUrl, p.mapUrl, p.price, p.accessType, p.accessNotes,
-    p.accessNotesIt, JSON.stringify(p.openingHours || {}), p.touristIntensity, p.crowdScope,
+    p.accessNotesIt, JSON.stringify(p.openingHours || {}), p.touristIntensity, p.landmarkProminence, p.crowdScope,
     p.visitMinutes, p.bestTime, p.weatherFit, p.visitMode, p.moods.quiet, p.moods.unexpected,
     p.moods.beautiful, p.moods.weird, p.moods.local, p.moods.green, p.moods.atmospheric,
     p.moods.lively, p.reviewed ? 1 : 0, p.confidence, p.moodBasis, p.sourceType, p.sourceRef,
@@ -446,7 +447,7 @@ function buildPlaceWriteStatements(db, p, update) {
   const main = update
     ? db.prepare(`UPDATE places SET slug=?, name=?, category=?, latitude=?, longitude=?, status=?, description_en=?,
       description_it=?, editorial_hook_en=?, editorial_hook_it=?, official_url=?, guide_url=?, google_maps_url=?,
-      price_text=?, access_type=?, access_notes_en=?, access_notes_it=?, opening_hours_json=?, tourist_intensity=?,
+      price_text=?, access_type=?, access_notes_en=?, access_notes_it=?, opening_hours_json=?, tourist_intensity=?, landmark_prominence=?,
       crowd_scope=?, visit_minutes=?, best_time=?, weather_fit=?, visit_mode=?, mood_quiet=?, mood_unexpected=?,
       mood_beautiful=?, mood_weird=?, mood_local=?, mood_green=?, mood_atmospheric=?, mood_lively=?, mood_reviewed=?,
       mood_confidence=?, mood_basis=?, source_type=?, source_ref=?, last_verified_at=?, published_at=COALESCE(published_at, ?),
@@ -455,7 +456,7 @@ function buildPlaceWriteStatements(db, p, update) {
       updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(...values, p.id)
     : db.prepare(`INSERT INTO places(id, slug, name, category, latitude, longitude, status, description_en,
       description_it, editorial_hook_en, editorial_hook_it, official_url, guide_url, google_maps_url, price_text,
-      access_type, access_notes_en, access_notes_it, opening_hours_json, tourist_intensity, crowd_scope, visit_minutes,
+      access_type, access_notes_en, access_notes_it, opening_hours_json, tourist_intensity, landmark_prominence, crowd_scope, visit_minutes,
       best_time, weather_fit, visit_mode, mood_quiet, mood_unexpected, mood_beautiful, mood_weird, mood_local,
       mood_green, mood_atmospheric, mood_lively, mood_reviewed, mood_confidence, mood_basis, source_type, source_ref,
       last_verified_at, published_at, data_confidence, planner_ready, access_type_v2, booking_mode, admission_type, access_clarity,
@@ -497,7 +498,9 @@ function validatePlace(input, forcedId) {
     mapUrl: safeUrl(input.mapUrl) || `https://www.google.com/maps?q=${lat},${lon}`, price: cleanText(input.price, 120),
     accessType: cleanText(input.accessType, 40) || "VARIABLE", accessNotes: cleanText(input.accessNotes, 1000),
     accessNotesIt: cleanText(input.accessNotesIt, 1000), openingHours: input.openingHours || {},
-    touristIntensity: clampInt(input.touristIntensity, 0, 100, 30), crowdScope: cleanText(input.crowdScope, 40) || "VENUE",
+    touristIntensity: clampInt(input.touristIntensity, 0, 100, 30),
+    landmarkProminence: clampInt(input.landmarkProminence, 0, 100, clampInt(input.touristIntensity, 0, 100, 30)),
+    crowdScope: cleanText(input.crowdScope, 40) || "VENUE",
     visitMinutes: clampInt(input.visitMinutes, 1, 720, 30), bestTime: cleanText(input.bestTime, 40) || "ANY",
     weatherFit: cleanText(input.weatherFit, 40) || "ANY", visitMode: cleanText(input.visitMode, 40) || "STOP",
     moods: Object.fromEntries(["quiet", "unexpected", "beautiful", "weird", "local", "green", "atmospheric", "lively"]

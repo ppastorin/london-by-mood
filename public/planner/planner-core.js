@@ -199,7 +199,7 @@ export function buildPlan(places, rawInput) {
         warnings.push(`The selected day has only ${geographicPool.length} catalogue ${geographicPool.length === 1 ? "place" : "places"} ${requested}; the planner will not substitute another part of London.`);
       }
     }
-    if (input.routeStart && input.routeEnd) {
+    if (input.routeStart && input.routeEnd && !isRoundTrip(input)) {
       const corridorPool = pool.filter((place) => routeFit(place, input));
       pool = corridorPool;
       if (corridorPool.length < Math.min(3, PACE_STOPS[input.pace])) {
@@ -232,6 +232,11 @@ export function buildPlan(places, rawInput) {
       if (conceptPool.length < Math.min(3, PACE_STOPS[input.pace])) {
         warnings.push(`The selected day has only ${conceptPool.length} catalogue ${input.experience.label || "concept-matching"} ${conceptPool.length === 1 ? "place" : "places"} in scope.`);
       }
+    }
+    if (input.familiarity === "first") {
+      const landmarkPool = pool.filter((place) => landmarkProminence(place) >= 70);
+      if (landmarkPool.length >= Math.min(PACE_STOPS[input.pace], 4)) pool = landmarkPool;
+      else warnings.push("The catalogue has limited high-prominence landmarks within the selected constraints; the planner may include a smaller supporting stop.");
     }
     const selected = selectDay(pool, dailyMustHaves, input, area, date, used);
     if (!selected.length) {
@@ -316,7 +321,8 @@ export function dayRouteUrl(stops, _transport = "walking", routeStart = null, ro
   const start = routeStart || stopPoints[0];
   const end = routeEnd || stopPoints.at(-1);
   const routePath = [start, ...(routeWaypoints || []), end].filter(Boolean);
-  const intermediate = routeStart && routeEnd
+  const roundTrip = routeStart && routeEnd && samePoint(routeStart, routeEnd);
+  const intermediate = routeStart && routeEnd && !roundTrip
     ? [...stopPoints, ...(routeWaypoints || [])].sort((a, b) => routePathMetrics(a, routePath).position - routePathMetrics(b, routePath).position)
     : [...stopPoints, ...(routeWaypoints || [])];
   const points = [start, ...intermediate, end].filter((point, index, values) => index === 0
@@ -374,7 +380,7 @@ function eligible(place, input) {
 }
 
 function selectDay(pool, locked, input, area, date, used) {
-  if (input.routeStart && input.routeEnd) return selectRouteDay(pool, locked, input, area, date, used);
+  if (input.routeStart && input.routeEnd && !isRoundTrip(input)) return selectRouteDay(pool, locked, input, area, date, used);
   if (input.routeStart || input.routeEnd) return selectAnchoredDay(pool, locked, input, area, date, used);
   const desired = PACE_STOPS[input.pace];
   const selected = seedRequiredCategories(pool, uniquePlaces(locked).slice(0, desired), input, area, date, used, desired);
@@ -484,6 +490,7 @@ function scorePlace(place, input, area, date) {
   if (input.outdoorPreference && outdoorFit(place)) score += 18;
   if (input.marketFocus && marketExperience(place)) score += place.category === "SHOPPING" ? 30 : 56;
   if (input.crowdSensitive) score += Math.max(0, 70 - Number(place.touristIntensity || 0)) * .7;
+  if (input.familiarity === "first") score += landmarkProminence(place) * 1.35;
   if (input.familiarity === "returning") score += Math.max(0, 55 - Number(place.touristIntensity || 0)) / 3;
   if (area !== "ANY") score -= haversineKm(place.lat, place.lon, AREA_OPTIONS[area].center.lat, AREA_OPTIONS[area].center.lon) * 1.8;
   if (availabilityForDate(place, date).status === "available") score += 8;
@@ -492,7 +499,7 @@ function scorePlace(place, input, area, date) {
 
 function routeOrder(places, startTime, input = {}, date = input.startDate) {
   if (places.length < 2) return places;
-  if (input.routeStart && input.routeEnd) {
+  if (input.routeStart && input.routeEnd && !isRoundTrip(input)) {
     const path = routePath(input);
     return [...places].sort((a, b) => routePathMetrics(a, path).position - routePathMetrics(b, path).position);
   }
@@ -680,6 +687,7 @@ function areaFit(place, area) {
 
 function routeFit(place, input) {
   if (!input.routeStart || !input.routeEnd) return true;
+  if (isRoundTrip(input)) return true;
   const route = routePathMetrics(place, routePath(input));
   const styleRadius = { DIRECT: 1.2, COMPACT: 1.6, SCENIC: 2.3, EXPLORATORY: 3.5, UNSPECIFIED: 1.6 }[input.routePolicy.style];
   const radius = input.transport === "river" ? Math.max(styleRadius, 4.5)
@@ -707,6 +715,11 @@ function routeWalkingBudgetKm(input) {
 
 function estimatedRouteWalkingKm(places, input) {
   if (!input.routeStart || !input.routeEnd) return 0;
+  if (isRoundTrip(input)) {
+    const points = [input.routeStart, ...places, input.routeEnd];
+    return points.slice(0, -1).reduce((sum, point, index) => sum
+      + haversineKm(point.lat, point.lon, points[index + 1].lat, points[index + 1].lon) * 1.18, 0);
+  }
   const path = routePath(input);
   const intermediate = [...places, ...(input.routeWaypoints || [])]
     .sort((a, b) => routePathMetrics(a, path).position - routePathMetrics(b, path).position);
@@ -718,6 +731,18 @@ function estimatedRouteWalkingKm(places, input) {
 
 function withinRouteWalkingBudget(places, input) {
   return estimatedRouteWalkingKm(places, input) <= routeWalkingBudgetKm(input) + .001;
+}
+
+function isRoundTrip(input) {
+  return Boolean(input.routeStart && input.routeEnd && samePoint(input.routeStart, input.routeEnd));
+}
+
+function samePoint(first, second) {
+  return haversineKm(first.lat, first.lon, second.lat, second.lon) <= .35;
+}
+
+function landmarkProminence(place) {
+  return clamp(Number(place.landmarkProminence ?? place.touristIntensity ?? 0), 0, 100);
 }
 
 function routePathMetrics(place, points) {

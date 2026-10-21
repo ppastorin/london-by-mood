@@ -71,6 +71,28 @@ test("AI date, time-of-day and multiple refinement questions survive normalisati
   assert.equal(intent.clarifications.length, 2);
 });
 
+test("AI output preserves an explicit first visit as first-visitor context", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    familiarity: "first",
+    pace: "balanced",
+    transport: "mixed",
+    geography: [
+      { day: 0, role: "START", relation: "NEAR", query: "St Pancras International", label: "St Pancras", radiusKm: .5 },
+      { day: 0, role: "END", relation: "NEAR", query: "St Pancras International", label: "St Pancras", radiusKm: .5 },
+    ],
+    categoryPreferences: [],
+    experience: { label: "London essentials without a checklist", semanticTerms: [], strictCategory: false, strictConcept: false, compact: true },
+    routePolicy: { style: "COMPACT", maxWalkingKm: 0 },
+    insights: ["first visit", "London essentials", "selective, coherent route"],
+  }));
+
+  assert.equal(intent.familiarity, "first");
+  assert.equal(intent.pace, "balanced");
+  assert.equal(intent.transport, "mixed");
+  assert.deepEqual(intent.categories, []);
+  assert.deepEqual(intent.geography.map((item) => item.role), ["START", "END"]);
+});
+
 test("AI contract preserves a direct endpoint route, oddity focus and required lunch break", () => {
   const intent = normalizePlannerIntent(rawIntent({
     geography: [
@@ -192,6 +214,9 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.match(modelRequest.messages[0].content, /Do not invent a SCOPE/);
   assert.match(modelRequest.messages[0].content, /routePolicy=DIRECT/);
   assert.match(modelRequest.messages[0].content, /plural or collective request/);
+  assert.match(modelRequest.messages[0].content, /First time.*familiarity=first/i);
+  assert.match(modelRequest.messages[0].content, /not a checklist/i);
+  assert.match(modelRequest.messages[0].content, /anchored loop/i);
   assert.match(modelRequest.messages[1].content, /Kensington area/);
 });
 
