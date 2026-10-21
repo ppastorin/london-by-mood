@@ -71,6 +71,64 @@ test("AI date, time-of-day and multiple refinement questions survive normalisati
   assert.equal(intent.clarifications.length, 2);
 });
 
+test("alternative broad areas and a multi-theme day remain distinct intent", () => {
+  const intent = normalizePlannerIntent(rawIntent({
+    scopeMode: "ANY",
+    geography: [
+      { day: 0, role: "SCOPE", relation: "NEAR", query: "Chiswick", label: "West London option", radiusKm: 4 },
+      { day: 0, role: "SCOPE", relation: "NEAR", query: "Hampstead", label: "North-west London option", radiusKm: 4 },
+    ],
+    categoryPreferences: [
+      { category: "RELIGIOUS", strength: "REQUIRED", minStops: 1, maxStops: 6, maxStopsExplicit: false },
+      { category: "PARK", strength: "REQUIRED", minStops: 1, maxStops: 6, maxStopsExplicit: false },
+      { category: "SHOPPING", strength: "REQUIRED", minStops: 1, maxStops: 6, maxStopsExplicit: false },
+    ],
+    experience: { label: "quiet contemplative day", semanticTerms: ["secondhand bookshop", "used books", "antiquarian books"], strictCategory: false, strictConcept: false, compact: true },
+    breaks: [{ type: "LUNCH", required: true, durationMinutes: 90, earliestTime: "12:00", latestTime: "14:30", preference: "a long lunch alone" }],
+    clarifications: [{ id: "area-anchor", question: "Which area should anchor the day?", reason: "It keeps the route coherent.", options: [
+      { value: "west", label: "West London, in one compact neighbourhood" },
+      { value: "north-west", label: "North-west London, in one compact neighbourhood" },
+      { value: "best", label: "Use your best judgement" },
+    ] }],
+  }));
+
+  assert.equal(intent.scopeMode, "ANY");
+  assert.deepEqual(intent.categories.sort(), ["PARK", "RELIGIOUS", "SHOPPING"]);
+  assert.equal(intent.primaryCategory, undefined);
+  assert.equal(intent.experience.strictConcept, false);
+  assert.equal(intent.breaks[0].durationMinutes, 90);
+  assert.equal(intent.clarifications.length, 1);
+});
+
+test("alternative geographic scopes are treated as alternatives rather than an intersection", () => {
+  const places = [
+    fixture("w-church", "West Church", "RELIGIOUS", 51.5000, -0.2000, "A quiet parish church."),
+    fixture("w-garden", "West Garden", "PARK", 51.5010, -0.2000, "A contemplative garden."),
+    fixture("nw-books", "North-west Books", "SHOPPING", 51.5100, -0.2000, "A secondhand bookshop."),
+    fixture("nw-garden", "North-west Garden", "PARK", 51.5110, -0.2000, "A quiet garden."),
+  ];
+  const scopes = [
+    { day: 0, relation: "NEAR", label: "West", radiusKm: .4, center: { lat: 51.5000, lon: -.2000 } },
+    { day: 0, relation: "NEAR", label: "North-west", radiusKm: .4, center: { lat: 51.5100, lon: -.2000 } },
+  ];
+  const plan = buildPlan(places, {
+    days: 1, startDate: "2026-10-26", startTime: "09:00", endTime: "19:00", pace: "relaxed", transport: "walking",
+    scopeMode: "ANY", geoScopes: scopes,
+    categories: ["RELIGIOUS", "PARK", "SHOPPING"],
+    categoryPreferences: [
+      { category: "RELIGIOUS", strength: "REQUIRED", minStops: 1, maxStops: 6 },
+      { category: "PARK", strength: "REQUIRED", minStops: 1, maxStops: 6 },
+      { category: "SHOPPING", strength: "REQUIRED", minStops: 1, maxStops: 6 },
+    ],
+    experience: { semanticTerms: ["secondhand bookshop"], strictCategory: false, strictConcept: false, compact: true },
+  });
+
+  assert.equal(plan.days.length, 1);
+  assert.ok(plan.days[0].stops.some((stop) => stop.place.id.startsWith("w-")));
+  assert.ok(plan.days[0].stops.some((stop) => stop.place.id.startsWith("nw-")));
+  assert.equal(plan.days[0].areaLabel, "West or North-west");
+});
+
 test("AI output preserves an explicit first visit as first-visitor context", () => {
   const intent = normalizePlannerIntent(rawIntent({
     familiarity: "first",
@@ -217,6 +275,9 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.match(modelRequest.messages[0].content, /First time.*familiarity=first/i);
   assert.match(modelRequest.messages[0].content, /not a checklist/i);
   assert.match(modelRequest.messages[0].content, /anchored loop/i);
+  assert.match(modelRequest.messages[0].content, /scopeMode=ANY/);
+  assert.match(modelRequest.messages[0].content, /multi-theme request/i);
+  assert.match(modelRequest.messages[0].content, /long lunch.*75-90/i);
   assert.match(modelRequest.messages[1].content, /Kensington area/);
 });
 
@@ -269,7 +330,7 @@ test("planner interpretation fails explicitly when the AI binding is absent", as
 function rawIntent(overrides = {}) {
   return {
     days: 1, visitDate: "", timeOfDay: "flexible", startTime: "", endTime: "", pace: "balanced", transport: "walking", familiarity: "returning",
-    geography: [], categoryPreferences: [],
+    scopeMode: "ALL", geography: [], categoryPreferences: [],
     experience: { label: "London day", semanticTerms: [], strictCategory: false, strictConcept: false, compact: false },
     routePolicy: { style: "UNSPECIFIED", maxWalkingKm: 0 }, breaks: [],
     moods: [], exclusions: [], mustInclude: [], outdoorMode: "ANY", museumScale: "ANY", crowdPreference: "ANY",

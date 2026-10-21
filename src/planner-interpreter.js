@@ -9,7 +9,7 @@ const MONTHS = ["january", "february", "march", "april", "may", "june", "july", 
 const ROUTE_STYLES = ["DIRECT", "COMPACT", "SCENIC", "EXPLORATORY", "UNSPECIFIED"];
 const BREAK_TYPES = ["LUNCH", "COFFEE", "REST"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "17";
+export const PLANNER_INTENT_SCHEMA_VERSION = "18";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -23,6 +23,7 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
     pace: { type: "string", enum: ["relaxed", "balanced", "full", "unspecified"] },
     transport: { type: "string", enum: ["walking", "mixed", "transit", "river", "unspecified"] },
     familiarity: { type: "string", enum: ["first", "returning", "unspecified"] },
+    scopeMode: { type: "string", enum: ["ALL", "ANY"] },
     geography: {
       type: "array",
       maxItems: 6,
@@ -134,7 +135,7 @@ export const PLANNER_INTENT_SCHEMA = Object.freeze({
     },
     confidence: { type: "number", minimum: 0, maximum: 1 },
   },
-  required: ["days", "visitDate", "timeOfDay", "startTime", "endTime", "pace", "transport", "familiarity", "geography",
+  required: ["days", "visitDate", "timeOfDay", "startTime", "endTime", "pace", "transport", "familiarity", "scopeMode", "geography",
     "categoryPreferences", "experience", "routePolicy", "breaks", "moods", "exclusions", "mustInclude", "outdoorMode", "museumScale",
     "crowdPreference", "touristPreference", "season", "preferredWeekdays", "preferredMonths", "openEnded", "assumptions",
     "insights", "clarifications", "confidence"],
@@ -146,6 +147,7 @@ Your only task is to translate a visitor's request into the supplied JSON schema
 Interpretation rules:
 - This planner always creates exactly one day and days must be 1. If a request assigns different areas or themes to different days, ask which single-day option to plan; do not silently combine incompatible day briefs.
 - Geography is a hard constraint whenever the user names an area, direction, start or end. Never replace it with a better-known part of London.
+- SCOPE constraints normally combine with scopeMode=ALL. When the visitor explicitly offers alternative areas with "or" or "either", use scopeMode=ANY: they are alternatives, never an intersection. If those alternatives are broad enough to produce materially different days, ask one concise clarification before planning. Ask which area should anchor one coherent day, with concrete compact-area choices and "Use your best judgement"; do not silently discard one alternative. Before that answer, geography may be empty rather than inventing a false precise boundary. After the answer, choose one specific, geocodable district that fits the themes rather than returning the broad region phrase itself.
 - Familiarity is explicit visitor context. "First time", "first visit", "first trip" or never having visited means familiarity=first. Repeat visits, already having seen the main sights or living in London means familiarity=returning. Never leave familiarity unspecified when the visitor states it.
 - For a first visit with no narrower overriding theme, the itinerary should be led by London's defining, widely recognised landmarks across appropriate categories. Requests for the essentials, highlights, classics, iconic or famous London reinforce that interpretation. Do not translate a generic request for London essentials into AREA or BUILDING category requirements: familiarity carries the landmark intent and allows a balanced mix of buildings, public spaces, sacred sites, views and major cultural places.
 - "Without feeling like a tick-box tour", "not a checklist" and similar wording asks for selectivity and coherence, not obscure places. Preserve first-visit landmark priority, normally use pace=balanced, and choose a COMPACT or SCENIC route rather than cramming in disconnected stops.
@@ -157,6 +159,7 @@ Interpretation rules:
 - Set day=0 for every geography item because all constraints apply to the single planned day.
 - Distinguish the main purpose from incidental possibilities. When the whole day is organised around one narrow place type, make its category PRIMARY, strictCategory true and strictConcept true; this applies equally to markets, churches and any future narrow concept. A merely possible stop is OPTIONAL.
 - When two or more place types are equally important, use REQUIRED or PREFERRED for each and do not invent a PRIMARY category. Walking, wandering, local character and atmosphere describe movement or mood; they do not by themselves make AREA the primary category.
+- A multi-theme request such as churches, gardens and secondhand bookshops is not one globally narrow concept. Give each named place type its own category preference, keep strictCategory=false and strictConcept=false, and use semanticTerms only to improve ranking for the narrower subtype (for example secondhand, used or antiquarian bookshops). Never use one theme's terms to exclude the other requested categories.
 - When the visitor explicitly names the only desired place types, mark each at least REQUIRED with minStops 1. Use PREFERRED when the wording is merely suggestive (for example "possibly" or "maybe").
 - A plural or collective request for stops of one place type (for example oddities, churches, markets, gardens or viewpoints) requires minStops at least 2. Use minStops 1 only for singular wording, "one", "a stop", "possibly" or another clearly optional mention.
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
@@ -170,10 +173,10 @@ Interpretation rules:
 - A compact/long walk controls experience.compact and transport. "Walk from A to B" means transport=walking; never upgrade it to mixed merely because the route crosses central London. A willingness to use the Tube alongside walking is mixed. Explicit requests for Uber Boat, Thames Clippers or travel by river use river. When a journey explicitly starts at a Thames pier and visits another well-known riverside destination or pier before continuing along the Thames, infer river unless the user requests another mode; mention that inference in assumptions or ask a transport clarification only when it would materially change the day.
 - Interpret the shape of an endpoint-to-endpoint journey in routePolicy. DIRECT means progress towards the destination with only small diversions; COMPACT allows a coherent cluster of nearby stops; SCENIC permits a purposeful scenic deviation; EXPLORATORY permits a deliberately meandering route. A request to walk from A to B and stop at matching places normally means DIRECT unless the visitor explicitly asks to wander, meander, detour or take a scenic route. Never treat a destination as permission to continue materially beyond it. When START and END are the same place, they define a return deadline and an anchored loop, not a zero-length route corridor; do not add a local SCOPE unless the visitor asks to remain nearby.
 - maxWalkingKm is a user constraint, not an invented route calculation. Set it only when the visitor gives a numeric distance or an unmistakable limit such as a very short walk; otherwise use 0 and let the route engine calculate a feasible allowance from the resolved endpoints.
-- Capture every explicit meal, coffee or rest request in breaks. A lunch request normally means a required LUNCH break of 45-60 minutes between 12:00 and 14:30. Preserve stated timing, duration and qualities in preference, but do not invent a restaurant. Do not ask about cuisine unless it is essential to the visitor's request.
+- Capture every explicit meal, coffee or rest request in breaks. A lunch request normally means a required LUNCH break of 45-60 minutes between 12:00 and 14:30; "long lunch" means 75-90 minutes. Preserve stated timing, duration and qualities such as eating alone in preference, but do not invent a restaurant. Do not ask about cuisine unless it is essential to the visitor's request.
 - When visitors ask to stop along a route for a named place type, that place type is a genuine itinerary requirement. Use its category as PRIMARY or REQUIRED and select a sensible minStops from the wording; do not dilute it with unrelated categories merely to fill the day.
 - General endpoint pattern: "walk from A to B, stopping for [place type], with lunch" means START A, END B, no invented SCOPE or VIA, transport=walking, routePolicy=DIRECT, the matching category PRIMARY or REQUIRED, and one required LUNCH break. Apply this pattern semantically to any London endpoints, place type and break wording; it is not a phrase match.
-- Ask up to three short clarifications when an answer would materially improve the result: resolve ambiguous geography, choose between genuinely different interpretations, confirm a date-dependent request, or settle a conflict such as outdoors versus an indoor category. Do not ask for information already present. Prefer two or three concrete options and include a sensible "Use your best judgement" option when no answer is essential.
+- Ask up to three short clarifications when an answer would materially improve the result: resolve ambiguous or alternative broad geography, choose between genuinely different interpretations, confirm a date-dependent request, or settle a conflict such as outdoors versus an indoor category. When a visitor offers two broad areas as alternatives for a multi-theme day, one area-selection question is material because it determines route coherence and catalogue coverage. Do not ask for information already present. Prefer two or three concrete options and include a sensible "Use your best judgement" option when no answer is essential.
 - Do not put questions in assumptions or insights. Keep insights short and user-facing.
 - If clarification answers are supplied, treat them as authoritative and return no further clarification unless an answer introduces a new material ambiguity.
 - Radius is geometric scope, not travel distance: about 2-3 km for a compact neighbourhood, 5-8 km around a broad district and up to 15-20 km for a directional part of London.
@@ -286,6 +289,7 @@ export function normalizePlannerIntent(raw) {
     pace: enumValue(raw.pace, ["relaxed", "balanced", "full"], undefined),
     transport: enumValue(raw.transport, ["walking", "mixed", "transit", "river"], undefined),
     familiarity: enumValue(raw.familiarity, ["first", "returning"], undefined),
+    scopeMode: enumValue(raw.scopeMode, ["ALL", "ANY"], "ALL"),
     geography,
     categoryPreferences,
     categories: unique(preferred), excludedCategories: unique(excluded), primaryCategory: primary?.category,

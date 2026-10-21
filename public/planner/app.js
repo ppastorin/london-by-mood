@@ -170,6 +170,7 @@ async function generate(event) {
       startTime: document.querySelector("#start-time").value, endTime: document.querySelector("#end-time").value,
       pace: document.querySelector("#pace").value, transport: document.querySelector("#transport").value,
       familiarity: document.querySelector("#familiarity").value, areas: ["ANY"],
+      scopeMode: touched.has("geography") ? "ALL" : intent.scopeMode,
       geoScopes: geography.filter((item) => item.role === "SCOPE"), excludeGeoScopes: geography.filter((item) => item.role === "EXCLUDE"),
       routeStart: pointForRole(geography, "START"), routeWaypoints: pointsForRole(geography, "VIA"), routeEnd: pointForRole(geography, "END"),
       routePolicy: {
@@ -457,7 +458,7 @@ async function requestInterpretation(value, answers = {}, force = false) {
 }
 
 function collectClarificationAnswers() { return Object.fromEntries([...document.querySelectorAll("[data-clarification-id]")].filter((control) => control.value).map((control) => [control.dataset.clarificationId, control.value])); }
-function emptyInterpretation() { return { days: 1, categories: [], categoryPreferences: [], excludedCategories: [], moods: [], avoidTerms: [], mustHaves: [], geography: [], clarifications: [], experience: {}, routePolicy: { style: "UNSPECIFIED", maxWalkingKm: 0 }, breaks: [], insights: [] }; }
+function emptyInterpretation() { return { days: 1, scopeMode: "ALL", categories: [], categoryPreferences: [], excludedCategories: [], moods: [], avoidTerms: [], mustHaves: [], geography: [], clarifications: [], experience: {}, routePolicy: { style: "UNSPECIFIED", maxWalkingKm: 0 }, breaks: [], insights: [] }; }
 
 function breakControlValue(breaks) {
   const planned = (breaks || []).find((item) => item.required) || breaks?.[0];

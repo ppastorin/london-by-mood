@@ -181,7 +181,7 @@ export function buildPlan(places, rawInput) {
     const geoScopes = input.geoScopes.filter((scope) => scope.day === 0 || scope.day === index + 1);
     const excludedGeoScopes = input.excludeGeoScopes.filter((scope) => scope.day === 0 || scope.day === index + 1);
     const dailyMustHaves = mustHaves.filter((place) => !used.has(place.id)
-      && (area === "ANY" || areaFit(place, area)) && geoScopes.every((scope) => geographyFit(place, scope)));
+      && (area === "ANY" || areaFit(place, area)) && geographyScopesFit(place, geoScopes, input.scopeMode));
     let pool = basePool.filter((place) => !used.has(place.id) && availabilityForDate(place, date).status !== "closed");
     if (excludedGeoScopes.length) pool = pool.filter((place) => excludedGeoScopes.every((scope) => !geographyFit(place, scope)));
     const areaPool = pool.filter((place) => area === "ANY" || areaFit(place, area));
@@ -192,10 +192,10 @@ export function buildPlan(places, rawInput) {
       }
     }
     if (geoScopes.length) {
-      const geographicPool = pool.filter((place) => geoScopes.every((scope) => geographyFit(place, scope)));
+      const geographicPool = pool.filter((place) => geographyScopesFit(place, geoScopes, input.scopeMode));
       pool = geographicPool;
       if (geographicPool.length < Math.min(3, PACE_STOPS[input.pace])) {
-        const requested = geoScopes.map((scope) => scopeLabel(scope)).join(" and ");
+        const requested = geoScopes.map((scope) => scopeLabel(scope)).join(input.scopeMode === "ANY" ? " or " : " and ");
         warnings.push(`The selected day has only ${geographicPool.length} catalogue ${geographicPool.length === 1 ? "place" : "places"} ${requested}; the planner will not substitute another part of London.`);
       }
     }
@@ -268,7 +268,7 @@ export function buildPlan(places, rawInput) {
       dayNumber: index + 1,
       date,
       area,
-      areaLabel: geoScopes.length ? unique(geoScopes.map((scope) => scope.label)).join(" · ") : AREA_OPTIONS[area]?.label || AREA_OPTIONS.ANY.label,
+      areaLabel: geoScopes.length ? unique(geoScopes.map((scope) => scope.label)).join(input.scopeMode === "ANY" ? " or " : " · ") : AREA_OPTIONS[area]?.label || AREA_OPTIONS.ANY.label,
       routeLabel: routeLabel(input),
       routeStart: input.routeStart,
       routeWaypoints: input.routeWaypoints,
@@ -353,6 +353,7 @@ function normalizeInput(input) {
     experience: normalizeExperience(input.experience),
     routePolicy: normalizeRoutePolicy(input.routePolicy),
     breaks: normalizeBreaks(input.breaks),
+    scopeMode: input.scopeMode === "ANY" ? "ANY" : "ALL",
     geoScopes: (input.geoScopes || []).map(normalizeGeoScope).filter(Boolean),
     excludeGeoScopes: (input.excludeGeoScopes || []).map(normalizeGeoScope).filter(Boolean),
     impact: input.impact === "wow" ? "wow" : "",
@@ -916,6 +917,11 @@ function geographyFit(place, scope) {
   if (scope.relation === "EAST_OF") return lon > scope.center.lon;
   if (scope.relation === "WEST_OF") return lon < scope.center.lon;
   return true;
+}
+
+function geographyScopesFit(place, scopes, mode) {
+  if (!scopes.length) return true;
+  return mode === "ANY" ? scopes.some((scope) => geographyFit(place, scope)) : scopes.every((scope) => geographyFit(place, scope));
 }
 
 function scopeLabel(scope) {
