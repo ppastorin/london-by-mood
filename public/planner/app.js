@@ -292,7 +292,10 @@ async function renderItineraryMap(day) {
     if (!response.ok || !payload.geometry?.coordinates) throw new Error(payload.error || "Walking route unavailable");
     currentRouteCoordinates = payload.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
     L.polyline(currentRouteCoordinates, { color: "#d94b38", weight: 5, opacity: .88 }).addTo(plannerMap);
-    document.querySelector("#map-status").textContent = `${(payload.distanceMetres / 1000).toFixed(1)} km walking route`;
+    const mappedKm = (payload.distanceMetres / 1000).toFixed(1);
+    document.querySelector("#map-status").textContent = currentPlan?.input?.transport === "walking"
+      ? `${mappedKm} km walking route`
+      : `${mappedKm} km mapped route · follow the scheduled ${transportLabel(currentPlan.input.transport)} legs`;
   } catch {
     L.polyline(currentRouteCoordinates, { color: "#d94b38", weight: 4, opacity: .75, dashArray: "8 8" }).addTo(plannerMap);
     document.querySelector("#map-status").textContent = "Indicative stop sequence — refine the path in Google Maps";
