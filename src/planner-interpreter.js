@@ -9,7 +9,7 @@ const MONTHS = ["january", "february", "march", "april", "may", "june", "july", 
 const ROUTE_STYLES = ["DIRECT", "COMPACT", "SCENIC", "EXPLORATORY", "UNSPECIFIED"];
 const BREAK_TYPES = ["LUNCH", "COFFEE", "REST"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "14";
+export const PLANNER_INTENT_SCHEMA_VERSION = "15";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -155,6 +155,7 @@ Interpretation rules:
 - Distinguish the main purpose from incidental possibilities. When the whole day is organised around one narrow place type, make its category PRIMARY, strictCategory true and strictConcept true; this applies equally to markets, churches and any future narrow concept. A merely possible stop is OPTIONAL.
 - When two or more place types are equally important, use REQUIRED or PREFERRED for each and do not invent a PRIMARY category. Walking, wandering, local character and atmosphere describe movement or mood; they do not by themselves make AREA the primary category.
 - When the visitor explicitly names the only desired place types, mark each at least REQUIRED with minStops 1. Use PREFERRED when the wording is merely suggestive (for example "possibly" or "maybe").
+- A plural or collective request for stops of one place type (for example oddities, churches, markets, gardens or viewpoints) requires minStops at least 2. Use minStops 1 only for singular wording, "one", "a stop", "possibly" or another clearly optional mention.
 - CATEGORY meanings: AREA=neighbourhoods/streets; BUILDING=architecture/heritage buildings; MUSEUM=small museums/galleries; ODDITY=quirky objects or unusual sites; PARK=parks/gardens/green space; RELIGIOUS=churches/chapels/temples/cemeteries; SHOPPING=markets/independent shops; VIEWPOINT=views.
 - Put experiential adjectives such as quiet, unexpected, beautiful, weird, local, green and atmospheric in moods. Never put mood adjectives in semanticTerms.
 - semanticTerms are generic physical place-type nouns, not named venues or moods. Supply them only when the user's concept is narrower than the category, such as market, church, cemetery or brutalist building. Include sensible close synonyms. Set strictConcept only when every stop should match that narrow concept.
