@@ -9,7 +9,7 @@ const MONTHS = ["january", "february", "march", "april", "may", "june", "july", 
 const ROUTE_STYLES = ["DIRECT", "COMPACT", "SCENIC", "EXPLORATORY", "UNSPECIFIED"];
 const BREAK_TYPES = ["LUNCH", "COFFEE", "REST"];
 
-export const PLANNER_INTENT_SCHEMA_VERSION = "18";
+export const PLANNER_INTENT_SCHEMA_VERSION = "19";
 
 export const PLANNER_INTENT_SCHEMA = Object.freeze({
   type: "object",
@@ -179,7 +179,7 @@ Interpretation rules:
 - Ask up to three short clarifications when an answer would materially improve the result: resolve ambiguous or alternative broad geography, choose between genuinely different interpretations, confirm a date-dependent request, or settle a conflict such as outdoors versus an indoor category. When a visitor offers two broad areas as alternatives for a multi-theme day, one area-selection question is material because it determines route coherence and catalogue coverage. Do not ask for information already present. Prefer two or three concrete options and include a sensible "Use your best judgement" option when no answer is essential.
 - Do not put questions in assumptions or insights. Keep insights short and user-facing.
 - If clarification answers are supplied, treat them as authoritative and return no further clarification unless an answer introduces a new material ambiguity.
-- Radius is geometric scope, not travel distance: about 2-3 km for a compact neighbourhood, 5-8 km around a broad district and up to 15-20 km for a directional part of London.
+- Radius is geometric scope, not travel distance: about 2-3 km for a compact walking-only neighbourhood, 3-5 km for a compact mixed-transport, multi-theme district, 5-8 km around a broad district and up to 15-20 km for a directional part of London. After a clarification selects one district for several required place types, do not use a radius so narrow that it reduces the answer to a single street pocket.
 - preferredWeekdays uses lowercase English weekday names. "During the week" means monday through friday. preferredMonths uses lowercase English month names.
 - Convert an explicit calendar date or unambiguous relative date into visitDate YYYY-MM-DD using the supplied current London date. Otherwise leave visitDate blank. Capture named weekdays in preferredWeekdays and named months in preferredMonths (1=January through 12=December).
 - timeOfDay is morning, afternoon, evening, full_day or flexible. Infer practical startTime and endTime when the user names a time of day; use 08:30–13:00 for morning, 13:00–18:00 for afternoon, 17:00–22:00 for evening and 09:00–19:00 for a full day unless the user gives exact times.

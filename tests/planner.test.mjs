@@ -16,6 +16,7 @@ test("planner UI exposes one-day controls, OpenStreetMap and branded PDF export"
   assert.match(html, /id="route-style"/);
   assert.match(html, /id="max-walking-km"/);
   assert.match(html, /id="planned-break"/);
+  assert.match(html, /LUNCH:90/);
   assert.match(html, /class="field-grid practical-grid"/);
   assert.match(html, /class="field-wide">Planned break/);
   assert.match(styles, /\.practical-grid,.route-controls \{ grid-template-columns:repeat\(2,minmax\(0,1fr\)\); \}/);

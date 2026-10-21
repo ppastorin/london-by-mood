@@ -278,6 +278,7 @@ test("planner interpretation endpoint uses Workers AI structured output and reso
   assert.match(modelRequest.messages[0].content, /scopeMode=ANY/);
   assert.match(modelRequest.messages[0].content, /multi-theme request/i);
   assert.match(modelRequest.messages[0].content, /long lunch.*75-90/i);
+  assert.match(modelRequest.messages[0].content, /compact mixed-transport, multi-theme district/i);
   assert.match(modelRequest.messages[1].content, /Kensington area/);
 });
 

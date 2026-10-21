@@ -463,7 +463,7 @@ function emptyInterpretation() { return { days: 1, scopeMode: "ALL", categories:
 function breakControlValue(breaks) {
   const planned = (breaks || []).find((item) => item.required) || breaks?.[0];
   if (!planned) return "none";
-  const duration = [30, 45, 60, 75].sort((a, b) => Math.abs(a - planned.durationMinutes) - Math.abs(b - planned.durationMinutes))[0];
+  const duration = [30, 45, 60, 75, 90].sort((a, b) => Math.abs(a - planned.durationMinutes) - Math.abs(b - planned.durationMinutes))[0];
   return `${planned.type === "LUNCH" ? "LUNCH" : "COFFEE"}:${duration}`;
 }
 
