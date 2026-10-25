@@ -11,6 +11,7 @@
     "build:park-enrichment": "node scripts/build-park-enrichment.mjs",
     "build:shopping-enrichment": "node scripts/build-shopping-enrichment.mjs",
     "build:food-category": "node scripts/build-food-category.mjs",
+    "build:additions-20261025": "node scripts/build-additions-20261025.mjs",
     "build:viewpoint-enrichment": "node scripts/build-viewpoint-enrichment.mjs",
     "build:religious-enrichment": "node scripts/build-religious-enrichment.mjs",
     "db:migrate:local": "wrangler d1 migrations apply london-advanced-places-dev --local",
@@ -19,7 +20,7 @@
     "test": "node --test tests/*.test.mjs",
     "test:integration": "node scripts/integration-smoke.mjs",
     "test:csv": "node scripts/preview-csv-import.mjs",
-    "check": "node --check src/worker.js && node --check src/migrate-production.js && node --check public/app.js && node --check public/ranking.js && node --check public/admin/app.js && node --check public/smart-navigation/app.js && node --check public/smart-navigation/itinerary.js && node --check public/smart-navigation/i18n.js && node --check scripts/build-religious-enrichment.mjs && node --check scripts/build-area-enrichment.mjs && node --check scripts/build-building-enrichment.mjs && node --check scripts/build-museum-enrichment.mjs && node --check scripts/build-park-enrichment.mjs && node --check scripts/build-viewpoint-enrichment.mjs && node --check scripts/build-shopping-enrichment.mjs && node --check scripts/build-food-category.mjs && node --check data/religious-enrichment.mjs && node --check data/area-enrichment.mjs && node --check data/building-enrichment.mjs && node --check data/museum-enrichment.mjs && node --check data/park-enrichment.mjs && node --check data/viewpoint-enrichment.mjs && node --check data/shopping-enrichment.mjs && node --check data/food-enrichment.mjs && python3 -m py_compile scripts/build-d1-seed.py"
+    "check": "node --check src/worker.js && node --check src/migrate-production.js && node --check public/app.js && node --check public/ranking.js && node --check public/admin/app.js && node --check public/smart-navigation/app.js && node --check public/smart-navigation/itinerary.js && node --check public/smart-navigation/i18n.js && node --check scripts/build-religious-enrichment.mjs && node --check scripts/build-area-enrichment.mjs && node --check scripts/build-building-enrichment.mjs && node --check scripts/build-museum-enrichment.mjs && node --check scripts/build-park-enrichment.mjs && node --check scripts/build-viewpoint-enrichment.mjs && node --check scripts/build-shopping-enrichment.mjs && node --check scripts/build-food-category.mjs && node --check scripts/build-additions-20261025.mjs && node --check scripts/verify-additions-20261025.mjs && node --check data/religious-enrichment.mjs && node --check data/area-enrichment.mjs && node --check data/building-enrichment.mjs && node --check data/museum-enrichment.mjs && node --check data/park-enrichment.mjs && node --check data/viewpoint-enrichment.mjs && node --check data/shopping-enrichment.mjs && node --check data/food-enrichment.mjs && node --check data/additions-20261025.mjs && python3 -m py_compile scripts/build-d1-seed.py"
   },
   "devDependencies": {
     "wrangler": "^4.92.0"
