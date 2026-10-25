@@ -49,3 +49,10 @@ test("the reconciliation migration creates only the importer omissions", async (
   assert.match(migration, /Duck Pond Market/);
   assert.match(migration, /OpenStreetMap and official-address reconciliation/);
 });
+
+test("the Richmond market refinement corrects the older generic coordinates", async () => {
+  const migration = await readFile("migrations/0016_duck_pond_market_richmond_coordinates.sql", "utf8");
+  assert.match(migration, /latitude=51\.458417/);
+  assert.match(migration, /longitude=-0\.3061978/);
+  assert.match(migration, /name='Duck Pond Market Richmond'/);
+});

@@ -34,4 +34,8 @@ for (const expected of additions20261025) {
 }
 
 if (failures.length) throw new Error(`Addition verification failed:\n- ${failures.join("\n- ")}`);
+const richmondMarket = payload.places.find(place => place.name === "Duck Pond Market Richmond" && place.status === "published");
+if (!richmondMarket || Math.abs(richmondMarket.lat - 51.458417) > 0.002 || Math.abs(richmondMarket.lon - -0.3061978) > 0.002) {
+  throw new Error("Duck Pond Market Richmond does not resolve to Heron Square.");
+}
 console.log(`Verified ${additions20261025.length} published bilingual additions across all categories.`);
