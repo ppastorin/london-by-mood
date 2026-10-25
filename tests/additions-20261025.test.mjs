@@ -41,3 +41,11 @@ test("market and shop schedules include the researched priority locations", () =
     assert.ok(Object.keys(place.hours || {}).length > 0, `${name} has no hours`);
   }
 });
+
+test("the reconciliation migration creates only the importer omissions", async () => {
+  const migration = await readFile("migrations/0015_reconcile_missing_additions_20261025.sql", "utf8");
+  assert.equal((migration.match(/INSERT INTO places\(/g) || []).length, 18);
+  assert.equal((migration.match(/UPDATE places SET name=/g) || []).length, 19);
+  assert.match(migration, /Duck Pond Market/);
+  assert.match(migration, /OpenStreetMap and official-address reconciliation/);
+});
