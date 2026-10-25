@@ -3,7 +3,7 @@ const PLACE_BOUNDS = Object.freeze({ west: -1.00, south: 50.80, east: 0.75, nort
 const DEFAULT_LIMIT = 1200;
 const MAX_LIMIT = 2000;
 const BIKEPOINT_CACHE_SECONDS = 45;
-const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "VIEWPOINT"];
+const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "FOOD", "VIEWPOINT"];
 
 export default {
   async fetch(request, env, ctx) {
@@ -315,7 +315,7 @@ function defaultTimeAffinity(category) {
     AREA: [5,25,50,60,65,40,8,25,50,65,75,55,10,30,55,65,70,55], BUILDING: [0,10,40,55,45,20,0,10,40,55,50,25,0,15,45,60,50,25],
     MUSEUM: [0,10,55,75,30,0,0,10,55,75,40,5,0,10,65,80,45,5], ODDITY: [5,20,45,55,55,30,8,20,45,55,65,40,10,25,50,60,60,40],
     PARK: [0,20,45,60,40,5,0,20,45,60,45,8,0,25,55,70,50,10], RELIGIOUS: [0,20,40,40,25,5,0,20,40,40,30,5,0,25,45,45,30,5],
-    SHOPPING: [0,10,65,75,45,10,0,10,65,75,55,15,0,15,75,80,55,15], VIEWPOINT: [5,15,30,45,70,45,8,15,30,45,75,55,10,20,35,50,75,55],
+    SHOPPING: [0,10,65,75,45,10,0,10,65,75,55,15,0,15,75,80,55,15], FOOD: [0,20,45,70,85,60,0,20,45,75,90,70,0,25,60,85,90,70], VIEWPOINT: [5,15,30,45,70,45,8,15,30,45,75,55,10,20,35,50,75,55],
   }[category] || Array(18).fill(50);
   const keys = ["mon_thu_00_05","mon_thu_06_10","mon_thu_10_13","mon_thu_13_17","mon_thu_17_20","mon_thu_20_24",
     "friday_00_05","friday_06_10","friday_10_13","friday_13_17","friday_17_20","friday_20_24",

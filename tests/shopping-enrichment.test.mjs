@@ -8,9 +8,10 @@ const GENERIC = /suits slow browsing|quieter,? more local encounter|brings toget
 test("all shopping places have unique bilingual place-specific editorial copy", async () => {
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
   const places = snapshot.places.filter((place) => place.category === "SHOPPING");
-  assert.equal(places.length, 70);
-  assert.deepEqual(new Set(places.map((place) => place.id)), new Set(shoppingEnrichment.map((place) => place.id)));
-  for (const field of ["description", "descriptionIt", "hook", "hookIt"]) assert.equal(new Set(places.map((place) => place[field])).size, 70, `${field} must be unique`);
+  const activeSourceIds = new Set(shoppingEnrichment.map((place) => place.id).filter(id => id !== "LA-53DEB44D"));
+  assert.equal(places.length, 69);
+  assert.deepEqual(new Set(places.map((place) => place.id)), activeSourceIds);
+  for (const field of ["description", "descriptionIt", "hook", "hookIt"]) assert.equal(new Set(places.map((place) => place[field])).size, 69, `${field} must be unique`);
   for (const place of places) {
     assert.ok(place.description.length >= 180, `${place.id} needs a richer English description`);
     assert.ok(place.descriptionIt.length >= 180, `${place.id} needs a richer Italian description`);

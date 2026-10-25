@@ -9,12 +9,13 @@ test("all building places have unique, bilingual, place-specific editorial copy"
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
   const buildings = snapshot.places.filter((place) => place.category === "BUILDING");
   const sourceIds = new Set(buildingEnrichment.map((place) => place.id));
+  const activeSourceIds = new Set([...sourceIds].filter(id => id !== "LA-A0081CBE"));
 
-  assert.equal(buildings.length, 75);
+  assert.equal(buildings.length, 74);
   assert.equal(sourceIds.size, 75);
-  assert.deepEqual(new Set(buildings.map((place) => place.id)), sourceIds);
-  assert.equal(new Set(buildings.map((place) => place.description)).size, 75);
-  assert.equal(new Set(buildings.map((place) => place.hook)).size, 75);
+  assert.deepEqual(new Set(buildings.map((place) => place.id)), activeSourceIds);
+  assert.equal(new Set(buildings.map((place) => place.description)).size, 74);
+  assert.equal(new Set(buildings.map((place) => place.hook)).size, 74);
 
   for (const place of buildings) {
     assert.ok(place.description.length >= 180, `${place.id} needs a richer English description`);

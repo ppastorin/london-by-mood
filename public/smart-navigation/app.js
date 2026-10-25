@@ -2,7 +2,7 @@ import { MAX_STOPS, buildGoogleMapsUrl, insertByRoutePosition, moveItem } from "
 
 const i18n=window.SmartNavigationI18n||{locale:"en",t:key=>key,localizeError:value=>value};
 const {t,localizeError}=i18n;
-const CATEGORY_LABELS=i18n.locale==="it"?{AREA:"Zone",BUILDING:"Edifici",MUSEUM:"Musei",ODDITY:"Curiosità",PARK:"Parchi",RELIGIOUS:"Luoghi religiosi",SHOPPING:"Shopping",VIEWPOINT:"Punti panoramici"}:{AREA:"Areas",BUILDING:"Buildings",MUSEUM:"Museums",ODDITY:"Oddities",PARK:"Parks",RELIGIOUS:"Religious",SHOPPING:"Shopping",VIEWPOINT:"Views"};
+const CATEGORY_LABELS=i18n.locale==="it"?{AREA:"Zone",BUILDING:"Edifici",MUSEUM:"Musei",ODDITY:"Curiosità",PARK:"Parchi",RELIGIOUS:"Luoghi religiosi",SHOPPING:"Shopping",FOOD:"Cibo",VIEWPOINT:"Punti panoramici"}:{AREA:"Areas",BUILDING:"Buildings",MUSEUM:"Museums",ODDITY:"Oddities",PARK:"Parks",RELIGIOUS:"Religious",SHOPPING:"Shopping",FOOD:"Food",VIEWPOINT:"Views"};
 const STORAGE_KEY="london-advanced-smart-navigation-itinerary-v1";
 const STORAGE_MAX_AGE=24*60*60*1000;
 // Version the editorial payload independently from the app shell. This prevents

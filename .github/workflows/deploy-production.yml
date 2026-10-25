@@ -242,14 +242,18 @@ jobs:
           health="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/health")"
           jq -e '.ok == true and .database == "d1" and .integrations.walkingRoutingPrimary == "authenticated" and .integrations.walkingRoutingFallback == "authenticated" and .integrations.tflBikePoint == "authenticated"' <<<"${health}" >/dev/null
           places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=2000")"
-          jq -e '.ok == true and .count >= 885' <<<"${places}" >/dev/null
+          jq -e '.ok == true and .count >= 979 and ([.places[] | select(.category == "FOOD")] | length) == 97' <<<"${places}" >/dev/null
           for place in 'Lonsdale Road' 'Aberfeldy Street Murals' 'Turin Street' 'Blackheath Village'; do
             jq -e --arg place "${place}" '.places | any(.name == $place and .status == "published" and (.description | length) > 80 and (.descriptionIt | length) > 80)' <<<"${places}" >/dev/null
+          done
+          for place in 'Beigel Bake Brick Lane Bakery' 'Mercato Mayfair' 'The Mayflower' 'Bang Bang Oriental Foodhall'; do
+            jq -e --arg place "${place}" '.places | any(.name == $place and .category == "FOOD" and .status == "published" and (.description | length) > 80 and (.descriptionIt | length) > 80)' <<<"${places}" >/dev/null
           done
           mood_html="$(curl --fail --silent --show-error "${base_url}/")"
           grep -q "London by Mood" <<<"${mood_html}"
           navigation_html="$(curl --fail --silent --show-error "${base_url}/smart-navigation/")"
           grep -q "Smart Navigation" <<<"${navigation_html}"
+          grep -q 'FOOD:"Food"' <<<"$(curl --fail --silent --show-error "${base_url}/smart-navigation/app.js")"
 
           admin_status="200"
           for attempt in 1 2 3 4 5 6; do
