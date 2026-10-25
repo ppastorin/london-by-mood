@@ -168,7 +168,7 @@ jobs:
       - name: Apply production D1 migrations
         run: CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 migrations apply DB --remote --config wrangler.production.runtime.jsonc
 
-      - name: Copy accepted data between the Cloudflare accounts
+      - name: Seed an empty production database from the accepted development baseline
         shell: bash
         run: |
           set -euo pipefail
@@ -192,27 +192,29 @@ jobs:
             done
             cleanup_exports
             trap - EXIT
-          elif [[ "${production_count}" != "${development_count}" ]]; then
-            echo "Production already contains ${production_count} places; refusing to overwrite it with ${development_count}." >&2
+          elif [[ "${production_count}" -lt "${development_count}" ]]; then
+            echo "Production contains fewer places (${production_count}) than the accepted development baseline (${development_count})." >&2
             exit 1
           fi
-          development_version="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command "SELECT value FROM app_meta WHERE key='data_version'" --json | jq -r '.[0].results[0].value')"
-          CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.production.runtime.jsonc \
-            --command "UPDATE app_meta SET value='${development_version}', updated_at=CURRENT_TIMESTAMP WHERE key='data_version'" --yes
 
-      - name: Verify production database parity
+      - name: Verify production database integrity
         shell: bash
         run: |
           set -euo pipefail
-          for table in places place_time_affinity place_stations; do
-            development="$(CLOUDFLARE_ACCOUNT_ID="${DEVELOPMENT_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.dev.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
-            production="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.production.runtime.jsonc --command "SELECT COUNT(*) AS count FROM ${table}" --json | jq -r '.[0].results[0].count')"
-            if [[ "${development}" != "${production}" ]]; then
-              echo "Parity check failed for ${table}: development=${development}, production=${production}." >&2
-              exit 1
-            fi
-            echo "${table}: ${production} rows"
-          done
+          integrity="$(CLOUDFLARE_ACCOUNT_ID="${PRODUCTION_ACCOUNT_ID}" npx wrangler d1 execute DB --remote --config wrangler.production.runtime.jsonc --command \
+            "SELECT COUNT(*) AS total, SUM(CASE WHEN status='published' THEN 1 ELSE 0 END) AS published, SUM(CASE WHEN status='published' AND (trim(description_en)='' OR trim(description_it)='') THEN 1 ELSE 0 END) AS missing_descriptions FROM places" --json)"
+          total="$(jq -r '.[0].results[0].total' <<<"${integrity}")"
+          published="$(jq -r '.[0].results[0].published' <<<"${integrity}")"
+          missing_descriptions="$(jq -r '.[0].results[0].missing_descriptions' <<<"${integrity}")"
+          if [[ "${total}" -lt "881" || "${published}" -lt "881" ]]; then
+            echo "Production catalogue regressed: total=${total}, published=${published}." >&2
+            exit 1
+          fi
+          if [[ "${missing_descriptions}" != "0" ]]; then
+            echo "Production contains ${missing_descriptions} places without complete bilingual descriptions." >&2
+            exit 1
+          fi
+          echo "Production catalogue: total=${total}, published=${published}, bilingual descriptions complete."
 
       - name: Synchronise the production walking-route API key
         if: env.HEIGIT_API_KEY != ''
@@ -240,7 +242,10 @@ jobs:
           health="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/health")"
           jq -e '.ok == true and .database == "d1" and .integrations.walkingRoutingPrimary == "authenticated" and .integrations.walkingRoutingFallback == "authenticated" and .integrations.tflBikePoint == "authenticated"' <<<"${health}" >/dev/null
           places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=2000")"
-          jq -e '.ok == true and .count == 881' <<<"${places}" >/dev/null
+          jq -e '.ok == true and .count >= 885' <<<"${places}" >/dev/null
+          for place in 'Lonsdale Road' 'Aberfeldy Street Murals' 'Turin Street' 'Blackheath Village'; do
+            jq -e --arg place "${place}" '.places | any(.name == $place and .status == "published" and (.description | length) > 80 and (.descriptionIt | length) > 80)' <<<"${places}" >/dev/null
+          done
           mood_html="$(curl --fail --silent --show-error "${base_url}/")"
           grep -q "London by Mood" <<<"${mood_html}"
           navigation_html="$(curl --fail --silent --show-error "${base_url}/smart-navigation/")"
@@ -275,4 +280,4 @@ jobs:
             --data '{"start":{"lat":51.507587,"lon":-0.127716},"end":{"lat":51.515008,"lon":-0.102911}}' \
             "${base_url}/api/route")"
           jq -e '.ok == true and (.geometry.coordinates | length) > 1 and .distanceMetres > 0' <<<"${route}" >/dev/null
-          echo "Production verification passed: public tools, 881 places, routing and a non-public editor boundary."
+          echo "Production verification passed: public tools, expanded places catalogue, routing and a non-public editor boundary."
