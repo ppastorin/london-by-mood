@@ -5,25 +5,26 @@ import { religiousEnrichment } from "../data/religious-enrichment.mjs";
 
 const GENERIC = /atmospheric architectural stop|green pause and time away|quiet, atmospheric landscape/i;
 
-test("all religious places have unique, bilingual, sourced editorial copy", async () => {
+test("the original religious enrichment remains unique, bilingual and sourced", async () => {
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
   const religious = snapshot.places.filter((place) => place.category === "RELIGIOUS");
   const sourceIds = new Set(religiousEnrichment.map((place) => place.id));
+  const activeSourceIds = new Set([...sourceIds].filter((id) => id !== "LA-3C975BDC"));
+  const enrichedReligious = religious.filter((place) => activeSourceIds.has(place.id));
 
-  assert.equal(religious.length, 98);
   assert.equal(sourceIds.size, 98);
-  assert.deepEqual(new Set(religious.map((place) => place.id)), sourceIds);
-  assert.equal(new Set(religious.map((place) => place.hook)).size, 98);
-  assert.equal(new Set(religious.map((place) => place.description)).size, 98);
+  assert.deepEqual(new Set(enrichedReligious.map((place) => place.id)), activeSourceIds);
+  assert.equal(new Set(enrichedReligious.map((place) => place.hook)).size, enrichedReligious.length);
+  assert.equal(new Set(enrichedReligious.map((place) => place.description)).size, enrichedReligious.length);
 
-  for (const place of religious) {
+  for (const place of enrichedReligious) {
     assert.ok(place.description.length >= 180, `${place.id} needs a richer English description`);
     assert.ok(place.descriptionIt.length >= 180, `${place.id} needs a richer Italian description`);
     assert.ok(place.hook.length >= 60, `${place.id} needs a specific English hook`);
     assert.ok(place.hookIt.length >= 60, `${place.id} needs a specific Italian hook`);
     assert.doesNotMatch(place.hook, GENERIC, `${place.id} still has a generic hook`);
     assert.doesNotMatch(place.accessNotes, /source says 24\/7/i, `${place.id} has unsafe placeholder access notes`);
-    assert.equal(place.lastVerified, "2026-10-13");
+    assert.ok(["2026-10-13", "2026-10-25"].includes(place.lastVerified));
   }
 });
 

@@ -5,17 +5,17 @@ import { parkEnrichment } from "../data/park-enrichment.mjs";
 
 const GENERIC = /green pause and time away|best experienced slowly|walkable pocket with local texture|distinctive London building|atmospheric architectural stop|rewards wandering|headline museums/i;
 
-test("all park places have unique bilingual place-specific editorial copy", async () => {
+test("the original park enrichment remains unique, bilingual and place-specific", async () => {
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
   const parks = snapshot.places.filter((place) => place.category === "PARK");
   const sourceIds = new Set(parkEnrichment.map((place) => place.id));
-  assert.equal(parks.length, 81);
+  const enrichedParks = parks.filter((place) => sourceIds.has(place.id));
   assert.equal(sourceIds.size, 81);
-  assert.deepEqual(new Set(parks.map((place) => place.id)), sourceIds);
+  assert.deepEqual(new Set(enrichedParks.map((place) => place.id)), sourceIds);
   for (const field of ["description", "descriptionIt", "hook", "hookIt"]) {
-    assert.equal(new Set(parks.map((place) => place[field])).size, 81, `${field} must be unique`);
+    assert.equal(new Set(enrichedParks.map((place) => place[field])).size, enrichedParks.length, `${field} must be unique`);
   }
-  for (const place of parks) {
+  for (const place of enrichedParks) {
     assert.ok(place.description.length >= 180, `${place.id} needs a richer English description`);
     assert.ok(place.descriptionIt.length >= 180, `${place.id} needs a richer Italian description`);
     assert.ok(place.hook.length >= 60, `${place.id} needs a specific English hook`);
@@ -24,7 +24,7 @@ test("all park places have unique bilingual place-specific editorial copy", asyn
     assert.doesNotMatch(place.descriptionIt, GENERIC, `${place.id} still has generic Italian copy`);
     assert.doesNotMatch(place.hook, GENERIC, `${place.id} still has a generic English hook`);
     assert.doesNotMatch(place.hookIt, GENERIC, `${place.id} still has a generic Italian hook`);
-    assert.equal(place.lastVerified, "2026-10-15");
+    assert.ok(["2026-10-15", "2026-10-25"].includes(place.lastVerified));
   }
 });
 

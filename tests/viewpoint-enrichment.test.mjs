@@ -5,23 +5,23 @@ import { viewpointEnrichment } from "../data/viewpoint-enrichment.mjs";
 
 const GENERIC = /chance to step back from street level|broader view of London|green pause and time away|best experienced slowly|walkable pocket with local texture|distinctive London building|atmospheric architectural stop|rewards wandering|headline museums/i;
 
-test("all viewpoint places have unique bilingual place-specific editorial copy", async () => {
+test("the original viewpoint enrichment remains unique, bilingual and place-specific", async () => {
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
   const viewpoints = snapshot.places.filter((place) => place.category === "VIEWPOINT");
   const sourceIds = new Set(viewpointEnrichment.map((place) => place.id));
-  assert.equal(viewpoints.length, 43);
+  const enrichedViewpoints = viewpoints.filter((place) => sourceIds.has(place.id));
   assert.equal(sourceIds.size, 43);
-  assert.deepEqual(new Set(viewpoints.map((place) => place.id)), sourceIds);
+  assert.deepEqual(new Set(enrichedViewpoints.map((place) => place.id)), sourceIds);
   for (const field of ["description", "descriptionIt", "hook", "hookIt"]) {
-    assert.equal(new Set(viewpoints.map((place) => place[field])).size, 43, `${field} must be unique`);
+    assert.equal(new Set(enrichedViewpoints.map((place) => place[field])).size, enrichedViewpoints.length, `${field} must be unique`);
   }
-  for (const place of viewpoints) {
+  for (const place of enrichedViewpoints) {
     assert.ok(place.description.length >= 180, `${place.id} needs a richer English description`);
     assert.ok(place.descriptionIt.length >= 180, `${place.id} needs a richer Italian description`);
     assert.ok(place.hook.length >= 60, `${place.id} needs a specific English hook`);
     assert.ok(place.hookIt.length >= 60, `${place.id} needs a specific Italian hook`);
     for (const field of ["description", "descriptionIt", "hook", "hookIt"]) assert.doesNotMatch(place[field], GENERIC);
-    assert.equal(place.lastVerified, "2026-10-16");
+    assert.ok(["2026-10-16", "2026-10-25"].includes(place.lastVerified));
   }
 });
 

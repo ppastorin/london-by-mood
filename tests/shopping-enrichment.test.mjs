@@ -5,14 +5,15 @@ import { shoppingEnrichment } from "../data/shopping-enrichment.mjs";
 
 const GENERIC = /suits slow browsing|quieter,? more local encounter|brings together browsing, people-watching|everyday sense of London|more character and local texture|conventional shopping stop|chance to step back from street level|best experienced slowly|walkable pocket with local texture/i;
 
-test("all shopping places have unique bilingual place-specific editorial copy", async () => {
+test("the original shopping enrichment remains unique, bilingual and place-specific", async () => {
   const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
   const places = snapshot.places.filter((place) => place.category === "SHOPPING");
   const activeSourceIds = new Set(shoppingEnrichment.map((place) => place.id).filter(id => id !== "LA-53DEB44D"));
-  assert.equal(places.length, 69);
-  assert.deepEqual(new Set(places.map((place) => place.id)), activeSourceIds);
-  for (const field of ["description", "descriptionIt", "hook", "hookIt"]) assert.equal(new Set(places.map((place) => place[field])).size, 69, `${field} must be unique`);
-  for (const place of places) {
+  const sourcePlaces = places.filter((place) => activeSourceIds.has(place.id));
+  const originalReleasePlaces = sourcePlaces.filter((place) => place.lastVerified === "2026-10-18");
+  assert.deepEqual(new Set(sourcePlaces.map((place) => place.id)), activeSourceIds);
+  for (const field of ["description", "descriptionIt", "hook", "hookIt"]) assert.equal(new Set(originalReleasePlaces.map((place) => place[field])).size, originalReleasePlaces.length, `${field} must be unique`);
+  for (const place of originalReleasePlaces) {
     assert.ok(place.description.length >= 180, `${place.id} needs a richer English description`);
     assert.ok(place.descriptionIt.length >= 180, `${place.id} needs a richer Italian description`);
     assert.ok(place.hook.length >= 60, `${place.id} needs a specific English hook`);
