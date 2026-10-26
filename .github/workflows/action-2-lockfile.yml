@@ -1,0 +1,33 @@
+name: Action 2 deterministic dependency lock
+on:
+  push:
+    branches:
+      - audit/action-2-build-config-2026-10-26
+permissions:
+  contents: read
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ppastorin/london-advanced-site
+          ref: a196a2d3fa8418d439dbea5097cce609dfd37522
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package.json
+      - name: Generate exact Wrangler lockfile
+        run: |
+          npm pkg set 'devDependencies.wrangler=4.129.0'
+          npm install --package-lock-only --ignore-scripts
+          npm ci --ignore-scripts
+          npx wrangler --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: action-2-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 7
