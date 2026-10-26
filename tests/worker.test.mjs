@@ -79,6 +79,47 @@ test("public POI reads chunk station lookups below D1's 100-bind limit", async (
   assert.equal(payload.places[0].stations[0].name, "Station");
 });
 
+test("compact public search covers bilingual editorial fields without station lookups", async () => {
+  let capturedSql = "";
+  let capturedBindings = [];
+  const DB = {
+    prepare(sql) {
+      capturedSql = sql;
+      return {
+        bind(...values) {
+          capturedBindings = values;
+          return {
+            all: async () => ({ results: [{
+              id: "PUB-1", slug: "the-dove", name: "The Dove", category: "FOOD", status: "published",
+              description_en: "A riverside pub.", description_it: "Un pub sul fiume.",
+              editorial_hook_en: "A historic pub.", editorial_hook_it: "Un pub storico.",
+              official_url: "https://example.com", google_maps_url: "https://maps.example.com", updated_at: "2026-10-26"
+            }] })
+          };
+        }
+      };
+    }
+  };
+  const response = await worker.fetch(
+    new Request("https://example.com/api/places?q=pub&compact=1&limit=250"),
+    { DB, ASSETS: assets() },
+    context()
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.match(capturedSql, /description_it LIKE/);
+  assert.match(capturedSql, /editorial_hook_it LIKE/);
+  assert.doesNotMatch(capturedSql, /place_time_affinity|place_stations/);
+  assert.equal(capturedBindings.filter(value => value === "%pub%").length, 7);
+  assert.deepEqual(payload.places[0], {
+    id: "PUB-1", slug: "the-dove", name: "The Dove", category: "FOOD", status: "published",
+    description: "A riverside pub.", descriptionIt: "Un pub sul fiume.",
+    hook: "A historic pub.", hookIt: "Un pub storico.",
+    officialUrl: "https://example.com", mapUrl: "https://maps.example.com", updatedAt: "2026-10-26"
+  });
+});
+
 test("admin endpoints reject unauthenticated requests", async () => {
   const response = await worker.fetch(
     new Request("https://example.com/admin/api/places"),
