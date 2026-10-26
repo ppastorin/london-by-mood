@@ -110,6 +110,7 @@ function parsePlaceFilters(params, publicOnly) {
     categories: String(params.get("categories") || "").split(",").map(normalCategory).filter(Boolean),
     limit: clampInt(params.get("limit"), 1, MAX_LIMIT, DEFAULT_LIMIT),
     offset: clampInt(params.get("offset"), 0, 100000, 0),
+    compact: params.get("compact") === "1",
   };
   const bbox = ["west", "south", "east", "north"].map((key) => finiteNumber(params.get(key)));
   if (bbox.every(Number.isFinite)) filters.bbox = bbox;
@@ -122,9 +123,12 @@ async function queryPlaces(db, filters) {
   if (filters.publicOnly) where.push("p.status = 'published'");
   else if (filters.status) { where.push("p.status = ?"); bindings.push(filters.status); }
   if (filters.query) {
-    where.push("(p.name LIKE ? ESCAPE '\\' OR p.description_en LIKE ? ESCAPE '\\' OR p.editorial_hook_en LIKE ? ESCAPE '\\')");
+    where.push(`(p.name LIKE ? ESCAPE '\\'
+      OR p.description_en LIKE ? ESCAPE '\\' OR p.description_it LIKE ? ESCAPE '\\'
+      OR p.editorial_hook_en LIKE ? ESCAPE '\\' OR p.editorial_hook_it LIKE ? ESCAPE '\\'
+      OR p.access_notes_en LIKE ? ESCAPE '\\' OR p.access_notes_it LIKE ? ESCAPE '\\')`);
     const needle = `%${escapeLike(filters.query)}%`;
-    bindings.push(needle, needle, needle);
+    bindings.push(needle, needle, needle, needle, needle, needle, needle);
   }
   if (filters.categories.length) {
     where.push(`p.category IN (${filters.categories.map(() => "?").join(",")})`);
@@ -135,12 +139,17 @@ async function queryPlaces(db, filters) {
     bindings.push(filters.bbox[0], filters.bbox[2], filters.bbox[1], filters.bbox[3]);
   }
   bindings.push(filters.limit, filters.offset);
-  const sql = `${placeSelect()} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+  const select = filters.compact
+    ? `SELECT p.id, p.slug, p.name, p.category, p.status, p.description_en, p.description_it,
+        p.editorial_hook_en, p.editorial_hook_it, p.official_url, p.google_maps_url, p.updated_at FROM places p`
+    : placeSelect();
+  const sql = `${select} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY CASE p.category ${CATEGORY_ORDER.map((category, index) => `WHEN '${category}' THEN ${index}`).join(" ")} ELSE 99 END,
       p.name COLLATE NOCASE LIMIT ? OFFSET ?`;
   const placeResult = await db.prepare(sql).bind(...bindings).all();
   const rows = placeResult.results || [];
   if (!rows.length) return [];
+  if (filters.compact) return rows.map(mapCompactPlace);
   const ids = rows.map((row) => row.id);
   const stations = new Map();
   // D1 accepts at most 100 bound parameters per statement. Leave headroom for
@@ -158,6 +167,23 @@ async function queryPlaces(db, filters) {
     }
   }
   return rows.map((row) => mapPlace(row, stations.get(row.id) || []));
+}
+
+function mapCompactPlace(row) {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    category: row.category,
+    status: row.status,
+    description: row.description_en || "",
+    descriptionIt: row.description_it || "",
+    hook: row.editorial_hook_en || "",
+    hookIt: row.editorial_hook_it || "",
+    officialUrl: row.official_url || "",
+    mapUrl: row.google_maps_url || "",
+    updatedAt: row.updated_at,
+  };
 }
 
 function placeSelect() {
