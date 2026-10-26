@@ -1,0 +1,119 @@
+name: Action 1 Cloudflare inventory and D1 backup
+on:
+  push:
+    branches:
+      - backup/action-1-2026-10-26
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Capture account inventory and D1 exports
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          out="cloudflare-action-1-backup"
+          mkdir -p "${out}/accounts"
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "Missing CLOUDFLARE_API_TOKEN" >&2
+            exit 1
+          fi
+          auth="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+          api_get() {
+            local url="$1"
+            local file="$2"
+            local tmp
+            tmp="$(mktemp)"
+            local status
+            status="$(curl --silent --show-error --output "${tmp}" --write-out '%{http_code}' --header "${auth}" --header 'Content-Type: application/json' "${url}")"
+            if [[ "${status}" =~ ^2 ]]; then
+              mv "${tmp}" "${file}"
+            else
+              jq -n --arg status "${status}" --arg body "$(tr '\n' ' ' < "${tmp}" | head -c 2000)" '{http_status:$status,error_body:$body}' > "${file}"
+              rm -f "${tmp}"
+            fi
+          }
+          api_get "https://api.cloudflare.com/client/v4/accounts" "${out}/accounts.json"
+          jq -e '.success == true' "${out}/accounts.json" >/dev/null
+          mapfile -t accounts < <(jq -r '.result[].id' "${out}/accounts.json")
+          for account_id in "${accounts[@]}"; do
+            echo "::add-mask::${account_id}"
+            dir="${out}/accounts/${account_id}"
+            mkdir -p "${dir}/workers" "${dir}/access" "${dir}/kv"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/workers/scripts" "${dir}/workers-scripts.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/workers/services" "${dir}/workers-services.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/workers/domains/records" "${dir}/workers-custom-domains.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/workers/subdomain" "${dir}/workers-subdomain.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/d1/database" "${dir}/d1-databases.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/storage/kv/namespaces" "${dir}/kv-namespaces.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/pages/projects" "${dir}/pages-projects.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/r2/buckets" "${dir}/r2-buckets.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/queues" "${dir}/queues.json"
+            api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/access/apps?per_page=100" "${dir}/access/apps.json"
+            if jq -e '.success == true' "${dir}/access/apps.json" >/dev/null 2>&1; then
+              while IFS= read -r app_id; do
+                [[ -n "${app_id}" ]] || continue
+                api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/access/apps/${app_id}/policies?per_page=100" "${dir}/access/policies-${app_id}.json"
+              done < <(jq -r '.result[].id' "${dir}/access/apps.json")
+            fi
+            if jq -e '.success == true' "${dir}/workers-scripts.json" >/dev/null 2>&1; then
+              while IFS= read -r script; do
+                [[ -n "${script}" ]] || continue
+                safe="$(printf '%s' "${script}" | tr -c 'A-Za-z0-9._-' '_')"
+                api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/workers/scripts/${script}/deployments" "${dir}/workers/${safe}-deployments.json"
+                api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/workers/scripts/${script}/schedules" "${dir}/workers/${safe}-schedules.json"
+                api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/workers/scripts/${script}/secrets" "${dir}/workers/${safe}-secret-names.json"
+              done < <(jq -r '.result[] | .id // .name // empty' "${dir}/workers-scripts.json")
+            fi
+            if jq -e '.success == true' "${dir}/kv-namespaces.json" >/dev/null 2>&1; then
+              while IFS= read -r ns; do
+                [[ -n "${ns}" ]] || continue
+                api_get "https://api.cloudflare.com/client/v4/accounts/${account_id}/storage/kv/namespaces/${ns}/keys?limit=1000" "${dir}/kv/${ns}-keys.json"
+              done < <(jq -r '.result[].id' "${dir}/kv-namespaces.json")
+            fi
+          done
+          api_get "https://api.cloudflare.com/client/v4/zones?per_page=100" "${out}/zones.json"
+          if jq -e '.success == true' "${out}/zones.json" >/dev/null 2>&1; then
+            mkdir -p "${out}/zones"
+            while IFS= read -r zone_id; do
+              echo "::add-mask::${zone_id}"
+              api_get "https://api.cloudflare.com/client/v4/zones/${zone_id}/workers/routes" "${out}/zones/${zone_id}-worker-routes.json"
+            done < <(jq -r '.result[].id' "${out}/zones.json")
+          fi
+          development_database_id="$(jq -r '.d1_databases[0].database_id' wrangler.dev.jsonc)"
+          development_account_id=""
+          production_account_id=""
+          production_database_id=""
+          for account_id in "${accounts[@]}"; do
+            if jq -e --arg id "${development_database_id}" '.success == true and any(.result[]; .uuid == $id)' "${out}/accounts/${account_id}/d1-databases.json" >/dev/null 2>&1; then
+              development_account_id="${account_id}"
+            fi
+            if jq -e '.success == true and any(.result[]; .id == "london-by-mood" or .name == "london-by-mood")' "${out}/accounts/${account_id}/workers-scripts.json" >/dev/null 2>&1; then
+              production_account_id="${account_id}"
+            fi
+          done
+          [[ -n "${development_account_id}" && -n "${production_account_id}" ]]
+          production_database_id="$(jq -r '.result[] | select(.name == "london-advanced-places") | .uuid' "${out}/accounts/${production_account_id}/d1-databases.json" | head -n 1)"
+          [[ -n "${production_database_id}" && "${production_database_id}" != "null" ]]
+          jq --arg id "${production_database_id}" '.d1_databases[0].database_id = $id' wrangler.jsonc > wrangler.production.backup.jsonc
+          CLOUDFLARE_ACCOUNT_ID="${development_account_id}" npx wrangler d1 export DB --remote --config wrangler.dev.jsonc --output "${out}/london-advanced-places-dev.sql" --skip-confirmation
+          CLOUDFLARE_ACCOUNT_ID="${production_account_id}" npx wrangler d1 export DB --remote --config wrangler.production.backup.jsonc --output "${out}/london-advanced-places-production.sql" --skip-confirmation
+          jq -n             --arg captured_at "$(date -u +%FT%TZ)"             --arg development_database_id "${development_database_id}"             --arg production_database_id "${production_database_id}"             '{captured_at:$captured_at,development_database_id:$development_database_id,production_database_id:$production_database_id}' > "${out}/backup-summary.json"
+          find "${out}" -type f -print0 | sort -z | xargs -0 sha256sum > "${out}/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: london-advanced-cloudflare-action-1-backup
+          path: cloudflare-action-1-backup
+          if-no-files-found: error
+          retention-days: 90
