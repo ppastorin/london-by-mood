@@ -249,6 +249,9 @@ jobs:
           for place in 'Beigel Bake Brick Lane Bakery' 'Mercato Mayfair' 'The Mayflower' 'Bang Bang Oriental Foodhall'; do
             jq -e --arg place "${place}" '.places | any(.name == $place and .category == "FOOD" and .status == "published" and (.description | length) > 80 and (.descriptionIt | length) > 80)' <<<"${places}" >/dev/null
           done
+          for place in 'Leinster Gardens False Facades' 'Elfin Oak'; do
+            jq -e --arg place "${place}" '.places | any(.name == $place and .status == "published" and (.descriptionIt | length) > 80 and (.hookIt | length) > 50)' <<<"${places}" >/dev/null
+          done
           printf '%s' "${places}" | node scripts/verify-additions-20261025.mjs
           mood_html="$(curl --fail --silent --show-error "${base_url}/")"
           grep -q "London by Mood" <<<"${mood_html}"
