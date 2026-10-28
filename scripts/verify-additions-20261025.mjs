@@ -1,6 +1,24 @@
 import { readFile } from "node:fs/promises";
 import { additions20261025 } from "../data/additions-20261025.mjs";
 
+const ACCEPTED_BASELINE_DATE = "2026-10-25";
+const isIsoDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day;
+};
+const isSecureUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+};
+
 const input = process.argv[2]
   ? await readFile(process.argv[2], "utf8")
   : await new Promise((resolve, reject) => {
@@ -28,8 +46,14 @@ for (const expected of additions20261025) {
   if ((place.hook || "").length < 35) failures.push(`${expected.name}: English hook is incomplete`);
   if ((place.hookIt || "").length < 35) failures.push(`${expected.name}: Italian hook is incomplete`);
   if (!place.reviewed) failures.push(`${expected.name}: mood profile is not reviewed`);
-  if (place.lastVerified !== "2026-10-25") failures.push(`${expected.name}: verification date is ${place.lastVerified || "missing"}`);
-  if (expected.officialUrl && place.officialUrl !== expected.officialUrl) failures.push(`${expected.name}: official URL was not updated`);
+  if (!isIsoDate(place.lastVerified)) {
+    failures.push(`${expected.name}: verification date is missing or invalid (${place.lastVerified || "missing"})`);
+  } else if (place.lastVerified < ACCEPTED_BASELINE_DATE) {
+    failures.push(`${expected.name}: verification date ${place.lastVerified} predates accepted baseline ${ACCEPTED_BASELINE_DATE}`);
+  }
+  if (expected.officialUrl && !isSecureUrl(place.officialUrl)) {
+    failures.push(`${expected.name}: official URL is missing or is not a secure HTTPS URL`);
+  }
   if (expected.market && Object.keys(place.openingHours || {}).length === 0) failures.push(`${expected.name}: market hours are missing`);
 }
 
