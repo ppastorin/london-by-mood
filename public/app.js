@@ -1,7 +1,9 @@
 import { MOODS, pressureLabel, rankPois } from "./ranking.js";
+import { placeResultCopy } from "./place-localization.js";
 
 const PLACE_CACHE_KEY = "london-by-mood:places:v1";
 const PLACE_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const LOCALE = new URLSearchParams(window.location.search).get("lang") === "it" ? "it" : "en";
 const TRAVEL_MODES = {
   transit: { label: "public transport", min: 15, max: 75 },
   walking: { label: "walking", min: 10, max: 90 },
@@ -391,7 +393,7 @@ function createResultCard(result, index, mood, location) {
   content.append(
     topline,
     createElement("h3", "", result.name),
-    createElement("p", "result-hook", result.hook || "A London place that fits the selected mood."),
+    createElement("p", "result-hook", placeResultCopy(result, LOCALE)),
   );
 
   const facts = document.createElement("div");
