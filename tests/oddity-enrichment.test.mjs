@@ -30,3 +30,20 @@ test("private, closed and non-London records carry honest context", () => {
   assert.match(byId.get("LA-8C880220").descriptionEn, /beyond Greater London/i);
   assert.match(byId.get("LA-E9371F5E").descriptionEn, /outside London/i);
 });
+
+test("Long doors identifies the Elms Lester theatrical scenery workshop", async () => {
+  const place = oddityEnrichment.find(({ id }) => id === "LA-812D6CBF");
+  assert.ok(place);
+  assert.match(place.descriptionEn, /Elms Lester Painting Rooms/);
+  assert.match(place.descriptionEn, /1903[–-]04/);
+  assert.match(place.descriptionEn, /theatrical scenery/);
+  assert.match(place.descriptionEn, /four 50-by-30-foot frames/);
+  assert.match(place.descriptionIt, /Elms Lester Painting Rooms/);
+  assert.match(place.descriptionIt, /scenografie teatrali/);
+  assert.equal(place.sourceUrl, "https://historicengland.org.uk/listing/the-list/list-entry/1113013");
+  const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
+  const published = snapshot.places.find(({ id }) => id === "LA-812D6CBF");
+  assert.match(published.description, /Elms Lester Painting Rooms/);
+  assert.match(published.descriptionIt, /scenografie teatrali/);
+  assert.equal(published.officialUrl, place.sourceUrl);
+});
