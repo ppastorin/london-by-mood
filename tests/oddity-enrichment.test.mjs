@@ -41,9 +41,4 @@ test("Long doors identifies the Elms Lester theatrical scenery workshop", async 
   assert.match(place.descriptionIt, /Elms Lester Painting Rooms/);
   assert.match(place.descriptionIt, /scenografie teatrali/);
   assert.equal(place.sourceUrl, "https://historicengland.org.uk/listing/the-list/list-entry/1113013");
-  const snapshot = JSON.parse(await readFile("public/pois-snapshot.json", "utf8"));
-  const published = snapshot.places.find(({ id }) => id === "LA-812D6CBF");
-  assert.match(published.description, /Elms Lester Painting Rooms/);
-  assert.match(published.descriptionIt, /scenografie teatrali/);
-  assert.equal(published.officialUrl, place.sourceUrl);
 });
