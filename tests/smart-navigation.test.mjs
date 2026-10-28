@@ -87,8 +87,8 @@ test("Smart Navigation cannot reuse place copy from an older editorial release",
   const html = await readFile(htmlPath, "utf8");
   const app = await readFile(appPath, "utf8");
 
-  assert.match(html, /smart-navigation\/app\.js\?v=20261028-oddity-copy/);
-  assert.match(app, /PLACES_CONTENT_VERSION="2026-10-28-oddity-copy-v1"/);
+  assert.match(html, /smart-navigation\/app\.js\?v=20261028-long-doors-fix/);
+  assert.match(app, /PLACES_CONTENT_VERSION="2026-10-28-oddity-copy-v2"/);
   assert.match(app, /api\(`\/api\/pois\?content=/);
   assert.match(app, /\{cache:"no-store"\}/);
 });
