@@ -1,6 +1,6 @@
 const LONDON_BOUNDS = Object.freeze({ west: -0.75, south: 51.20, east: 0.45, north: 51.80 });
 const PLACE_BOUNDS = Object.freeze({ west: -1.00, south: 50.80, east: 0.75, north: 52.00 });
-const DEFAULT_LIMIT = 1200;
+const DEFAULT_LIMIT = 2000;
 const MAX_LIMIT = 2000;
 const BIKEPOINT_CACHE_SECONDS = 45;
 const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "FOOD", "VIEWPOINT", "CHARITY_SHOP"];
