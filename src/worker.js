@@ -3,7 +3,7 @@ const PLACE_BOUNDS = Object.freeze({ west: -1.00, south: 50.80, east: 0.75, nort
 const DEFAULT_LIMIT = 1200;
 const MAX_LIMIT = 2000;
 const BIKEPOINT_CACHE_SECONDS = 45;
-const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "FOOD", "VIEWPOINT"];
+const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "FOOD", "VIEWPOINT", "CHARITY_SHOP"];
 
 export default {
   async fetch(request, env, ctx) {

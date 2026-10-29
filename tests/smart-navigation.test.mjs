@@ -87,8 +87,8 @@ test("Smart Navigation cannot reuse place copy from an older editorial release",
   const html = await readFile(htmlPath, "utf8");
   const app = await readFile(appPath, "utf8");
 
-  assert.match(html, /smart-navigation\/app\.js\?v=20261028-long-doors-fix/);
-  assert.match(app, /PLACES_CONTENT_VERSION="2026-10-28-oddity-copy-v2"/);
+  assert.match(html, /smart-navigation\/app\.js\?v=20261029-charity-shops-v1/);
+  assert.match(app, /PLACES_CONTENT_VERSION="2026-10-29-charity-shops-v1"/);
   assert.match(app, /api\(`\/api\/pois\?content=/);
   assert.match(app, /\{cache:"no-store"\}/);
 });
@@ -101,4 +101,6 @@ test("Italian Smart Navigation renders Italian place descriptions and hooks", as
   assert.match(app, /copy\.textContent=localizedPlaceCopy\(place\)/);
   assert.match(app, /const copy=localizedPlaceCopy\(place\)/);
   assert.match(app, /place\.price==="Free"\?"Gratis":place\.price/);
+  assert.match(app, /CHARITY_SHOP:"Negozi solidali"/);
+  assert.match(app, /CHARITY_SHOP:"Charity shops"/);
 });
