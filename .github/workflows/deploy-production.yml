@@ -232,7 +232,7 @@ jobs:
           total="$(jq -r '.[0].results[0].total' <<<"${integrity}")"
           published="$(jq -r '.[0].results[0].published' <<<"${integrity}")"
           missing_descriptions="$(jq -r '.[0].results[0].missing_descriptions' <<<"${integrity}")"
-          if [[ "${total}" -lt "881" || "${published}" -lt "881" ]]; then
+          if [[ "${total}" -lt "1224" || "${published}" -lt "1224" ]]; then
             echo "Production catalogue regressed: total=${total}, published=${published}." >&2
             exit 1
           fi
@@ -268,7 +268,7 @@ jobs:
           health="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/health")"
           jq -e '.ok == true and .database == "d1" and .integrations.walkingRoutingPrimary == "authenticated" and .integrations.walkingRoutingFallback == "authenticated" and .integrations.tflBikePoint == "authenticated"' <<<"${health}" >/dev/null
           places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=3000")"
-          jq -e '.ok == true and .count >= 979 and ([.places[] | select(.category == "FOOD")] | length) == 97' <<<"${places}" >/dev/null
+          jq -e '.ok == true and .count >= 1224 and ([.places[] | select(.category == "FOOD")] | length) == 97 and ([.places[] | select(.category == "CHARITY_SHOP")] | length) == 245' <<<"${places}" >/dev/null
           for place in 'Lonsdale Road' 'Aberfeldy Street Murals' 'Turin Street' 'Blackheath Village'; do
             jq -e --arg place "${place}" '.places | any(.name == $place and .status == "published" and (.description | length) > 80 and (.descriptionIt | length) > 80)' <<<"${places}" >/dev/null
           done
@@ -283,7 +283,9 @@ jobs:
           grep -q "London by Mood" <<<"${mood_html}"
           navigation_html="$(curl --fail --silent --show-error "${base_url}/smart-navigation/")"
           grep -q "Smart Navigation" <<<"${navigation_html}"
-          grep -q 'FOOD:"Food"' <<<"$(curl --fail --silent --show-error "${base_url}/smart-navigation/app.js")"
+          navigation_app="$(curl --fail --silent --show-error "${base_url}/smart-navigation/app.js")"
+          grep -q 'FOOD:"Food"' <<<"${navigation_app}"
+          grep -q 'CHARITY_SHOP:"Charity shops"' <<<"${navigation_app}"
 
           admin_status="200"
           for attempt in 1 2 3 4 5 6; do
