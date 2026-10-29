@@ -87,6 +87,32 @@ jobs:
       - name: Check source and unit tests
         run: npm run check && npm test
 
+      - name: Enforce production Observability sampling
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${PRODUCTION_ACCOUNT_ID}/workers/scripts/london-by-mood/script-settings"
+          auth_header="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+          current="$(curl --fail --silent --show-error --header "${auth_header}" "${api}")"
+          observability="$(jq -c '
+            .result.observability
+            | .enabled = true
+            | .logs = ((.logs // {}) + {
+                enabled: true,
+                invocation_logs: true,
+                head_sampling_rate: 0.1
+              })
+          ' <<<"${current}")"
+          body="$(jq -nc --argjson observability "${observability}" '{observability: $observability}')"
+          updated="$(curl --fail --silent --show-error \
+            --request PATCH \
+            --header "${auth_header}" \
+            --header "Content-Type: application/json" \
+            --data "${body}" \
+            "${api}")"
+          jq -e '.success == true and .result.observability.enabled == true and .result.observability.logs.head_sampling_rate == 0.1' <<<"${updated}" >/dev/null
+          echo "Production Workers Logs sampling is 10%."
+
       - name: Protect the private editor with Cloudflare Access
         shell: bash
         run: |
