@@ -268,7 +268,7 @@ jobs:
           health="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/health")"
           jq -e '.ok == true and .database == "d1" and .integrations.walkingRoutingPrimary == "authenticated" and .integrations.walkingRoutingFallback == "authenticated" and .integrations.tflBikePoint == "authenticated"' <<<"${health}" >/dev/null
           places="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 "${base_url}/api/pois?limit=3000")"
-          jq -e '.ok == true and .count >= 1224 and ([.places[] | select(.category == "FOOD")] | length) == 97 and ([.places[] | select(.category == "CHARITY_SHOP")] | length) == 245' <<<"${places}" >/dev/null
+          jq -e '.ok == true and .count >= 1224 and ([.places[] | select(.category == "FOOD")] | length) == 97 and ([.places[] | select(.category == "CHARITY_SHOP")] | length) == 298' <<<"${places}" >/dev/null
           for place in 'Lonsdale Road' 'Aberfeldy Street Murals' 'Turin Street' 'Blackheath Village'; do
             jq -e --arg place "${place}" '.places | any(.name == $place and .status == "published" and (.description | length) > 80 and (.descriptionIt | length) > 80)' <<<"${places}" >/dev/null
           done
