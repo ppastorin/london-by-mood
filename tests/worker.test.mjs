@@ -51,6 +51,7 @@ test("public POI reads chunk station lookups below D1's 100-bind limit", async (
     latitude: 51.5, longitude: -0.1, status: "published", opening_hours_json: "{}",
   }));
   const stationChunkSizes = [];
+  const collectionChunkSizes = [];
   const DB = {
     prepare(sql) {
       return {
@@ -58,6 +59,10 @@ test("public POI reads chunk station lookups below D1's 100-bind limit", async (
           return {
             all: async () => {
               if (sql.includes("FROM places p")) return { results: rows };
+              if (sql.includes("FROM place_collections")) {
+                collectionChunkSizes.push(values.length);
+                return { results: values.map((id) => ({ place_id: id, collection_code: "AREA" })) };
+              }
               if (sql.includes("FROM place_stations")) {
                 stationChunkSizes.push(values.length);
                 return { results: values.map((id) => ({ place_id: id, position: 1, station_id: "S", station_name: "Station", distance_metres: 100 })) };
@@ -76,7 +81,9 @@ test("public POI reads chunk station lookups below D1's 100-bind limit", async (
   assert.equal(response.headers.get("cache-control"), "public, max-age=0, s-maxage=60, must-revalidate");
   assert.doesNotMatch(response.headers.get("cache-control"), /stale-while-revalidate/);
   assert.deepEqual(stationChunkSizes, [80, 80, 45]);
+  assert.deepEqual(collectionChunkSizes, [80, 80, 45]);
   assert.equal(payload.places[0].stations[0].name, "Station");
+  assert.deepEqual(payload.places[0].collections, ["AREA"]);
 });
 
 test("compact public search covers bilingual editorial fields without station lookups", async () => {
@@ -84,12 +91,14 @@ test("compact public search covers bilingual editorial fields without station lo
   let capturedBindings = [];
   const DB = {
     prepare(sql) {
-      capturedSql = sql;
       return {
         bind(...values) {
-          capturedBindings = values;
+          if (sql.includes("FROM places p")) {
+            capturedSql = sql;
+            capturedBindings = values;
+          }
           return {
-            all: async () => ({ results: [{
+            all: async () => sql.includes("FROM place_collections") ? { results: [{ place_id: "PUB-1", collection_code: "FOOD" }] } : ({ results: [{
               id: "PUB-1", slug: "the-dove", name: "The Dove", category: "FOOD", status: "published",
               description_en: "A riverside pub.", description_it: "Un pub sul fiume.",
               editorial_hook_en: "A historic pub.", editorial_hook_it: "Un pub storico.",
@@ -113,7 +122,7 @@ test("compact public search covers bilingual editorial fields without station lo
   assert.doesNotMatch(capturedSql, /place_time_affinity|place_stations/);
   assert.equal(capturedBindings.filter(value => value === "%pub%").length, 7);
   assert.deepEqual(payload.places[0], {
-    id: "PUB-1", slug: "the-dove", name: "The Dove", category: "FOOD", status: "published",
+    id: "PUB-1", slug: "the-dove", name: "The Dove", category: "FOOD", collections: ["FOOD"], status: "published",
     description: "A riverside pub.", descriptionIt: "Un pub sul fiume.",
     hook: "A historic pub.", hookIt: "Un pub storico.",
     officialUrl: "https://example.com", mapUrl: "https://maps.example.com", updatedAt: "2026-10-26"
