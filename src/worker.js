@@ -3,7 +3,7 @@ const PLACE_BOUNDS = Object.freeze({ west: -1.00, south: 50.80, east: 0.75, nort
 const DEFAULT_LIMIT = 2000;
 const MAX_LIMIT = 2000;
 const BIKEPOINT_CACHE_SECONDS = 45;
-const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "FOOD", "VIEWPOINT", "CHARITY_SHOP"];
+const CATEGORY_ORDER = ["AREA", "BUILDING", "MUSEUM", "ODDITY", "PARK", "RELIGIOUS", "SHOPPING", "FOOD", "VIEWPOINT", "CHARITY_SHOP", "BOOKSHOP"];
 
 export default {
   async fetch(request, env, ctx) {
@@ -12,6 +12,12 @@ export default {
       if (url.pathname === "/health") return health(env);
       if (url.pathname === "/api/pois" || url.pathname === "/api/places") {
         return request.method === "GET" ? await listPublicPlaces(url, env) : methodNotAllowed("GET");
+      }
+      if (url.pathname === "/api/bookshops") {
+        return request.method === "GET" ? await listBookshops(env) : methodNotAllowed("GET");
+      }
+      if (url.pathname === "/api/charity-shops") {
+        return request.method === "GET" ? await listCharityShops(env) : methodNotAllowed("GET");
       }
       if (url.pathname === "/api/geocode") {
         return request.method === "GET" ? await geocodeAddress(url, env, ctx) : methodNotAllowed("GET");
@@ -95,6 +101,108 @@ async function listPublicPlaces(url, env) {
   });
 }
 
+async function listBookshops(env) {
+  requireDatabase(env);
+  const result = await env.DB.prepare(`
+    SELECT p.id AS place_id, p.name, p.latitude, p.longitude, p.description_en, p.description_it,
+      p.official_url, b.*
+    FROM places p
+    JOIN place_collections pc ON pc.place_id = p.id AND pc.collection_code = 'BOOKSHOP'
+    JOIN bookshop_details b ON b.place_id = p.id
+    WHERE p.status = 'published'
+    ORDER BY p.name COLLATE NOCASE, b.branch_name COLLATE NOCASE
+  `).all();
+  const shops = (result.results || []).map((row) => ({
+    id: row.source_bookshop_id,
+    place_id: row.place_id,
+    name: row.name,
+    branch: row.branch_name,
+    address: row.address,
+    postcode: row.postcode,
+    zone: row.tfl_zone,
+    station: row.station_name,
+    lat: row.latitude,
+    lon: row.longitude,
+    type: row.shop_type,
+    ownership: row.ownership,
+    stock: parseJsonArray(row.stock_json),
+    stock_it: parseJsonArray(row.stock_it_json),
+    specialisms: parseJsonArray(row.specialisms_json),
+    specialisms_it: parseJsonArray(row.specialisms_it_json),
+    specialism_tags: parseJsonArray(row.specialism_tags_json),
+    features: parseJsonArray(row.features_json),
+    features_it: parseJsonArray(row.features_it_json),
+    feature_tags: parseJsonArray(row.feature_tags_json),
+    heritage: row.heritage_en,
+    heritage_it: row.heritage_it,
+    description: row.description_en,
+    description_it: row.description_it,
+    website: row.official_url || row.source_url,
+    source: row.source_url,
+    confidence: row.confidence,
+    last_verified: row.last_verified_at,
+  }));
+  return json({ schema_version: "2.0", source: "canonical-d1", count: shops.length, shops }, 200, {
+    "Cache-Control": "public, max-age=0, s-maxage=300, must-revalidate",
+  });
+}
+
+async function listCharityShops(env) {
+  requireDatabase(env);
+  const result = await env.DB.prepare(`
+    SELECT p.id AS place_id, p.name, p.latitude, p.longitude, p.description_en, p.description_it,
+      d.*
+    FROM places p
+    JOIN place_collections pc ON pc.place_id = p.id AND pc.collection_code = 'CHARITY_SHOP'
+    JOIN charity_shop_details d ON d.place_id = p.id
+    WHERE p.status = 'published'
+    ORDER BY d.organisation_name COLLATE NOCASE, d.branch_name COLLATE NOCASE
+  `).all();
+  const labels = {
+    general: ["General", "Generale"], books_music: ["Books & music", "Libri e musica"],
+    vintage_designer: ["Vintage & designer", "Vintage e firmato"], children: ["Children", "Bambini"],
+    furniture_electrical: ["Furniture & electrical", "Mobili ed elettrico"], homeware: ["Homeware", "Casa"],
+  };
+  const shops = (result.results || []).map((row) => ({
+    id: String(row.place_id).replace(/^CS-/, "").toLowerCase(),
+    place_id: row.place_id,
+    name: row.name,
+    organization: row.organisation_name,
+    organization_id: row.organisation_id,
+    branch: row.branch_name,
+    category: "charity_shop",
+    subtype: row.subtype,
+    subtype_label_en: labels[row.subtype]?.[0] || row.subtype,
+    subtype_label_it: labels[row.subtype]?.[1] || row.subtype,
+    description_en: row.description_en,
+    description_it: row.description_it,
+    specialism_en: row.specialism_en,
+    specialism_it: row.specialism_it,
+    address: row.address,
+    postcode: row.postcode,
+    tfl_zone: row.tfl_zone,
+    lat: row.latitude,
+    lon: row.longitude,
+    opening_hours_en: row.opening_hours_en,
+    opening_hours_it: row.opening_hours_it,
+    source_url: row.source_url,
+    data_status: row.data_status,
+    last_verified_at: row.last_verified_at,
+  }));
+  return json({ schema_version: "2.0", source: "canonical-d1", count: shops.length, category: "charity_shop", shops }, 200, {
+    "Cache-Control": "public, max-age=0, s-maxage=300, must-revalidate",
+  });
+}
+
+function parseJsonArray(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 async function listAdminPlaces(url, env) {
   requireDatabase(env);
   const places = await queryPlaces(env.DB, parsePlaceFilters(url.searchParams, false));
@@ -131,8 +239,12 @@ async function queryPlaces(db, filters) {
     bindings.push(needle, needle, needle, needle, needle, needle, needle);
   }
   if (filters.categories.length) {
-    where.push(`p.category IN (${filters.categories.map(() => "?").join(",")})`);
-    bindings.push(...filters.categories);
+    const placeholders = filters.categories.map(() => "?").join(",");
+    where.push(`(p.category IN (${placeholders}) OR EXISTS (
+      SELECT 1 FROM place_collections pc
+      WHERE pc.place_id = p.id AND pc.collection_code IN (${placeholders})
+    ))`);
+    bindings.push(...filters.categories, ...filters.categories);
   }
   if (filters.bbox) {
     where.push("p.longitude BETWEEN ? AND ? AND p.latitude BETWEEN ? AND ?");
@@ -149,8 +261,21 @@ async function queryPlaces(db, filters) {
   const placeResult = await db.prepare(sql).bind(...bindings).all();
   const rows = placeResult.results || [];
   if (!rows.length) return [];
-  if (filters.compact) return rows.map(mapCompactPlace);
   const ids = rows.map((row) => row.id);
+  const collections = new Map();
+  for (let start = 0; start < ids.length; start += 80) {
+    const chunk = ids.slice(start, start + 80);
+    const collectionResult = await db.prepare(
+      `SELECT place_id, collection_code FROM place_collections
+       WHERE place_id IN (${chunk.map(() => "?").join(",")})
+       ORDER BY place_id, collection_code`,
+    ).bind(...chunk).all();
+    for (const row of collectionResult.results || []) {
+      if (!collections.has(row.place_id)) collections.set(row.place_id, []);
+      collections.get(row.place_id).push(row.collection_code);
+    }
+  }
+  if (filters.compact) return rows.map((row) => mapCompactPlace(row, collections.get(row.id) || [row.category]));
   const stations = new Map();
   // D1 accepts at most 100 bound parameters per statement. Leave headroom for
   // future filters and collect station relationships in bounded chunks.
@@ -166,15 +291,16 @@ async function queryPlaces(db, filters) {
       stations.get(row.place_id).push({ id: row.station_id, name: row.station_name, distanceM: row.distance_metres });
     }
   }
-  return rows.map((row) => mapPlace(row, stations.get(row.id) || []));
+  return rows.map((row) => mapPlace(row, stations.get(row.id) || [], collections.get(row.id) || [row.category]));
 }
 
-function mapCompactPlace(row) {
+function mapCompactPlace(row, collections = [row.category]) {
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
     category: row.category,
+    collections,
     status: row.status,
     description: row.description_en || "",
     descriptionIt: row.description_it || "",
@@ -194,9 +320,9 @@ function placeSelect() {
     FROM places p LEFT JOIN place_time_affinity t ON t.place_id = p.id`;
 }
 
-function mapPlace(row, stations = []) {
+function mapPlace(row, stations = [], collections = [row.category]) {
   return {
-    id: row.id, slug: row.slug, name: row.name, category: row.category, lat: row.latitude, lon: row.longitude,
+    id: row.id, slug: row.slug, name: row.name, category: row.category, collections, lat: row.latitude, lon: row.longitude,
     status: row.status, description: row.description_en || "", descriptionIt: row.description_it || "",
     touristIntensity: row.tourist_intensity, crowdScope: row.crowd_scope, visitMinutes: row.visit_minutes,
     officialUrl: row.official_url || "", guideUrl: row.guide_url || "",
