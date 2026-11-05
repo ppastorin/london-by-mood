@@ -5,6 +5,7 @@ import test from "node:test";
 const migrationPath = new URL("../migrations/0020_charity_shops.sql", import.meta.url);
 const expansionPath = new URL("../migrations/0021_charity_shop_network_expansion.sql", import.meta.url);
 const princessAlicePath = new URL("../migrations/0024_princess_alice_hospice_shops.sql", import.meta.url);
+const princessAliceLinksPath = new URL("../migrations/0025_princess_alice_collection_links.sql", import.meta.url);
 const workerPath = new URL("../src/worker.js", import.meta.url);
 
 test("charity shop migration adds a normalized category and 245 bilingual places", async () => {
@@ -39,6 +40,7 @@ test("charity shop expansion adds Cancer Research UK and British Red Cross", asy
 
 test("Princess Alice Hospice expansion adds seven zone 1-4 shops and specialist formats", async () => {
   const sql = await readFile(princessAlicePath, "utf8");
+  const linksSql = await readFile(princessAliceLinksPath, "utf8");
   const placeRows = sql.match(/INSERT INTO places\s*\(/g) || [];
   const detailRows = sql.match(/INSERT INTO charity_shop_details\s*\(/g) || [];
 
@@ -50,6 +52,9 @@ test("Princess Alice Hospice expansion adds seven zone 1-4 shops and specialist 
   assert.match(sql, /Alice''s Attic/);
   assert.match(sql, /'3'/);
   assert.match(sql, /'4'/);
+  assert.equal((linksSql.match(/CS-PRINCESS-ALICE-HOSPICE-/g) || []).length, 7);
+  assert.match(linksSql, /'CHARITY_SHOP'/);
+  assert.match(linksSql, /2026-11-05-princess-alice-hospice-shops/);
 });
 
 test("the public catalogue limit cannot truncate the charity-shop category", async () => {
