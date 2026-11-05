@@ -39,12 +39,12 @@ test("charity shop expansion adds Cancer Research UK and British Red Cross", asy
 
 test("Princess Alice Hospice expansion adds seven zone 1-4 shops and specialist formats", async () => {
   const sql = await readFile(princessAlicePath, "utf8");
-  const placeRows = sql.match(/INSERT INTO places\\s*\\(/g) || [];
-  const detailRows = sql.match(/INSERT INTO charity_shop_details\\s*\\(/g) || [];
+  const placeRows = sql.match(/INSERT INTO places\s*\(/g) || [];
+  const detailRows = sql.match(/INSERT INTO charity_shop_details\s*\(/g) || [];
 
   assert.equal(placeRows.length, 7);
   assert.equal(detailRows.length, 7);
-  assert.equal((sql.match(/'Princess Alice Hospice'/g) || []).length, 7);
+  assert.equal((sql.match(/,'princess-alice-hospice','Princess Alice Hospice'/g) || []).length, 7);
   assert.equal((sql.match(/'furniture_electrical'/g) || []).length, 3);
   assert.match(sql, /princess-alice-hospice-west-ealing-alices-attic/);
   assert.match(sql, /Alice''s Attic/);
