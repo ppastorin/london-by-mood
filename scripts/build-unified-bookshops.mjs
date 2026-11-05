@@ -10,7 +10,7 @@ const bookPayload = JSON.parse(await readFile(bookshopsPath, "utf8"));
 const charityPayload = JSON.parse(await readFile(charityPath, "utf8"));
 // Generated fail-safe exports can be fed back into the builder safely.
 const sourceBookshops = (bookPayload.shops || []).filter((shop) => !String(shop.id).startsWith("book-oxfam-"));
-const charityShops = charityPayload.shops || [];
+const charitySourceRows = charityPayload.shops || [];
 
 const existingPlaceByBookId = new Map(Object.entries({
   bk003: "LA-752A55AC",
@@ -61,6 +61,8 @@ const verifiedNewOxfam = [
     source_url: "https://www.oxfam.org.uk/shops/oxfam-books-music-kentish-town/",
   },
 ];
+const verifiedNewOxfamIds = new Set(verifiedNewOxfam.map((shop) => shop.id));
+const charityShops = charitySourceRows.filter((shop) => !verifiedNewOxfamIds.has(shop.id));
 
 function sql(value) {
   if (value === null || value === undefined) return "NULL";
@@ -79,6 +81,15 @@ function slug(value) {
 
 function canonicalId(shop) {
   return existingPlaceByBookId.get(shop.id) || `BOOK-${shop.id.toUpperCase()}`;
+}
+
+function typeTags(shop) {
+  const primary = String(shop.type || "").trim();
+  const stock = (shop.stock || []).join(" ").toLowerCase();
+  const tags = new Set(primary ? [primary] : []);
+  if (/second-hand|\bused\b/.test(stock)) tags.add("second-hand");
+  if (/\brare\b|antiquarian/.test(stock)) tags.add("rare-antiquarian");
+  return [...tags];
 }
 
 function bookshopFromCharity(row) {
@@ -136,7 +147,7 @@ const addedExistingOxfam = addedOxfamCharityIds.map((id) => {
 const newCharityRows = verifiedNewOxfam.map(newCharityRow);
 const newOxfamBookshops = newCharityRows.map(bookshopFromCharity);
 const allBookshops = [...sourceBookshops, ...addedExistingOxfam, ...newOxfamBookshops]
-  .map((shop) => ({ ...shop, place_id: shop.place_id || canonicalId(shop) }));
+  .map((shop) => ({ ...shop, place_id: shop.place_id || canonicalId(shop), type_tags: typeTags(shop) }));
 
 if (allBookshops.length !== 124) throw new Error(`Expected 124 bookshops, found ${allBookshops.length}`);
 if (new Set(allBookshops.map((shop) => shop.place_id)).size !== 124) throw new Error("Duplicate canonical place_id in bookshop collection");
@@ -174,7 +185,7 @@ out.push("INSERT INTO app_meta(key,value,updated_at) VALUES ('data_version','202
 
 await writeFile(outputPath, `${out.join("\n")}\n`);
 if (fallbackPath) {
-  await writeFile(fallbackPath, `${JSON.stringify({ schema_version: "2.0", generated: "2026-11-04", count: allBookshops.length, shops: allBookshops }, null, 2)}\n`);
+  await writeFile(fallbackPath, `${JSON.stringify({ schema_version: "2.1", generated: "2026-11-05", count: allBookshops.length, shops: allBookshops }, null, 2)}\n`);
 }
 if (charityFallbackPath) {
   const reconciledCharities = [...charityShops, ...newCharityRows];
