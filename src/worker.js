@@ -124,6 +124,7 @@ async function listBookshops(env) {
     lat: row.latitude,
     lon: row.longitude,
     type: row.shop_type,
+    type_tags: parseJsonArray(row.type_tags_json).length ? parseJsonArray(row.type_tags_json) : [row.shop_type],
     ownership: row.ownership,
     stock: parseJsonArray(row.stock_json),
     stock_it: parseJsonArray(row.stock_it_json),
@@ -142,7 +143,7 @@ async function listBookshops(env) {
     confidence: row.confidence,
     last_verified: row.last_verified_at,
   }));
-  return json({ schema_version: "2.0", source: "canonical-d1", count: shops.length, shops }, 200, {
+  return json({ schema_version: "2.1", source: "canonical-d1", count: shops.length, shops }, 200, {
     "Cache-Control": "public, max-age=0, s-maxage=300, must-revalidate",
   });
 }
